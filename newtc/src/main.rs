@@ -1,6 +1,7 @@
 #![allow(unused)]
 use std::env::args;
 use std::path::PathBuf;
+mod parse;
 
 struct Config {
     output_mode: OutputMode,
@@ -13,6 +14,8 @@ enum OutputMode {
     ParseTree,
     AbstractSyntaxTree,
 }
+
+
 
 fn main() {
     let arguments : Vec<String> = args()
