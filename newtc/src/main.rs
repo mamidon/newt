@@ -1,7 +1,10 @@
 #![allow(unused)]
+mod parse;
+
+use parse::tokenize;
+
 use std::env::args;
 use std::path::PathBuf;
-mod parse;
 
 struct Config {
     output_mode: OutputMode,
@@ -29,7 +32,15 @@ fn main() {
     let config = Config::parse(&borrowed_arguments);
     
     if let Some(config) = config {
-        unimplemented!("Not implemented");
+		if config.output_mode == OutputMode::Tokens {
+			if let Ok(text) = std::fs::read_to_string(config.entry_file) {
+				for token in tokenize(&text) {
+					println!("{}", token);
+				}
+			} else {
+				println!("Failed to open file!");
+			}
+		}
     } else {
         print_help();
     }
