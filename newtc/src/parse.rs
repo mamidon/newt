@@ -16,9 +16,10 @@ pub enum TokenType {
 	LeftBracket,
 	RightBracket,
 	
-	
 	Comma,
 	Dot,
+	Colon,
+	Semicolon,
 	
 	// math, comparison, and logic operators
 	Equals,
@@ -31,7 +32,11 @@ pub enum TokenType {
 	GreaterEquals,
 	Less,
 	LessEquals,
-	// TODO logic operators
+	Ampersand,
+	AmpersandAmpersand,
+	Pipe,
+	PipePipe,
+	Bang,
 	
 	// literals
 	IntegerLiteral,
@@ -44,7 +49,13 @@ pub enum TokenType {
 	// keywords
 	Fn,
 	Return,
-	// TODO more keywords
+	If,
+	For,
+	In,
+	While,
+	Let,
+	True,
+	False,
 	
 	EndOfFile,
 	Tombstone

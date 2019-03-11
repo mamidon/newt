@@ -136,7 +136,7 @@ Assignment
 
 ## JSX
 
-At first we won't directly support <..> syntax -- you'll have to build up your component heirarchies manually.
+At first we won't directly support <..> syntax -- you'll have to build up your component hierarchies manually.
 Special properties are:
 
 * tag
@@ -161,3 +161,60 @@ fn MyOtherComponent(props) {
     return { tag: label, props: { text: props.count }};
 }
 ```
+
+
+## Grammar
+
+Program
+	FunctionStatement*
+	
+FunctionStatement
+	'fn' Identifier '(' Identifier? (',' Identifier)* ')' StatementBlock
+	
+StatementBlock
+	'{' Statement* '}'
+	
+Statement
+	LetStatement
+	| FunctionStatement
+	| IfElseStatement
+	| WhileStatement
+	| ForInStatement
+	| ExpressionStatement
+	
+LetStatement
+	'let' Identifier '=' ExpressionStatement
+	
+ExpressionStatement
+	Expression ';'
+	
+Expression
+	MathExpression
+	
+MathExpression
+	AddExpression
+	
+AddExpression
+	MultiplicationExpression
+	| '+' Expression
+	| '-' Expression
+	
+MultiplicationExpression
+	UnaryExpression
+	| '*' Expression
+	| '/' Expression
+	
+UnaryExpression
+	PrimaryExpression
+	| '-' Expression
+	| '!' Expression
+	
+PrimaryExpression
+	FunctionCallExpression
+	| LiteralExpression
+	
+LiteralExpression
+	IntegerLiteralExpression
+	| FloatLiteralExpression
+	| StringLiteralExpression
+	| GlyphLiteralExpression
