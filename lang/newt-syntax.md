@@ -133,6 +133,44 @@ Comparison
 Assignment
 * `=`
 
+## Modules
+
+At least at first, modules will do nothing other than make multi file code reasonable.  A module is declared with 
+the module keyword, followed by a multi part identifier, followed by a scope which functions can be defined in.
+
+Individual functions & globals in a module may be exported, and exports from other modules may be imported via keyword.
+Note that the file pathnames do not need to match or have any relationship to the module pathnames.
+
+Besides built in modules (e.g. 'System', 'Runtime' etc) which are implicitly available for import; 1st party modules
+are found via a recursive directory search originating from the directory containing a newtc.config file.  Presumably
+newtc was invoked pointed at that directory.
+
+I won't add explicit support for third party modules right now -- package management is not a solved problem and deserves significant research.  For now it will be sufficient to either include 3rd party code side by side your code, or support extra root directories via 
+newtc.config.
+
+First.newt
+```
+module My.First.Module 
+{
+    import My.Second.Module; // imports this module's exported members directly into namespace
+    import My.Third.Module as Third; // imports this module's exported members attached to the 'Third' table
+    
+    export FirstFirstFunction(left, right)
+    {
+        return Third.ThirdFunction(left + right);
+    }
+
+    export FirstSecondFunction(left, right) 
+    {
+        return SecondFunction(left + right);
+    }
+
+    FirstPrivateFunction()
+    {
+        // not visible to any modules importing My.First.Module
+    }
+}
+```
 
 ## JSX
 
@@ -162,12 +200,21 @@ fn MyOtherComponent(props) {
 }
 ```
 
-
 ## Grammar
 
 Program
-	FunctionStatement*
-	
+	ModuleStatement* 
+
+ModuleStatement
+	'module' ModuleIdentifier '{' GlobalDeclaration* '}'
+    | GlobalDeclaration*
+
+ModuleIdentifier
+    Identifier('.' Identifier)*
+
+GlobalDeclaration
+    FunctionStatement
+
 FunctionStatement
 	'fn' Identifier '(' Identifier? (',' Identifier)* ')' StatementBlock
 	
@@ -187,12 +234,12 @@ LetStatement
 	
 ExpressionStatement
 	Expression ';'
-	
+
+// Highest priority lower down 
 Expression
-	MathExpression
-	
-MathExpression
 	AddExpression
+    | PropertyExpression
+    | CallExpression
 	
 AddExpression
 	MultiplicationExpression
@@ -212,9 +259,42 @@ UnaryExpression
 PrimaryExpression
 	FunctionCallExpression
 	| LiteralExpression
-	
+	| PropertyExpression
+    | CallExpression
+    | VariableExpression
+
 LiteralExpression
 	IntegerLiteralExpression
 	| FloatLiteralExpression
 	| StringLiteralExpression
 	| GlyphLiteralExpression
+    | TableLiteralExpression
+
+IntegerLiteralExpression
+    [0-9]+
+
+FloatLiteralExpression
+    [0-9]+ 'f' 
+    | [0-9]+ '.' [0-9]+ 'f'?
+
+StringLiteralExpression
+    '"' .* '"'
+
+GlyphLiteralExpression
+    ''' . '''
+
+TableLiteralExpression
+    '{' (LiteralExpression ':' Expression)* '}'
+
+VariableExpression
+    Identifier
+
+ArgumentList
+    Expression ( ',' Expression )*
+
+PropertyExpression
+    Expression '.' Identifier
+
+CallExpression
+    VariableExpression
+    | Expression '(' ArgumentList ')'
