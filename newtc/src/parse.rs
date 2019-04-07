@@ -138,6 +138,10 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 		if token.token_type == TokenType::EndOfFile {
 			break;
 		}
+		
+		if token.token_type == TokenType::Tombstone {
+			break;
+		}
 	}
 	
 	tokens
@@ -148,6 +152,8 @@ fn next_token(cursor: &mut Cursor) -> Token {
 		token
 	} else if cursor.empty() {
 		Token::new(TokenType::EndOfFile, 0)
+	} else if let Some(token) = lex_two_character_token(cursor) {
+		token
 	} else if let Some(token) = lex_single_character_token(cursor) {
 		token
 	} else if let Some(token) = lex_multi_character_token(cursor) {
@@ -208,9 +214,9 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 fn lex_multi_character_token(cursor: &mut Cursor) -> Option<Token> {
 	if let Some(numeric_literal) = scan_numeric_literal(cursor) {
 		Some(numeric_literal)
-	} /*else if let Some(string) = scan_string_literal(cursor) {
+	} else if let Some(string) = scan_string_literal(cursor) {
 		Some(string)
-	} else if let Some(glyph) = scan_glyph_literal(cursor) {
+	} /*else if let Some(glyph) = scan_glyph_literal(cursor) {
 		Some(glyph)
 	} */else if let Some(identifier) = scan_identifier(cursor) {
 		Some(identifier)

@@ -5,10 +5,12 @@ use parse::tokenize;
 
 use std::env::args;
 use std::path::PathBuf;
+use std::io::{stdin, stdout};
+use std::io::Write;
 
 struct Config {
     output_mode: OutputMode,
-    entry_file: PathBuf
+    entry_file: Option<PathBuf>
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -30,29 +32,73 @@ fn main() {
         .collect();
     
     let config = Config::parse(&borrowed_arguments);
-    
-    if let Some(config) = config {
-		if config.output_mode == OutputMode::Tokens {
-			if let Ok(text) = std::fs::read_to_string(config.entry_file) {
-				for token in tokenize(&text) {
-					println!("{}", token);
-				}
+
+	match config {
+		Some(c) => {
+			let entry_file_contents =  c.entry_file
+				.and_then(|f| std::fs::read_to_string(f).ok());
+			
+			if let Some(entry_file_contents) = entry_file_contents {
+				batch(entry_file_contents, c.output_mode)
 			} else {
-				println!("Failed to open file!");
+				repl(c.output_mode)
 			}
+		},
+		None => print_help()
+	}
+}
+
+fn batch(file: String, output_mode: OutputMode) {
+	match output_mode {
+		OutputMode::Tokens => token_batch(file),
+		_ => unimplemented!("Have not yet implemented batch processing for {:?}", output_mode)
+	}
+}
+
+fn repl(output_mode: OutputMode) {
+	match output_mode {
+		OutputMode::Tokens => token_repl(),
+		_ => unimplemented!("Have not yet implemented repl for {:?}", output_mode)
+	}
+}
+
+fn token_repl() {
+    let mut input_buffer = String::new();
+    loop {
+		input_buffer.clear();
+        print!("newt> ");
+		stdout().flush().ok().expect("failed to write to stdout");
+		
+		stdin().read_line(&mut input_buffer);
+		let sanitized_input = input_buffer.trim();
+		
+		if sanitized_input.len() == 0 {
+			break;
 		}
-    } else {
-        print_help();
+		
+		for token in tokenize(&sanitized_input) {
+			println!("{} ", token);
+		}
+		
+		println!();
     }
 }
 
+fn token_batch(file_contents: String) {
+	for token in tokenize(&file_contents) {
+		println!("{} ", token);
+	}
+
+	println!();
+}
+
 fn print_help() {
-    println!("usage: newtc --entry-file (path) --output-mode (tokens | parse-tree | ast)");
+    println!("usage: newtc [--entry-file (path)] --output-mode (tokens | parse-tree | ast)");
 }
 
 impl Config {
     pub fn parse(arguments: &Vec<&str>) -> Option<Config> {
-        if let (Some(output_mode), Some(entry_file)) = (Config::parse_output_mode(arguments), Config::parse_entry_file(arguments)) {
+        if let (Some(output_mode), entry_file) = (Config::parse_output_mode(arguments), Config::parse_entry_file(arguments)) {
             Some(Config {
                 output_mode,
                 entry_file

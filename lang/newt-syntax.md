@@ -12,19 +12,19 @@ Closures are supported.
 
 ```
 fn MyFunc(argument1, argument2) {
-    if !argument1 {
-        return {}; // empty table
-    }
+	 if !argument1 {
+		  return {}; // empty table
+	 }
 
-    if !argument2 {
-        return {}; // empty table
-    }
+	 if !argument2 {
+		  return {}; // empty table
+	 }
 
-    let inner = (arg) {
-        return arg + 1;
-    }
+	 let inner = (arg) {
+		  return arg + 1;
+	 }
 
-    return { foo: "bar", bar: inner(2) };
+	 return { foo: "bar", bar: inner(2) };
 }
 ```
 
@@ -44,16 +44,16 @@ Complex: arrays and hash maps
 
 ```
 fn Foo() {
-    let signedInt = 32;
-    let float = 3.14f;
-    let char = 'a';
-    let string = "foo";
+	 let signedInt = 32;
+	 let float = 3.14f;
+	 let char = 'a';
+	 let string = "foo";
 
-    let array = [0,1,2,3];
-    let map = { foo: "bar", test: 42 };
+	 let array = [0,1,2,3];
+	 let map = { foo: "bar", test: 42 };
 
-    print(map.foo);
-    print(map["foo"]);
+	 print(map.foo);
+	 print(map["foo"]);
 }
 ```
 
@@ -63,31 +63,31 @@ The usual -- if .. else, while, for .. in,
 
 ```
 fn Foo() {
-    if 4 == 2 + 2 {
-        print("true");
-    } else {
-        print("false");
-    }
+	 if 4 == 2 + 2 {
+		  print("true");
+	 } else {
+		  print("false");
+	 }
 
-    let i = 0;
-    while i < 3 {
-        i = i + 1;
-        print(str(i));
-    }
+	 let i = 0;
+	 while i < 3 {
+		  i = i + 1;
+		  print(str(i));
+	 }
 
-    for x in range(3) {
-        print(str(x));
-    }
+	 for x in range(3) {
+		  print(str(x));
+	 }
 
-    let map = { a: "foo", b: "bar", c: "whatever" };
+	 let map = { a: "foo", b: "bar", c: "whatever" };
 
-    for key in keys(map) {
-        print(key); 
-    }
+	 for key in keys(map) {
+		  print(key); 
+	 }
 
-    for value in values(map) {
-        print(value);
-    }
+	 for value in values(map) {
+		  print(value);
+	 }
 }
 ```
 
@@ -152,23 +152,23 @@ First.newt
 ```
 module My.First.Module 
 {
-    import My.Second.Module; // imports this module's exported members directly into namespace
-    import My.Third.Module as Third; // imports this module's exported members attached to the 'Third' table
-    
-    export FirstFirstFunction(left, right)
-    {
-        return Third.ThirdFunction(left + right);
-    }
+	 import My.Second.Module; // imports this module's exported members directly into namespace
+	 import My.Third.Module as Third; // imports this module's exported members attached to the 'Third' table
+	 
+	 export FirstFirstFunction(left, right)
+	 {
+		  return Third.ThirdFunction(left + right);
+	 }
 
-    export FirstSecondFunction(left, right) 
-    {
-        return SecondFunction(left + right);
-    }
+	 export FirstSecondFunction(left, right) 
+	 {
+		  return SecondFunction(left + right);
+	 }
 
-    FirstPrivateFunction()
-    {
-        // not visible to any modules importing My.First.Module
-    }
+	 FirstPrivateFunction()
+	 {
+		  // not visible to any modules importing My.First.Module
+	 }
 }
 ```
 
@@ -184,36 +184,36 @@ Special properties are:
 
 ```
 fn MyComponent() {
-    
-    let props = {
-        children: [
-            { tag: MyOtherComponent, props: { count: 1 }},
-            { tag: MyOtherComponent, props: { count: 2 }},
-        ]
-     };
+	 
+	 let props = {
+		  children: [
+				{ tag: MyOtherComponent, props: { count: 1 }},
+				{ tag: MyOtherComponent, props: { count: 2 }},
+		  ]
+	  };
 
-    return { tag: label, props: props };
+	 return { tag: label, props: props };
 }
 
 fn MyOtherComponent(props) {
-    return { tag: label, props: { text: props.count }};
+	 return { tag: label, props: { text: props.count }};
 }
 ```
 
 ## Grammar
-
+```
 Program
 	ModuleStatement* 
 
 ModuleStatement
 	'module' ModuleIdentifier '{' GlobalDeclaration* '}'
-    | GlobalDeclaration*
+	| GlobalDeclaration*
 
 ModuleIdentifier
-    Identifier('.' Identifier)*
+	Identifier('.' Identifier)*
 
 GlobalDeclaration
-    FunctionStatement
+	FunctionStatement
 
 FunctionStatement
 	'fn' Identifier '(' Identifier? (',' Identifier)* ')' StatementBlock
@@ -238,8 +238,8 @@ ExpressionStatement
 // Highest priority lower down 
 Expression
 	AddExpression
-    | PropertyExpression
-    | CallExpression
+	| PropertyExpression
+	| CallExpression
 	
 AddExpression
 	MultiplicationExpression
@@ -260,41 +260,42 @@ PrimaryExpression
 	FunctionCallExpression
 	| LiteralExpression
 	| PropertyExpression
-    | CallExpression
-    | VariableExpression
+	| CallExpression
+	| VariableExpression
 
 LiteralExpression
 	IntegerLiteralExpression
 	| FloatLiteralExpression
 	| StringLiteralExpression
 	| GlyphLiteralExpression
-    | TableLiteralExpression
+	| TableLiteralExpression
 
 IntegerLiteralExpression
-    [0-9]+
+	 [0-9]+
 
 FloatLiteralExpression
-    [0-9]+ 'f' 
-    | [0-9]+ '.' [0-9]+ 'f'?
+	 [0-9]+ 'f' 
+	 | [0-9]+ '.' [0-9]+ 'f'?
 
 StringLiteralExpression
-    '"' .* '"'
+	 '"' .* '"'
 
 GlyphLiteralExpression
-    ''' . '''
+	 ''' . '''
 
 TableLiteralExpression
-    '{' (LiteralExpression ':' Expression)* '}'
+	 '{' (LiteralExpression ':' Expression)* '}'
 
 VariableExpression
-    Identifier
+	 Identifier
 
 ArgumentList
-    Expression ( ',' Expression )*
+	 Expression ( ',' Expression )*
 
 PropertyExpression
-    Expression '.' Identifier
+	 Expression '.' Identifier
 
 CallExpression
-    VariableExpression
-    | Expression '(' ArgumentList ')'
+	 VariableExpression
+	 | Expression '(' ArgumentList ')'
+```
