@@ -74,6 +74,10 @@ impl Token {
 			length
 		}
 	}
+	
+	pub fn lexeme_length(&self) -> usize {
+		self.length
+	}
 }
 
 impl Display for Token {

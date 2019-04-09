@@ -32,7 +32,7 @@ fn main() {
         .collect();
     
     let config = Config::parse(&borrowed_arguments);
-
+	
 	match config {
 		Some(c) => {
 			let entry_file_contents =  c.entry_file
@@ -49,10 +49,7 @@ fn main() {
 }
 
 fn batch(file: String, output_mode: OutputMode) {
-	match output_mode {
-		OutputMode::Tokens => token_batch(file),
-		_ => unimplemented!("Have not yet implemented batch processing for {:?}", output_mode)
-	}
+	unimplemented!("Have not yet implemented batch processing")
 }
 
 fn repl(output_mode: OutputMode) {
@@ -76,20 +73,15 @@ fn token_repl() {
 			break;
 		}
 		
+		let mut offset = 0;
 		for token in tokenize(&sanitized_input) {
-			println!("{} ", token);
+			let end = offset + token.lexeme_length();
+			println!("{} '{}'", token, &sanitized_input[offset..end]);
+			offset = end;
 		}
 		
 		println!();
     }
-}
-
-fn token_batch(file_contents: String) {
-	for token in tokenize(&file_contents) {
-		println!("{} ", token);
-	}
-
-	println!();
 }
 
 fn print_help() {
