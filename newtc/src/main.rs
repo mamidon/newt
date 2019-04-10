@@ -1,12 +1,13 @@
 #![allow(unused)]
 mod parse;
 
-use parse::tokenize;
+use parse::{tokenize, TokenType, Token};
 
 use std::env::args;
-use std::path::PathBuf;
 use std::io::{stdin, stdout};
 use std::io::Write;
+use std::path::PathBuf;
+use std::str::Chars;
 
 struct Config {
     output_mode: OutputMode,
@@ -49,7 +50,10 @@ fn main() {
 }
 
 fn batch(file: String, output_mode: OutputMode) {
-	unimplemented!("Have not yet implemented batch processing")
+    match output_mode {
+        OutputMode::Tokens => token_batch(file),
+        _ => unimplemented!("Have not yet implemented batch processing for {:?}", output_mode)
+    }
 }
 
 fn repl(output_mode: OutputMode) {
@@ -57,6 +61,12 @@ fn repl(output_mode: OutputMode) {
 		OutputMode::Tokens => token_repl(),
 		_ => unimplemented!("Have not yet implemented repl for {:?}", output_mode)
 	}
+}
+
+fn token_batch(file: String) {
+	let tokens = tokenize(&file);
+	
+	print_tokens(&file, &tokens);
 }
 
 fn token_repl() {
@@ -73,15 +83,41 @@ fn token_repl() {
 			break;
 		}
 		
-		let mut offset = 0;
-		for token in tokenize(&sanitized_input) {
-			let end = offset + token.lexeme_length();
-			println!("{} '{}'", token, &sanitized_input[offset..end]);
-			offset = end;
-		}
+		let tokens = tokenize(&sanitized_input);
 		
-		println!();
+		print_tokens(&sanitized_input, &tokens);
     }
+}
+
+fn print_tokens(source_text: &str, tokens: &Vec<Token>) {
+	let mut offset = 0;
+	
+	for token in tokens {
+		let end = offset + token.lexeme_length();
+
+		match token.token_type() {
+			TokenType::Tombstone => println!("{}", token),
+			TokenType::Whitespace => {
+				let mut printable_whitespace = String::new();
+
+				for c in source_text[offset..end].chars() {
+					match c {
+						' ' => printable_whitespace.push_str("\\s"),
+						'\t' => printable_whitespace.push_str("\\t"),
+						'\n' => printable_whitespace.push_str("\\n"),
+						_ => printable_whitespace.push(c)
+					}
+				}
+
+				println!("{} '{}'", token, printable_whitespace);
+			},
+			_ => println!("{} '{}'", token, &source_text[offset..end])
+		}
+
+		offset = end;
+	}
+
+	println!();
 }
 
 fn print_help() {

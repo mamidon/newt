@@ -75,6 +75,10 @@ impl Token {
 		}
 	}
 	
+	pub fn token_type(&self) -> TokenType {
+		self.token_type
+	}
+	
 	pub fn lexeme_length(&self) -> usize {
 		self.length
 	}
