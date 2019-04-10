@@ -48,7 +48,7 @@ function Approve-Files {
 
 function Approve-Tokens {
 	$inputSuffix = ".tokens.newt"
-	$outputSuffix = ".tokens.approval"
+	$outputSuffix = ".tokens.candidate"
 	$approvedSuffix = ".tokens.approved"
 
 	Get-ChildItem -Recurse -Filter "*.tokens.newt" . | % {
