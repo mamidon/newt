@@ -243,9 +243,9 @@ fn lex_multi_character_token(cursor: &mut Cursor) -> Option<Token> {
 		Some(numeric_literal)
 	} else if let Some(string) = scan_string_literal(cursor) {
 		Some(string)
-	} /*else if let Some(glyph) = scan_glyph_literal(cursor) {
+	} else if let Some(glyph) = scan_glyph_literal(cursor) {
 		Some(glyph)
-	} */else if let Some(identifier) = scan_identifier(cursor) {
+	} else if let Some(identifier) = scan_identifier(cursor) {
 		Some(identifier)
 	} else {
 		None
@@ -294,6 +294,26 @@ fn scan_string_literal(cursor: &mut Cursor) -> Option<Token> {
 	if cursor.matches('"') {
 		cursor.consume();
 		Some(Token::new(TokenType::StringLiteral, cursor.consumed - offset))
+	} else {
+		Some(Token::new(TokenType::Tombstone, cursor.consumed - offset))
+	}
+}
+
+fn scan_glyph_literal(cursor: &mut Cursor) -> Option<Token> {
+	if !cursor.matches('\'') {
+		return None;
+	}
+
+	let offset = cursor.consumed;
+	cursor.consume();
+
+	while !cursor.empty() && cursor.matches_predicate(|c| c != '\'') {
+		cursor.consume();
+	}
+
+	if cursor.matches('\'') {
+		cursor.consume();
+		Some(Token::new(TokenType::GlyphLiteral, cursor.consumed - offset))
 	} else {
 		Some(Token::new(TokenType::Tombstone, cursor.consumed - offset))
 	}
