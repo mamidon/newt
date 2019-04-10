@@ -176,11 +176,11 @@ fn next_token(cursor: &mut Cursor) -> Token {
 		token
 	} else if cursor.empty() {
 		Token::new(TokenType::EndOfFile, 0)
+	} else if let Some(token) = lex_multi_character_token(cursor) {
+		token
 	} else if let Some(token) = lex_two_character_token(cursor) {
 		token
 	} else if let Some(token) = lex_single_character_token(cursor) {
-		token
-	} else if let Some(token) = lex_multi_character_token(cursor) {
 		token
 	} else {
 		cursor.consume();
@@ -253,12 +253,26 @@ fn lex_multi_character_token(cursor: &mut Cursor) -> Option<Token> {
 }
 
 fn scan_identifier(cursor: &mut Cursor) -> Option<Token> {
-	if !cursor.matches_predicate(|c| c.is_alphabetic()) {
+	let predicate = |c: char| c.is_alphabetic() || c == '_';
+	
+	if !cursor.matches_predicate(predicate) {
 		return None;
 	}
 	
+	// although underscores can start an identifier, they shouldn't stand alone as one
+	if let (Some(current), Some(next)) = (cursor.nth(0), cursor.nth(1)) {
+		let underscore_is_standalone = match (current, next) {
+			('_', n) => !predicate(n),
+			(_, _) => false
+		};
+		
+		if underscore_is_standalone {
+			return None;
+		}
+	}
+	
 	let offset = cursor.consumed;
-	while !cursor.empty() && cursor.matches_predicate(|c| c.is_alphanumeric()) {
+	while !cursor.empty() && cursor.matches_predicate(predicate) {
 		cursor.consume();
 	}
 	
