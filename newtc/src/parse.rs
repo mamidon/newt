@@ -20,6 +20,7 @@ pub enum TokenType {
 	Dot,
 	Colon,
 	Semicolon,
+	Underscore,
 	
 	// math, comparison, and logic operators
 	Equals,
@@ -210,6 +211,8 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 		Some('/') => make_token(TokenType::Slash),
 		Some('>') => make_token(TokenType::Greater),
 		Some('<') => make_token(TokenType::Less),
+		
+		Some('_') => make_token(TokenType::Underscore),
 		
 		_ => return None
 	};
