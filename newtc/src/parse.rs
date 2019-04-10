@@ -272,11 +272,16 @@ fn scan_identifier(cursor: &mut Cursor) -> Option<Token> {
 	}
 	
 	let offset = cursor.consumed;
+	let mut lexeme = String::new();
 	while !cursor.empty() && cursor.matches_predicate(predicate) {
-		cursor.consume();
+		lexeme.push(cursor.consume().unwrap());
 	}
 	
-	Some(Token::new(TokenType::Identifier, cursor.consumed - offset))
+	if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
+		Some(Token::new(keyword, cursor.consumed - offset))
+	} else {
+		Some(Token::new(TokenType::Identifier, cursor.consumed - offset))
+	}
 }
 
 fn scan_string_literal(cursor: &mut Cursor) -> Option<Token> {
@@ -364,6 +369,21 @@ fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
 		Some(token)
 	} else {
 		None
+	}
+}
+
+fn match_identifier_to_keyword(lexeme: &str) -> Option<TokenType> {
+	match lexeme {
+		"fn" => Some(TokenType::Fn),
+		"return" => Some(TokenType::Return),
+		"if" => Some(TokenType::If),
+		"for" => Some(TokenType::For),
+		"in" => Some(TokenType::In),
+		"while" => Some(TokenType::While),
+		"let" => Some(TokenType::Let),
+		"true" => Some(TokenType::True),
+		"false" => Some(TokenType::False),
+		_ => None
 	}
 }
 /*
