@@ -21,6 +21,9 @@ function Approve-Files {
 		$approvedSuffix
 	)
 
+	$passed = 0
+	$differences = 0
+
 	Get-ChildItem -Recurse . | ? {
 		$_.Name.EndsWith($candidateSuffix) 
 	} | % {
@@ -39,10 +42,23 @@ function Approve-Files {
 
 		$delta = (Compare-Object -Ref $candidateContent $approvedContent -PassThru).Count
 		
+		if ($delta -gt 0) {
+			$differences += 1
+		} else {
+			$passed += 1
+		}
+
 		$delta -gt 0
 	} | % {
 		$approvedFilePathName = $(Replace-Suffix -text ($_.FullName) -oldSuffix $candidateSuffix -newSuffix $approvedSuffix)
 		diffmerge $_.FullName $approvedFilePathName
+	}
+
+	$message = "Completed approvals -- $passed/$($differences+$passed) passed"
+	if ($differences -eq 0) {
+		Write-Host -ForegroundColor Green $message
+	} else {
+		Write-Host -ForegroundColor Red $message
 	}
 }
 
