@@ -142,18 +142,33 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 	while cursor.current().is_some() {
 		let token = next_token(&mut cursor);
 		
-		tokens.push(token);
-		
-		if token.token_type == TokenType::EndOfFile {
-			break;
+		if token.token_type == TokenType::Tombstone {
+			if let Some(merged_token) = merge_adjacent_tombstones(tokens.last(), token) {
+				tokens.pop();
+				tokens.push(merged_token)
+			} else {
+				tokens.push(token);
+			}
+		} else {
+			tokens.push(token);
 		}
 		
-		if token.token_type == TokenType::Tombstone {
+		if token.token_type == TokenType::EndOfFile {
 			break;
 		}
 	}
 	
 	tokens
+}
+
+fn merge_adjacent_tombstones(preceding_token: Option<&Token>, tombstone: Token) -> Option<Token> {
+	if let Some(preceding_token) = preceding_token {
+		if preceding_token.token_type == TokenType::Tombstone {
+			return Some(Token::new(TokenType::Tombstone, preceding_token.length + tombstone.length));
+		}
+	}
+	
+	None
 }
 
 fn next_token(cursor: &mut Cursor) -> Token {
@@ -168,7 +183,8 @@ fn next_token(cursor: &mut Cursor) -> Token {
 	} else if let Some(token) = lex_multi_character_token(cursor) {
 		token
 	} else {
-		Token::new(TokenType::Tombstone, 0)
+		cursor.consume();
+		Token::new(TokenType::Tombstone, 1)
 	}
 }
 
