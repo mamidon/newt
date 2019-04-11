@@ -234,7 +234,7 @@ fn scan_identifier(cursor: &mut Cursor) -> Option<Token> {
 	}
 
 	if lexeme.len() == 1 && lexeme.starts_with('_') {
-		None
+		Some(Token::new(TokenType::Underscore, cursor.consumed - offset))
 	} else if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
 		Some(Token::new(keyword, cursor.consumed - offset))
 	} else {
