@@ -1,0 +1,8 @@
+IntegerLiteral[4] '1234'
+Whitespace[1] '\n'
+FloatLiteral[4] '3.14'
+Whitespace[1] '\n'
+GlyphLiteral[3] ''c''
+Whitespace[1] '\n'
+StringLiteral[5] '"foo"'
+
