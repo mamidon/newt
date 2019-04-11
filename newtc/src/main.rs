@@ -1,7 +1,7 @@
 #![allow(unused)]
 mod parse;
 
-use parse::{tokenize, TokenType, Token};
+use parse::tokens::{tokenize, TokenType, Token};
 
 use std::env::args;
 use std::io::{stdin, stdout};
