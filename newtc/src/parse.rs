@@ -151,31 +151,16 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 	
 	while cursor.current().is_some() {
 		let token = next_token(&mut cursor);
-		let preceding_token = tokens.last();
-		
-		if let Some(preceding_token) = preceding_token {
-			match (preceding_token.token_type, token.token_type) {
-				(TokenType::Tombstone, TokenType::Tombstone) => {
-					let merged_token = Token::merge_as(TokenType::Tombstone, preceding_token, &token);
-					tokens.pop();
-					tokens.push(merged_token);
-				},
-				(TokenType::Slash, TokenType::Slash) => {
-					let mut comment_line_token = Token::merge_as(TokenType::CommentLine, preceding_token, &token);
-					
-					while !cursor.empty() && cursor.matches_predicate(|c| c != '\n') {
-						cursor.consume();
-						comment_line_token.length += 1;
-					}
-					
-					tokens.pop();
-					tokens.push(comment_line_token);
-				},
-				(_, _) => tokens.push(token)
+
+		if token.token_type == TokenType::Tombstone {
+			while tokens.last().filter(|t| t.token_type == TokenType::Tombstone).is_some() {
+				let preceding_token = tokens.last().expect("We checked the token exists in the while statement");
+				let merged_token = Token::merge_as(TokenType::Tombstone, preceding_token, &token);
+				tokens.pop();
 			}
-		} else {
-			tokens.push(token);
 		}
+		
+		tokens.push(token);
 		
 		if token.token_type == TokenType::EndOfFile {
 			break;
