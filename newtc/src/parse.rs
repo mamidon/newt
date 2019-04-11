@@ -51,6 +51,7 @@ pub enum TokenType {
 	Fn,
 	Return,
 	If,
+	Else,
 	For,
 	In,
 	While,
@@ -373,10 +374,11 @@ fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
 }
 
 fn match_identifier_to_keyword(lexeme: &str) -> Option<TokenType> {
-	match lexeme {
+	match lexeme.to_lowercase().as_str() {
 		"fn" => Some(TokenType::Fn),
 		"return" => Some(TokenType::Return),
 		"if" => Some(TokenType::If),
+		"else" => Some(TokenType::Else),
 		"for" => Some(TokenType::For),
 		"in" => Some(TokenType::In),
 		"while" => Some(TokenType::While),
