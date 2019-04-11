@@ -249,6 +249,8 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 		Some('>') => make_token(TokenType::Greater),
 		Some('<') => make_token(TokenType::Less),
 		
+		Some('|') => make_token(TokenType::Pipe),
+		Some('&') => make_token(TokenType::Ampersand),
 		Some('!') => make_token(TokenType::Bang),
 		
 		_ => return None
@@ -274,31 +276,22 @@ fn lex_multi_character_token(cursor: &mut Cursor) -> Option<Token> {
 }
 
 fn scan_identifier(cursor: &mut Cursor) -> Option<Token> {
-	let predicate = |c: char| c.is_alphabetic() || c == '_';
+	let starting_predicate = |c: char| c.is_alphabetic() || c == '_';
+	let suffix_predicate = |c: char| c.is_alphanumeric() || c == '_';
 	
-	if !cursor.matches_predicate(predicate) {
+	if !cursor.matches_predicate(starting_predicate) {
 		return None;
-	}
-	
-	// although underscores can start an identifier, they shouldn't stand alone as one
-	if let (Some(current), Some(next)) = (cursor.nth(0), cursor.nth(1)) {
-		let underscore_is_standalone = match (current, next) {
-			('_', n) => !predicate(n),
-			(_, _) => false
-		};
-		
-		if underscore_is_standalone {
-			return None;
-		}
 	}
 	
 	let offset = cursor.consumed;
 	let mut lexeme = String::new();
-	while !cursor.empty() && cursor.matches_predicate(predicate) {
+	while !cursor.empty() && cursor.matches_predicate(suffix_predicate) {
 		lexeme.push(cursor.consume().unwrap());
 	}
 	
-	if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
+	if lexeme.len() == 1 && lexeme.starts_with('_') {
+		None
+	} else if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
 		Some(Token::new(keyword, cursor.consumed - offset))
 	} else {
 		Some(Token::new(TokenType::Identifier, cursor.consumed - offset))
@@ -370,8 +363,24 @@ fn scan_numeric_literal(cursor: &mut Cursor) -> Option<Token> {
 }
 
 fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
-	fn make_token(token_type: TokenType) -> Token {
+	fn make_token(cursor: &mut Cursor, token_type: TokenType) -> Token {
+		cursor.consume();
+		cursor.consume();
+		
 		Token::new(token_type, 2)
+	}
+	
+	fn make_token_consume_line(cursor: &mut Cursor, token_type: TokenType) -> Token {
+		let mut length = 2;
+		cursor.consume();
+		cursor.consume();
+		
+		while !cursor.empty() && cursor.matches_predicate(|c| c != '\n') {
+			length += 1;
+			cursor.consume();
+		}
+		
+		Token::new(token_type, length)
 	}
 
 	let current = cursor.current();
@@ -379,14 +388,15 @@ fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
 
 	if let (Some(current), Some(next)) = (cursor.current(), cursor.nth(1)) {
 		let token = match (current, next) {
-			('=', '=') => make_token(TokenType::EqualsEquals),
-			('>', '=') => make_token(TokenType::GreaterEquals),
-			('<', '=') => make_token(TokenType::LessEquals),
+			('=', '=') => make_token(cursor, TokenType::EqualsEquals),
+			('>', '=') => make_token(cursor, TokenType::GreaterEquals),
+			('<', '=') => make_token(cursor, TokenType::LessEquals),
+			('|', '|') => make_token(cursor, TokenType::PipePipe),
+			('&', '&') => make_token(cursor, TokenType::AmpersandAmpersand),
+			('/', '/') => make_token_consume_line(cursor, TokenType::CommentLine),
 			_ => return None
 		};
 		
-		cursor.consume();
-		cursor.consume();
 		Some(token)
 	} else {
 		None
