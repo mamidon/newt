@@ -237,7 +237,10 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 
 		Some(',') => make_token(TokenType::Comma),
 		Some('.') => make_token(TokenType::Dot),
-		
+		Some(':') => make_token(TokenType::Colon),
+		Some(';') => make_token(TokenType::Semicolon),
+		Some('_') => make_token(TokenType::Underscore),
+
 		Some('=') => make_token(TokenType::Equals),
 		Some('+') => make_token(TokenType::Plus),
 		Some('-') => make_token(TokenType::Minus),
@@ -246,7 +249,7 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 		Some('>') => make_token(TokenType::Greater),
 		Some('<') => make_token(TokenType::Less),
 		
-		Some('_') => make_token(TokenType::Underscore),
+		Some('!') => make_token(TokenType::Bang),
 		
 		_ => return None
 	};
