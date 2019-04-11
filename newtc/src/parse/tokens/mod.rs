@@ -1,6 +1,9 @@
 use crate::parse::{Cursor};
+
 use std::fmt::{Display, Formatter};
 use std::fmt::Error;
+
+mod tests;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum TokenType {
