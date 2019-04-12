@@ -120,12 +120,9 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 		}
 
 		tokens.push(token);
-
-		if token.token_type == TokenType::EndOfFile {
-			break;
-		}
 	}
 
+	tokens.push(Token::new(TokenType::EndOfFile, 0));
 	tokens
 }
 
@@ -136,8 +133,6 @@ fn merge_adjacent_tokens(token_type: TokenType, preceding_token: Token, tombston
 fn next_token(cursor: &mut Cursor) -> Token {
 	if let Some(token) = lex_whitespace(cursor) {
 		token
-	} else if cursor.empty() {
-		Token::new(TokenType::EndOfFile, 0)
 	} else if let Some(token) = lex_multi_character_token(cursor) {
 		token
 	} else if let Some(token) = lex_two_character_token(cursor) {
