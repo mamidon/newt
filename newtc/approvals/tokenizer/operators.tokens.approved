@@ -88,4 +88,5 @@ Identifier[1] 'd'
 Equals[1] '='
 IntegerLiteral[1] '2'
 Semicolon[1] ';'
+EndOfFile[0] ''
 

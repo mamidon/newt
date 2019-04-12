@@ -19,4 +19,5 @@ Whitespace[1] '\n'
 True[4] 'true'
 Whitespace[1] '\n'
 False[5] 'false'
+EndOfFile[0] ''
 

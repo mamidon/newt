@@ -9,4 +9,5 @@ Identifier[8] 'seperate'
 Whitespace[1] '\s'
 Identifier[11] 'identifiers'
 Whitespace[2] '\n\n'
+EndOfFile[0] ''
 

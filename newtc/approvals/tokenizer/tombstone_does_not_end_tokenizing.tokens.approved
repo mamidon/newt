@@ -5,4 +5,5 @@ Whitespace[1] '\s'
 CommentLine[10] '// problem'
 Whitespace[1] '\n'
 Identifier[16] 'secondIdentifier'
+EndOfFile[0] ''
 
