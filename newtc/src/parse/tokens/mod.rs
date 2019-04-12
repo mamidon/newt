@@ -7,7 +7,7 @@ mod tests;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum TokenType {
-	Whitespace,
+	WhiteSpace,
 	CommentLine,
 	CommentBlock,
 
@@ -24,8 +24,8 @@ pub enum TokenType {
 	Comma,
 	Dot,
 	Colon,
-	Semicolon,
-	Underscore,
+	SemiColon,
+	UnderScore,
 
 	// math, comparison, and logic operators
 	Equals,
@@ -65,7 +65,7 @@ pub enum TokenType {
 	False,
 
 	EndOfFile,
-	Tombstone
+	TombStone
 }
 
 #[derive(Copy, Clone)]
@@ -111,10 +111,10 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 	while cursor.current().is_some() {
 		let token = next_token(&mut cursor);
 
-		if token.token_type == TokenType::Tombstone {
-			while tokens.last().filter(|t| t.token_type == TokenType::Tombstone).is_some() {
+		if token.token_type == TokenType::TombStone {
+			while tokens.last().filter(|t| t.token_type == TokenType::TombStone).is_some() {
 				let preceding_token = tokens.last().expect("We checked the token exists in the while statement");
-				let merged_token = Token::merge_as(TokenType::Tombstone, preceding_token, &token);
+				let merged_token = Token::merge_as(TokenType::TombStone, preceding_token, &token);
 				tokens.pop();
 			}
 		}
@@ -141,7 +141,7 @@ fn next_token(cursor: &mut Cursor) -> Token {
 		token
 	} else {
 		cursor.consume();
-		Token::new(TokenType::Tombstone, 1)
+		Token::new(TokenType::TombStone, 1)
 	}
 }
 
@@ -153,7 +153,7 @@ fn lex_whitespace(cursor: &mut Cursor) -> Option<Token> {
 	}
 
 	if offset != cursor.consumed {
-		Some(Token::new(TokenType::Whitespace, cursor.consumed - offset))
+		Some(Token::new(TokenType::WhiteSpace, cursor.consumed - offset))
 	} else {
 		None
 	}
@@ -177,8 +177,8 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 		Some(',') => make_token(TokenType::Comma),
 		Some('.') => make_token(TokenType::Dot),
 		Some(':') => make_token(TokenType::Colon),
-		Some(';') => make_token(TokenType::Semicolon),
-		Some('_') => make_token(TokenType::Underscore),
+		Some(';') => make_token(TokenType::SemiColon),
+		Some('_') => make_token(TokenType::UnderScore),
 
 		Some('=') => make_token(TokenType::Equals),
 		Some('+') => make_token(TokenType::Plus),
@@ -229,7 +229,7 @@ fn scan_identifier(cursor: &mut Cursor) -> Option<Token> {
 	}
 
 	if lexeme.len() == 1 && lexeme.starts_with('_') {
-		Some(Token::new(TokenType::Underscore, cursor.consumed - offset))
+		Some(Token::new(TokenType::UnderScore, cursor.consumed - offset))
 	} else if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
 		Some(Token::new(keyword, cursor.consumed - offset))
 	} else {
@@ -253,7 +253,7 @@ fn scan_string_literal(cursor: &mut Cursor) -> Option<Token> {
 		cursor.consume();
 		Some(Token::new(TokenType::StringLiteral, cursor.consumed - offset))
 	} else {
-		Some(Token::new(TokenType::Tombstone, cursor.consumed - offset))
+		Some(Token::new(TokenType::TombStone, cursor.consumed - offset))
 	}
 }
 
@@ -273,7 +273,7 @@ fn scan_glyph_literal(cursor: &mut Cursor) -> Option<Token> {
 		cursor.consume();
 		Some(Token::new(TokenType::GlyphLiteral, cursor.consumed - offset))
 	} else {
-		Some(Token::new(TokenType::Tombstone, cursor.consumed - offset))
+		Some(Token::new(TokenType::TombStone, cursor.consumed - offset))
 	}
 }
 
