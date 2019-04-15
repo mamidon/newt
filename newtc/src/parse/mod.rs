@@ -3,20 +3,37 @@ use std::str::Chars;
 
 pub mod tokens;
 
+pub trait Cursor<I> {
+	fn current(&self) -> Option<I>;
+	fn nth(&self, n: usize) -> Option<I>;
+	fn consume(&mut self) -> Option<I>;
+	fn consumed(&self) -> usize;
+	fn matches(&self, candidate: I) -> bool;
+	fn matches_predicate(&self, predicate: &Fn(I) -> bool) -> bool;
+	fn empty(&self) -> bool;
+}
 
-pub struct Cursor<'a> {
+
+pub struct TokenCursor<'a> {
 	text: &'a str,
 	consumed: usize,
 }
 
-impl<'a> Cursor<'a> {
-	fn new(text: &'a str) -> Cursor {
-		Cursor {
+impl<'a> TokenCursor<'a> {
+	pub fn new(text: &'a str) -> TokenCursor {
+		TokenCursor {
 			text,
 			consumed: 0,
 		}
 	}
+	
+	fn chars(&self) -> Chars {
+		self.text[self.consumed..].chars()
+	}
+}
 
+
+impl<'a> Cursor<char> for TokenCursor<'a> {
 	fn current(&self) -> Option<char> {
 		self.chars().next()
 	}
@@ -30,23 +47,24 @@ impl<'a> Cursor<'a> {
 		self.consumed += 1;
 		Some(next)
 	}
+	
+	fn consumed(&self) -> usize {
+		self.consumed
+	}
 
 	fn matches(&self, candidate: char) -> bool {
 		self.current() == Some(candidate)
 	}
 
-	fn matches_predicate<P: Fn(char) -> bool>(&self, predicate: P) -> bool {
+	fn matches_predicate(&self, predicate: &Fn(char) -> bool) -> bool {
 		self.current().map(predicate).unwrap_or(false)
 	}
-	
+
 	fn empty(&self) -> bool {
 		self.current().is_none()
 	}
-
-	fn chars(&self) -> Chars {
-		self.text[self.consumed..].chars()
-	}
 }
+
 
 
 /*

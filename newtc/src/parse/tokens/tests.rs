@@ -26,8 +26,8 @@ single_token_tests! {
 	comma_token: (",", TokenType::Comma),
 	dot_token: (".", TokenType::Dot),
 	colon_token: (":", TokenType::Colon),
-	semicolon_token: (";", TokenType::Semicolon),
-	underscore_token: ("_", TokenType::Underscore),
+	semicolon_token: (";", TokenType::SemiColon),
+	underscore_token: ("_", TokenType::UnderScore),
 
 	equals_token: ("=", TokenType::Equals),
 	plus_token: ("+", TokenType::Plus),
@@ -45,7 +45,7 @@ single_token_tests! {
 	// double character tokens
 	equals_equals_token: ("==", TokenType::EqualsEquals),
 	greater_equals_token: (">=", TokenType::GreaterEquals),
-	less_equals_token ("<=", TokenType::LessEquals),
+	less_equals_token: ("<=", TokenType::LessEquals),
 	ampersand_ampersand_token: ("&&", TokenType::AmpersandAmpersand),
 	pipe_pipe_token: ("||", TokenType::PipePipe),
 	
@@ -104,22 +104,22 @@ token_sequence_tests! {
 	]),
 	
 	identifiers_can_not_be_just_underscores: ("_", [
-		TokenType::Underscore, 
+		TokenType::UnderScore, 
 		TokenType::EndOfFile
 	]),
 													
 	tombstones_do_not_stop_tokenizing: ("foo`bar`fizz", [
 		TokenType::Identifier, 
-		TokenType::Tombstone,
+		TokenType::TombStone,
 		TokenType::Identifier, 
-		TokenType::Tombstone,
+		TokenType::TombStone,
 		TokenType::Identifier, 
 		TokenType::EndOfFile
 	]),
 														
 	tombstones_which_are_adjacent_are_merged: ("foo``fizz", [
 		TokenType::Identifier,
-		TokenType::Tombstone,
+		TokenType::TombStone,
 		TokenType::Identifier, 
 		TokenType::EndOfFile
 	]),
@@ -127,7 +127,7 @@ token_sequence_tests! {
 	comment_lines_consume_whole_line: ("foo//not identifier`token\n123", [
 		TokenType::Identifier,
 		TokenType::CommentLine,
-		TokenType::Whitespace,
+		TokenType::WhiteSpace,
 		TokenType::IntegerLiteral,
 		TokenType::EndOfFile
 	]),

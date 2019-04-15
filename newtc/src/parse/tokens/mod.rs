@@ -1,4 +1,4 @@
-use crate::parse::{Cursor};
+use crate::parse::{Cursor, TokenCursor};
 
 use std::fmt::{Display, Formatter};
 use std::fmt::Error;
@@ -106,10 +106,10 @@ impl Display for Token {
 
 pub fn tokenize(text: &str) -> Vec<Token> {
 	let mut tokens: Vec<Token> = vec![];
-	let mut cursor = Cursor::new(text);
+	let cursor: &mut Cursor<char> = &mut TokenCursor::new(text);
 
 	while cursor.current().is_some() {
-		let token = next_token(&mut cursor);
+		let token = next_token(cursor);
 
 		if token.token_type == TokenType::TombStone {
 			while tokens.last().filter(|t| t.token_type == TokenType::TombStone).is_some() {
@@ -130,7 +130,7 @@ fn merge_adjacent_tokens(token_type: TokenType, preceding_token: Token, tombston
 	Token::new(token_type, preceding_token.length + tombstone.length)
 }
 
-fn next_token(cursor: &mut Cursor) -> Token {
+fn next_token(cursor: &mut Cursor<char>) -> Token {
 	if let Some(token) = lex_whitespace(cursor) {
 		token
 	} else if let Some(token) = lex_multi_character_token(cursor) {
@@ -145,21 +145,21 @@ fn next_token(cursor: &mut Cursor) -> Token {
 	}
 }
 
-fn lex_whitespace(cursor: &mut Cursor) -> Option<Token> {
-	let offset = cursor.consumed;
+fn lex_whitespace(cursor: &mut Cursor<char>) -> Option<Token> {
+	let offset = cursor.consumed();
 
-	while !cursor.empty() && cursor.matches_predicate(|c| c.is_whitespace()) {
+	while !cursor.empty() && cursor.matches_predicate(&|c: char| c.is_whitespace()) {
 		cursor.consume();
 	}
 
-	if offset != cursor.consumed {
-		Some(Token::new(TokenType::WhiteSpace, cursor.consumed - offset))
+	if offset != cursor.consumed() {
+		Some(Token::new(TokenType::WhiteSpace, cursor.consumed() - offset))
 	} else {
 		None
 	}
 }
 
-fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
+fn lex_single_character_token(cursor: &mut Cursor<char>) -> Option<Token> {
 	fn make_token(token_type: TokenType) -> Token {
 		Token::new(token_type, 1)
 	}
@@ -200,7 +200,7 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 	Some(token)
 }
 
-fn lex_multi_character_token(cursor: &mut Cursor) -> Option<Token> {
+fn lex_multi_character_token(cursor: &mut Cursor<char>) -> Option<Token> {
 	if let Some(numeric_literal) = scan_numeric_literal(cursor) {
 		Some(numeric_literal)
 	} else if let Some(string) = scan_string_literal(cursor) {
@@ -214,107 +214,107 @@ fn lex_multi_character_token(cursor: &mut Cursor) -> Option<Token> {
 	}
 }
 
-fn scan_identifier(cursor: &mut Cursor) -> Option<Token> {
+fn scan_identifier(cursor: &mut Cursor<char>) -> Option<Token> {
 	let starting_predicate = |c: char| c.is_alphabetic() || c == '_';
 	let suffix_predicate = |c: char| c.is_alphanumeric() || c == '_';
 
-	if !cursor.matches_predicate(starting_predicate) {
+	if !cursor.matches_predicate(&starting_predicate) {
 		return None;
 	}
 
-	let offset = cursor.consumed;
+	let offset = cursor.consumed();
 	let mut lexeme = String::new();
-	while !cursor.empty() && cursor.matches_predicate(suffix_predicate) {
+	while !cursor.empty() && cursor.matches_predicate(&suffix_predicate) {
 		lexeme.push(cursor.consume().unwrap());
 	}
 
 	if lexeme.len() == 1 && lexeme.starts_with('_') {
-		Some(Token::new(TokenType::UnderScore, cursor.consumed - offset))
+		Some(Token::new(TokenType::UnderScore, cursor.consumed() - offset))
 	} else if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
-		Some(Token::new(keyword, cursor.consumed - offset))
+		Some(Token::new(keyword, cursor.consumed() - offset))
 	} else {
-		Some(Token::new(TokenType::Identifier, cursor.consumed - offset))
+		Some(Token::new(TokenType::Identifier, cursor.consumed() - offset))
 	}
 }
 
-fn scan_string_literal(cursor: &mut Cursor) -> Option<Token> {
+fn scan_string_literal(cursor: &mut Cursor<char>) -> Option<Token> {
 	if !cursor.matches('"') {
 		return None;
 	}
 
-	let offset = cursor.consumed;
+	let offset = cursor.consumed();
 	cursor.consume();
 
-	while !cursor.empty() && cursor.matches_predicate(|c| c != '"') {
+	while !cursor.empty() && cursor.matches_predicate(&|c: char| c != '"') {
 		cursor.consume();
 	}
 
 	if cursor.matches('"') {
 		cursor.consume();
-		Some(Token::new(TokenType::StringLiteral, cursor.consumed - offset))
+		Some(Token::new(TokenType::StringLiteral, cursor.consumed() - offset))
 	} else {
-		Some(Token::new(TokenType::TombStone, cursor.consumed - offset))
+		Some(Token::new(TokenType::TombStone, cursor.consumed() - offset))
 	}
 }
 
-fn scan_glyph_literal(cursor: &mut Cursor) -> Option<Token> {
+fn scan_glyph_literal(cursor: &mut Cursor<char>) -> Option<Token> {
 	if !cursor.matches('\'') {
 		return None;
 	}
 
-	let offset = cursor.consumed;
+	let offset = cursor.consumed();
 	cursor.consume();
 
-	while !cursor.empty() && cursor.matches_predicate(|c| c != '\'') {
+	while !cursor.empty() && cursor.matches_predicate(&|c: char| c != '\'') {
 		cursor.consume();
 	}
 
 	if cursor.matches('\'') {
 		cursor.consume();
-		Some(Token::new(TokenType::GlyphLiteral, cursor.consumed - offset))
+		Some(Token::new(TokenType::GlyphLiteral, cursor.consumed() - offset))
 	} else {
-		Some(Token::new(TokenType::TombStone, cursor.consumed - offset))
+		Some(Token::new(TokenType::TombStone, cursor.consumed() - offset))
 	}
 }
 
-fn scan_numeric_literal(cursor: &mut Cursor) -> Option<Token> {
-	if !cursor.matches_predicate(|c| c.is_digit(10)) {
+fn scan_numeric_literal(cursor: &mut Cursor<char>) -> Option<Token> {
+	if !cursor.matches_predicate(&|c: char| c.is_digit(10)) {
 		return None;
 	}
 
-	let offset = cursor.consumed;
+	let offset = cursor.consumed();
 
-	while !cursor.empty() && cursor.matches_predicate(|c| c.is_digit(10)) {
+	while !cursor.empty() && cursor.matches_predicate(&|c| c.is_digit(10)) {
 		cursor.consume();
 	}
 
 	if cursor.matches('.') {
 		cursor.consume();
 
-		while !cursor.empty() && cursor.matches_predicate(|c| c.is_digit(10)) {
+		while !cursor.empty() && cursor.matches_predicate(&|c| c.is_digit(10)) {
 			cursor.consume();
 		}
 
-		Some(Token::new(TokenType::FloatLiteral, cursor.consumed - offset))
+		Some(Token::new(TokenType::FloatLiteral, cursor.consumed() - offset))
 	} else {
-		Some(Token::new(TokenType::IntegerLiteral, cursor.consumed - offset))
+		Some(Token::new(TokenType::IntegerLiteral, cursor.consumed() - offset))
 	}
 }
 
-fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
-	fn make_token(cursor: &mut Cursor, token_type: TokenType) -> Token {
+fn lex_two_character_token(cursor: &mut Cursor<char>) -> Option<Token> {
+	fn make_token(cursor: &mut Cursor<char>, token_type: TokenType) -> Token {
 		cursor.consume();
 		cursor.consume();
 
 		Token::new(token_type, 2)
 	}
 
-	fn make_token_consume_line(cursor: &mut Cursor, token_type: TokenType) -> Token {
+	fn make_token_consume_line(cursor: &mut Cursor<char>, token_type: TokenType) -> Token {
 		let mut length = 2;
 		cursor.consume();
 		cursor.consume();
 
-		while !cursor.empty() && cursor.matches_predicate(|c| c != '\n') {
+		while !cursor.empty() && cursor.matches_predicate(&|c: char| c != '\n') {
 			length += 1;
 			cursor.consume();
 		}
