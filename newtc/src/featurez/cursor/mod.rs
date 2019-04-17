@@ -1,144 +1,194 @@
+use std::str::Chars;
 
-pub trait Cursor: Iterator {
-	fn consumed(&self) -> usize;
-	fn current(&self) -> Option<Self::Item>;
-}
-
-pub struct CursorIterator<I> where
-	I: Iterator,
-	<I as std::iter::Iterator>::Item: Copy
+pub struct Cursor<'a>
 {
-	iter: I,
-	consumed: usize,
-	current: Option<I::Item>
+	text: &'a str,
+	len: usize
 }
 
 
-impl<I: Iterator> Cursor for CursorIterator<I> where
-	<I as std::iter::Iterator>::Item: Copy
+impl<'a> Cursor<'a> 
 {
-	fn consumed(&self) -> usize {
-		self.consumed
-	}
-
-	fn current(&self) -> Option<<Self as Iterator>::Item> { self.current }
-}
-
-impl<I: Iterator> Iterator for CursorIterator<I> where
-	<I as std::iter::Iterator>::Item: Copy
-{
-	type Item = I::Item;
-
-	fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-		self.current = self.iter.next();
-		
-		match self.current {
-			Some(item) => {
-				self.consumed += 1;
-
-				Some(item)	
-			},
-			None => None
-		}
-	}
-}
-use std::iter::Peekable;
-impl<I: Iterator> CursorIterator<Peekable<I>> where
-	<I as std::iter::Iterator>::Item: Copy
-{
-	pub fn from_iter(iter: I) -> CursorIterator<I> where
-		I::Item: Copy
-	{
-		CursorIterator {
-			iter,
-			consumed: 0,
-			current: None
+	pub fn new(text: &'a str) -> Cursor<'a> {
+		Cursor {
+			text,
+			len: 0
 		}
 	}
 	
-	pub fn peek(&mut self) -> Option<&I::Item> {
-		self.iter.peek()
+	pub fn len(&self) -> usize { self.len }
+
+	pub fn current(&self) -> Option<char> { self.chars().next() }
+	
+	pub fn peek(&self, n: usize) -> Option<char> { self.chars().nth(n) }
+	
+	pub fn current_token_text(&self) -> &str { &self.text[..self.len] }
+	
+	pub fn match_char(&self, c: char) -> bool { self.current() == Some(c) }
+	
+	pub fn match_str(&self, s: &str) -> bool { self.chars().as_str().starts_with(s) }
+	
+	pub fn match_char_predicate<P: Fn(char) -> bool>(&self, predicate: P) -> bool 
+	{ 
+		self.current().map(predicate) == Some(true)
+	}
+	
+	pub fn match_nth_predicate<P: Fn(char) -> bool>(&self, n: usize, predicate: P) -> bool 
+	{
+		self.peek(n).map(predicate) == Some(true)
+	}
+	
+	fn chars(&self) -> Chars { self.text[self.len..].chars() }
+}
+
+impl<'a> Iterator for Cursor<'a> where
+{
+	type Item = char;
+
+	fn next(&mut self) -> Option<char> {
+		let next = self.chars().next()?;
+		self.len += 1;
+		Some(next)
 	}
 }
+
 
 #[cfg(test)]
 mod tests {
-	use super::{CursorIterator, Cursor};
+	use super::{Cursor};
 	
 	#[test]
-	fn cursor_still_iterable() {
-		let mut iter = vec![1,2,3]
-			.into_iter()
-			.peekable();
+	fn cursor_next_iterates() {
+		let mut cursor = Cursor::new("test");
 		
-		let mut cursor = CursorIterator::from_iter(iter);
-		
-		assert_eq!(cursor.next(), Some(1));
-		assert_eq!(cursor.next(), Some(2));
-		assert_eq!(cursor.next(), Some(3));
+		assert_eq!(cursor.next(), Some('t'));
+		assert_eq!(cursor.next(), Some('e'));
+		assert_eq!(cursor.next(), Some('s'));
+		assert_eq!(cursor.next(), Some('t'));
 		assert_eq!(cursor.next(), None);
 	}
 
 	#[test]
-	fn cursor_maintains_current_item() {
-		let mut iter = vec![1,2,3]
-			.into_iter()
-			.peekable();
+	fn cursor_current_gets_next_char_without_iterating() {
+		let mut cursor = Cursor::new("test");
 
-		let mut cursor = CursorIterator::from_iter(iter);
-		
-		assert_eq!(cursor.current(), None);
-		
+		assert_eq!(cursor.current(), Some('t'));
+		assert_eq!(cursor.current(), Some('t'));
 		cursor.next();
-		assert_eq!(cursor.current(), Some(1));
+		assert_eq!(cursor.current(), Some('e'));
 		cursor.next();
-		assert_eq!(cursor.current(), Some(2));
+		assert_eq!(cursor.current(), Some('s'));
+		assert_eq!(cursor.current(), Some('s'));
 		cursor.next();
-		assert_eq!(cursor.current(), Some(3));
-
+		assert_eq!(cursor.current(), Some('t'));
 		cursor.next();
-		assert_eq!(cursor.current(), None);
+		assert_eq!(cursor.next(), None);
 	}
 
 	#[test]
-	fn cursor_maintains_next_item() {
-		let mut iter = vec![1,2,3]
-			.into_iter()
-			.peekable();
+	fn cursor_peek_gets_nth_item() {
+		let mut cursor = Cursor::new("test");
 
-		let mut cursor = CursorIterator::from_iter(iter);
-		
-		assert_eq!(cursor.peek(), Some(&1));
-
-		cursor.next();
-		assert_eq!(cursor.peek(), Some(&2));
-		cursor.next();
-		assert_eq!(cursor.peek(), Some(&3));
-		cursor.next();
-		assert_eq!(cursor.peek(), None);
-
-		cursor.next();
-		assert_eq!(cursor.peek(), None);
+		assert_eq!(cursor.peek(0), Some('t'));
+		assert_eq!(cursor.peek(1), Some('e'));
+		assert_eq!(cursor.peek(2), Some('s'));
+		assert_eq!(cursor.peek(3), Some('t'));
+		assert_eq!(cursor.peek(4), None);
 	}
 
 	#[test]
-	fn cursor_maintains_correct_count_of_consumed_items() {
-		let mut iter = vec![1,2,3]
-			.into_iter()
-			.peekable();
+	fn cursor_peek_does_not_consume_items() {
+		let mut cursor = Cursor::new("test");
 
-		let mut cursor = CursorIterator::from_iter(iter);
-		
-		assert_eq!(cursor.consumed(), 0);
+		assert_eq!(cursor.current(), Some('t'));
+		assert_eq!(cursor.len(), 0);
+		assert_eq!(cursor.peek(1), Some('e'));
+		assert_eq!(cursor.current(), Some('t'));
+		assert_eq!(cursor.len(), 0);
+	}
+
+	#[test]
+	fn cursor_peek_is_relative_to_current_item() {
+		let mut cursor = Cursor::new("test");
 
 		cursor.next();
-		assert_eq!(cursor.consumed(), 1);
+		assert_eq!(cursor.peek(1), Some('s'));
+	}
+
+	#[test]
+	fn cursor_len_counts_consumed_characters() {
+		let mut cursor = Cursor::new("test");
+
+		assert_eq!(cursor.len(), 0);
 		cursor.next();
-		assert_eq!(cursor.consumed(), 2);
+		assert_eq!(cursor.len(), 1);
 		cursor.next();
-		assert_eq!(cursor.consumed(), 3);
+		assert_eq!(cursor.len(), 2);
+		cursor.next();
+		assert_eq!(cursor.len(), 3);
+		cursor.next();
+		assert_eq!(cursor.len(), 4);
+		cursor.next();
+		assert_eq!(cursor.len(), 4);
+	}
+	
+	#[test]
+	fn cursor_current_token_text_gets_current_lexeme() {
+		let mut cursor = Cursor::new("test");
+
+		assert_eq!(cursor.current_token_text(), "");
+		cursor.next();
+
+		assert_eq!(cursor.current_token_text(), "t");
+		cursor.next();
+
+		assert_eq!(cursor.current_token_text(), "te");
+		cursor.next();
+
+		assert_eq!(cursor.current_token_text(), "tes");
+		cursor.next();
+
+		assert_eq!(cursor.current_token_text(), "test");
+		cursor.next();
+
+		assert_eq!(cursor.current_token_text(), "test");
+		cursor.next();
+	}
+	
+	#[test]
+	fn cursor_match_char_compares_current() {
+		let mut cursor = Cursor::new("test");
+
+		assert_eq!(cursor.match_char('t'), true);
+		assert_eq!(cursor.match_char('e'), false);
+	}
+
+	#[test]
+	fn cursor_match_char_predicate_tests_current() {
+		let mut cursor = Cursor::new("test");
+
+		assert_eq!(cursor.match_char_predicate(|c: char| c == 't'), true);
+		assert_eq!(cursor.match_char_predicate(|c: char| c == 'e'), false);
+	}
+
+	#[test]
+	fn cursor_match_nth_predicate_tests_nth() {
+		let mut cursor = Cursor::new("test");
+
+		assert_eq!(cursor.match_nth_predicate(1, |c: char| c == 't'), false);
+		assert_eq!(cursor.match_nth_predicate(1, |c: char| c == 'e'), true);
+	}
+	
+	#[test]
+	fn cursor_match_str_compares_prefix() {
+		let mut cursor = Cursor::new("test");
+
+		assert_eq!(cursor.match_str("t"), true);
+		assert_eq!(cursor.match_str("te"), true);
+		assert_eq!(cursor.match_str("tes"), true);
+		assert_eq!(cursor.match_str("test"), true);
 		
-		cursor.next();
-		assert_eq!(cursor.consumed(), 3);
+		assert_eq!(cursor.match_str("test "), false);
+		assert_eq!(cursor.match_str("est"), false);
 	}
 }

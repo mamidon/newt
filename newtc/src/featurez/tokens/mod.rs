@@ -1,8 +1,9 @@
-use crate::parse::{Cursor, TokenCursor};
+use super::cursor::{Cursor};
 
 use std::fmt::{Display, Formatter};
 use std::fmt::Error;
 
+mod tests;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum TokenType {
@@ -105,66 +106,61 @@ impl Display for Token {
 
 pub fn tokenize(text: &str) -> Vec<Token> {
 	let mut tokens: Vec<Token> = vec![];
-	let cursor: &mut Cursor<char> = &mut TokenCursor::new(text);
+	let mut source = text;
+	
+	while !source.is_empty() {
+		let mut token = next_token(text);
 
-	while cursor.current().is_some() {
-		let token = next_token(cursor);
 
-		if token.token_type == TokenType::TombStone {
-			while tokens.last().filter(|t| t.token_type == TokenType::TombStone).is_some() {
-				let preceding_token = tokens.last().expect("We checked the token exists in the while statement");
-				let merged_token = Token::merge_as(TokenType::TombStone, preceding_token, &token);
-				tokens.pop();
-			}
-		}
-
+		println!("consumed: {:?}", &source[..token.length]);
+		println!("remaining: {:?}", &source[token.length..]);
+		
 		tokens.push(token);
+		source = &source[token.length..];
 	}
-
+	
 	tokens.push(Token::new(TokenType::EndOfFile, 0));
 	tokens
 }
 
-fn merge_adjacent_tokens(token_type: TokenType, preceding_token: Token, tombstone: Token) -> Token {
-	Token::new(token_type, preceding_token.length + tombstone.length)
-}
-
-fn next_token(cursor: &mut Cursor<char>) -> Token {
-	if let Some(token) = lex_whitespace(cursor) {
+fn next_token(text: &str) -> Token {
+	let mut cursor = Cursor::new(text);
+	
+	if let Some(token) = lex_whitespace(&mut cursor) {
 		token
-	} else if let Some(token) = lex_multi_character_token(cursor) {
+	} else if let Some(token) = lex_multi_character_token(&mut cursor) {
 		token
-	} else if let Some(token) = lex_two_character_token(cursor) {
+	} else if let Some(token) = lex_two_character_token(&mut cursor) {
 		token
-	} else if let Some(token) = lex_single_character_token(cursor) {
+	} else if let Some(token) = lex_single_character_token(&mut cursor) {
 		token
 	} else {
-		cursor.consume();
-		Token::new(TokenType::TombStone, 1)
+		cursor;
+		Token::new(TokenType::Identifier, 1)
 	}
 }
 
-fn lex_whitespace(cursor: &mut Cursor<char>) -> Option<Token> {
-	let offset = cursor.consumed();
 
-	while !cursor.empty() && cursor.matches_predicate(&|c: char| c.is_whitespace()) {
-		cursor.consume();
+fn lex_whitespace(cursor: &mut Cursor) -> Option<Token> {
+	while cursor.current().is_some() && cursor.match_char_predicate(&|c: char| c.is_whitespace()) {
+		cursor.next();
 	}
 
-	if offset != cursor.consumed() {
-		Some(Token::new(TokenType::WhiteSpace, cursor.consumed() - offset))
+	if cursor.len() > 0 {
+		Some(Token::new(TokenType::WhiteSpace, cursor.len()))
 	} else {
 		None
 	}
 }
 
-fn lex_single_character_token(cursor: &mut Cursor<char>) -> Option<Token> {
+
+fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 	fn make_token(token_type: TokenType) -> Token {
 		Token::new(token_type, 1)
 	}
 
 	let current = cursor.current();
-
+	
 	let token = match current {
 		Some('{') => make_token(TokenType::LeftBrace),
 		Some('}') => make_token(TokenType::RightBrace),
@@ -193,138 +189,38 @@ fn lex_single_character_token(cursor: &mut Cursor<char>) -> Option<Token> {
 
 		_ => return None
 	};
-
-	cursor.consume();
+	
+	cursor.next();
 
 	Some(token)
 }
 
-fn lex_multi_character_token(cursor: &mut Cursor<char>) -> Option<Token> {
-	if let Some(numeric_literal) = scan_numeric_literal(cursor) {
-		Some(numeric_literal)
-	} else if let Some(string) = scan_string_literal(cursor) {
-		Some(string)
-	} else if let Some(glyph) = scan_glyph_literal(cursor) {
-		Some(glyph)
-	} else if let Some(identifier) = scan_identifier(cursor) {
-		Some(identifier)
-	} else {
-		None
-	}
-}
 
-fn scan_identifier(cursor: &mut Cursor<char>) -> Option<Token> {
-	let starting_predicate = |c: char| c.is_alphabetic() || c == '_';
-	let suffix_predicate = |c: char| c.is_alphanumeric() || c == '_';
-
-	if !cursor.matches_predicate(&starting_predicate) {
-		return None;
-	}
-
-	let offset = cursor.consumed();
-	let mut lexeme = String::new();
-	while !cursor.empty() && cursor.matches_predicate(&suffix_predicate) {
-		lexeme.push(cursor.consume().unwrap());
-	}
-
-	if lexeme.len() == 1 && lexeme.starts_with('_') {
-		Some(Token::new(TokenType::UnderScore, cursor.consumed() - offset))
-	} else if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
-		Some(Token::new(keyword, cursor.consumed() - offset))
-	} else {
-		Some(Token::new(TokenType::Identifier, cursor.consumed() - offset))
-	}
-}
-
-fn scan_string_literal(cursor: &mut Cursor<char>) -> Option<Token> {
-	if !cursor.matches('"') {
-		return None;
-	}
-
-	let offset = cursor.consumed();
-	cursor.consume();
-
-	while !cursor.empty() && cursor.matches_predicate(&|c: char| c != '"') {
-		cursor.consume();
-	}
-
-	if cursor.matches('"') {
-		cursor.consume();
-		Some(Token::new(TokenType::StringLiteral, cursor.consumed() - offset))
-	} else {
-		Some(Token::new(TokenType::TombStone, cursor.consumed() - offset))
-	}
-}
-
-fn scan_glyph_literal(cursor: &mut Cursor<char>) -> Option<Token> {
-	if !cursor.matches('\'') {
-		return None;
-	}
-
-	let offset = cursor.consumed();
-	cursor.consume();
-
-	while !cursor.empty() && cursor.matches_predicate(&|c: char| c != '\'') {
-		cursor.consume();
-	}
-
-	if cursor.matches('\'') {
-		cursor.consume();
-		Some(Token::new(TokenType::GlyphLiteral, cursor.consumed() - offset))
-	} else {
-		Some(Token::new(TokenType::TombStone, cursor.consumed() - offset))
-	}
-}
-
-fn scan_numeric_literal(cursor: &mut Cursor<char>) -> Option<Token> {
-	if !cursor.matches_predicate(&|c: char| c.is_digit(10)) {
-		return None;
-	}
-
-	let offset = cursor.consumed();
-
-	while !cursor.empty() && cursor.matches_predicate(&|c| c.is_digit(10)) {
-		cursor.consume();
-	}
-
-	if cursor.matches('.') {
-		cursor.consume();
-
-		while !cursor.empty() && cursor.matches_predicate(&|c| c.is_digit(10)) {
-			cursor.consume();
-		}
-
-		Some(Token::new(TokenType::FloatLiteral, cursor.consumed() - offset))
-	} else {
-		Some(Token::new(TokenType::IntegerLiteral, cursor.consumed() - offset))
-	}
-}
-
-fn lex_two_character_token(cursor: &mut Cursor<char>) -> Option<Token> {
-	fn make_token(cursor: &mut Cursor<char>, token_type: TokenType) -> Token {
-		cursor.consume();
-		cursor.consume();
+fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
+	fn make_token(cursor: &mut Cursor, token_type: TokenType) -> Token {
+		cursor.next();
+		cursor.next();
 
 		Token::new(token_type, 2)
 	}
 
-	fn make_token_consume_line(cursor: &mut Cursor<char>, token_type: TokenType) -> Token {
+	fn make_token_consume_line(cursor: &mut Cursor, token_type: TokenType) -> Token {
 		let mut length = 2;
-		cursor.consume();
-		cursor.consume();
+		cursor.next();
+		cursor.next();
 
-		while !cursor.empty() && cursor.matches_predicate(&|c: char| c != '\n') {
+		while cursor.current().is_some() && cursor.match_char_predicate(&|c: char| c != '\n') {
 			length += 1;
-			cursor.consume();
+			cursor.next();
 		}
 
 		Token::new(token_type, length)
 	}
-
+	
 	let current = cursor.current();
-	let next = cursor.nth(1);
-
-	if let (Some(current), Some(next)) = (cursor.current(), cursor.nth(1)) {
+	let next = cursor.peek(1);
+	
+	if let (Some(current), Some(next)) = (cursor.current(), cursor.peek(1)) {
 		let token = match (current, next) {
 			('=', '=') => make_token(cursor, TokenType::EqualsEquals),
 			('>', '=') => make_token(cursor, TokenType::GreaterEquals),
@@ -340,6 +236,107 @@ fn lex_two_character_token(cursor: &mut Cursor<char>) -> Option<Token> {
 		None
 	}
 }
+
+
+
+fn lex_multi_character_token(cursor: &mut Cursor) -> Option<Token> {
+	if let Some(numeric_literal) = scan_numeric_literal(cursor) {
+		Some(numeric_literal)
+	} else if let Some(string) = scan_string_literal(cursor) {
+		Some(string)
+	} else if let Some(glyph) = scan_glyph_literal(cursor) {
+		Some(glyph)
+	} else if let Some(identifier) = scan_identifier(cursor) {
+		Some(identifier)
+	} else {
+		None
+	}
+}
+
+fn scan_identifier(cursor: &mut Cursor) -> Option<Token> {
+	let starting_predicate = |c: char| c.is_alphabetic() || c == '_';
+	let suffix_predicate = |c: char| c.is_alphanumeric() || c == '_';
+
+	if !cursor.match_char_predicate(&starting_predicate) {
+		return None;
+	}
+
+	let mut lexeme = String::new();
+	while cursor.current().is_some() && cursor.match_char_predicate(&suffix_predicate) {
+		lexeme.push(cursor.next().unwrap());
+	}
+
+	if lexeme.len() == 1 && lexeme.starts_with('_') {
+		Some(Token::new(TokenType::UnderScore, cursor.len()))
+	} else if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
+		Some(Token::new(keyword, cursor.len()))
+	} else {
+		Some(Token::new(TokenType::Identifier, cursor.len()))
+	}
+}
+
+fn scan_string_literal(cursor: &mut Cursor) -> Option<Token> {
+	if !cursor.match_char('"') {
+		return None;
+	}
+
+	cursor.next();
+	cursor.next();
+
+	while cursor.current().is_some() && cursor.match_char_predicate(&|c: char| c != '"') {
+		cursor.next();
+	}
+
+	if cursor.match_char('"') {
+		cursor.next();
+		Some(Token::new(TokenType::StringLiteral, cursor.len()))
+	} else {
+		Some(Token::new(TokenType::TombStone, cursor.len()))
+	}
+}
+
+fn scan_glyph_literal(cursor: &mut Cursor) -> Option<Token> {
+	if !cursor.match_char('\'') {
+		return None;
+	}
+
+	cursor.next();
+	cursor.next();
+
+	while cursor.current().is_some() && cursor.match_char_predicate(&|c: char| c != '\'') {
+		cursor.next();
+	}
+
+	if cursor.match_char('\'') {
+		cursor.next();
+		Some(Token::new(TokenType::GlyphLiteral, cursor.len()))
+	} else {
+		Some(Token::new(TokenType::TombStone, cursor.len()))
+	}
+}
+
+fn scan_numeric_literal(cursor: &mut Cursor) -> Option<Token> {
+	if !cursor.match_char_predicate(&|c: char| c.is_digit(10)) {
+		return None;
+	}
+	
+	while cursor.current().is_some() && cursor.match_char_predicate(&|c: char| c.is_digit(10)) {
+		cursor.next();
+	}
+
+	if cursor.match_char('.') {
+		cursor.next();
+
+		while cursor.current().is_some() && cursor.match_char_predicate(&|c: char| c.is_digit(10)) {
+			cursor.next();
+		}
+
+		Some(Token::new(TokenType::FloatLiteral, cursor.len()))
+	} else {
+		Some(Token::new(TokenType::IntegerLiteral, cursor.len()))
+	}
+}
+
 
 fn match_identifier_to_keyword(lexeme: &str) -> Option<TokenType> {
 	match lexeme.to_lowercase().as_str() {
