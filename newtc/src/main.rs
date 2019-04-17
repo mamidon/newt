@@ -1,6 +1,8 @@
 #![allow(unused)]
 mod parse;
 
+mod featurez;
+
 use parse::tokens::{tokenize, TokenType, Token};
 
 use std::env::args;
