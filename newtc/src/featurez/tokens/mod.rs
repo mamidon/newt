@@ -74,21 +74,21 @@ pub enum TokenKind {
 
 #[derive(Copy, Clone)]
 pub struct Token {
-	token_type: TokenKind,
+	token_kind: TokenKind,
 	length: usize,
 }
 
 impl Token {
-	fn new(token_type: TokenKind, length: usize) -> Token {
+	fn new(token_kind: TokenKind, length: usize) -> Token {
 		Token {
-			token_type,
+			token_kind: token_kind,
 			length
 		}
 	}
 
-	fn merge_as(token_type: TokenKind, left: &Token, right: &Token) -> Token {
+	fn merge_as(token_kind: TokenKind, left: &Token, right: &Token) -> Token {
 		Token {
-			token_type,
+			token_kind: token_kind,
 			length: left.length + right.length
 		}
 	}
@@ -97,8 +97,8 @@ impl Token {
 	
 	pub fn end_of_file() -> Token { Token::new(TokenKind::EndOfFile, 0) }
 
-	pub fn token_type(&self) -> TokenKind {
-		self.token_type
+	pub fn token_kind(&self) -> TokenKind {
+		self.token_kind
 	}
 
 	pub fn lexeme_length(&self) -> usize {
@@ -108,19 +108,19 @@ impl Token {
 
 impl Display for Token {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-		write!(f, "{:?}[{}]", self.token_type, self.length)
+		write!(f, "{:?}[{}]", self.token_kind, self.length)
 	}
 }
 
 impl Debug for Token {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-		write!(f, "{:?}[{}]", self.token_type, self.length)
+		write!(f, "{:?}[{}]", self.token_kind, self.length)
 	}
 }
 
 impl PartialEq for Token {
 	fn eq(&self, other: &Token) -> bool {
-		self.token_type == other.token_type && self.length == other.length
+		self.token_kind == other.token_kind && self.length == other.length
 	}
 }
 
@@ -171,8 +171,8 @@ fn lex_whitespace(cursor: &mut Cursor) -> Option<Token> {
 
 
 fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
-	fn make_token(token_type: TokenKind) -> Token {
-		Token::new(token_type, 1)
+	fn make_token(token_kind: TokenKind) -> Token {
+		Token::new(token_kind, 1)
 	}
 
 	let current = cursor.current();
@@ -213,14 +213,14 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 
 
 fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
-	fn make_token(cursor: &mut Cursor, token_type: TokenKind) -> Token {
+	fn make_token(cursor: &mut Cursor, token_kind: TokenKind) -> Token {
 		cursor.next();
 		cursor.next();
 
-		Token::new(token_type, 2)
+		Token::new(token_kind, 2)
 	}
 
-	fn make_token_consume_line(cursor: &mut Cursor, token_type: TokenKind) -> Token {
+	fn make_token_consume_line(cursor: &mut Cursor, token_kind: TokenKind) -> Token {
 		let mut length = 2;
 		cursor.next();
 		cursor.next();
@@ -230,7 +230,7 @@ fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
 			cursor.next();
 		}
 
-		Token::new(token_type, length)
+		Token::new(token_kind, length)
 	}
 	
 	let current = cursor.current();

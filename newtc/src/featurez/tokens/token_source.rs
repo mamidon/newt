@@ -36,11 +36,11 @@ impl<'a> TokenSource for StrTokenSource<'a> {
 		}
 	}
 
-	fn token_type(&self, index: usize) -> TokenKind {
+	fn token_kind(&self, index: usize) -> TokenKind {
 		if index >= self.tokens.len() {
 			TokenKind::EndOfFile
 		} else {
-			self.tokens[index].token_type()
+			self.tokens[index].token_kind()
 		}
 	}
 

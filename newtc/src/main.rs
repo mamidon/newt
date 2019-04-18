@@ -97,7 +97,7 @@ fn print_tokens(source_text: &str, tokens: &Vec<Token>) {
 	for token in tokens {
 		let end = offset + token.lexeme_length();
 
-		match token.token_type() {
+		match token.token_kind() {
 			TokenKind::TombStone => println!("{} '{}'", token, &source_text[offset..end]),
 			TokenKind::WhiteSpace => {
 				let mut printable_whitespace = String::new();

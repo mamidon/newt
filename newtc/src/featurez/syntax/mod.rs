@@ -13,7 +13,7 @@ pub struct SyntaxNode {
 }
 
 pub struct SyntaxToken {
-	token_type: TokenKind,
+	token_kind: TokenKind,
 }
 
 pub enum SyntaxElement {
@@ -23,7 +23,7 @@ pub enum SyntaxElement {
 
 pub trait TokenSource {
 	fn token(&self, pos: usize) -> Token;
-	fn token_type(&self, pos: usize) -> TokenKind;
+	fn token_kind(&self, pos: usize) -> TokenKind;
 
 	fn token2(&self, pos: usize) -> Option<(Token, Token)>;
 	fn token3(&self, pos: usize) -> Option<(Token, Token, Token)>;
@@ -56,7 +56,7 @@ Before proceeding further, I need proper data structures.
 
 SyntaxKind = distinguish between parse tree node types
 SyntaxNode = (SyntaxKind, [children]) = non-leaf node in the parse tree
-SyntaxToken = (TokenType) = leaf node in the parse tree
+SyntaxToken = (TokenKind) = leaf node in the parse tree
 SyntaxElement = SyntaxToken | SyntaxNode = enum of either a leaf or non-leaf node
 
 */
@@ -102,7 +102,7 @@ mod tests {
 	use super::{TextTreeSink, TokenSource, SyntaxKind};
 	use crate::featurez::syntax::TreeSink;
 	use crate::featurez::syntax::SyntaxToken;
-	use crate::featurez::tokens::TokenType;
+	use crate::featurez::tokens::TokenKind;
 	use crate::featurez::syntax::SyntaxElement;
 	
 	#[test]
@@ -113,13 +113,13 @@ mod tests {
 		let mut sink = TextTreeSink::new();
 		
 		sink.begin_node(SyntaxKind::BinaryExpr);
-		sink.attach_token(SyntaxToken {token_type: TokenType::Identifier });
-		sink.attach_token(SyntaxToken {token_type: TokenType::Plus });
+		sink.attach_token(SyntaxToken {token_kind: TokenKind::Identifier });
+		sink.attach_token(SyntaxToken {token_kind: TokenKind::Plus });
 	
 			sink.begin_node(SyntaxKind::BinaryExpr);
-				sink.attach_token(SyntaxToken {token_type: TokenType::Identifier });
-				sink.attach_token(SyntaxToken {token_type: TokenType::Plus });
-				sink.attach_token(SyntaxToken {token_type: TokenType::Identifier });
+				sink.attach_token(SyntaxToken {token_kind: TokenKind::Identifier });
+				sink.attach_token(SyntaxToken {token_kind: TokenKind::Plus });
+				sink.attach_token(SyntaxToken {token_kind: TokenKind::Identifier });
 			sink.end_node();
 		sink.end_node();
 		
@@ -142,7 +142,7 @@ mod tests {
 				}
 			},
 			SyntaxElement::Token(token) => {
-				println!("{}{:?}", prefix, token.token_type);
+				println!("{}{:?}", prefix, token.token_kind);
 			}
 		}
 	}
