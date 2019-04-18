@@ -44,9 +44,6 @@ impl<'a> TokenSource for StrTokenSource<'a> {
 		}
 	}
 
-	// xyz
-	// 012
-	// (x,y) (y, z) None
 	fn token2(&self, pos: usize) -> Option<(Token, Token)> {
 		if pos + 1 < self.tokens.len() {
 			Some((self.tokens[pos], self.tokens[pos+1]))
@@ -62,11 +59,5 @@ impl<'a> TokenSource for StrTokenSource<'a> {
 		} else {
 			Some((self.tokens[pos], self.tokens[pos+1], self.tokens[pos+2]))
 		}
-	}
-
-	fn adjacent_predicate<P: Fn(Token) -> bool>(&self, pos: usize, predicate: P) -> bool {
-		self.token2(pos)
-			.map(|tuple| predicate(tuple.1))
-			.unwrap_or(false)
 	}
 }
