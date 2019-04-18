@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use featurez::tokens::{tokenize, Token, TokenType};
+use featurez::tokens::{tokenize, Token, TokenKind};
 
 use std::env::args;
 use std::io::{stdin, stdout};
@@ -98,8 +98,8 @@ fn print_tokens(source_text: &str, tokens: &Vec<Token>) {
 		let end = offset + token.lexeme_length();
 
 		match token.token_type() {
-			TokenType::TombStone => println!("{} '{}'", token, &source_text[offset..end]),
-			TokenType::WhiteSpace => {
+			TokenKind::TombStone => println!("{} '{}'", token, &source_text[offset..end]),
+			TokenKind::WhiteSpace => {
 				let mut printable_whitespace = String::new();
 
 				for c in source_text[offset..end].chars() {

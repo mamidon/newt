@@ -1,4 +1,4 @@
-use crate::featurez::tokens::{Token, TokenType};
+use crate::featurez::tokens::{Token, TokenKind};
 use crate::featurez::syntax::TokenSource;
 
 pub struct StrTokenSource<'a> {
@@ -36,9 +36,9 @@ impl<'a> TokenSource for StrTokenSource<'a> {
 		}
 	}
 
-	fn token_type(&self, index: usize) -> TokenType {
+	fn token_type(&self, index: usize) -> TokenKind {
 		if index >= self.tokens.len() {
-			TokenType::EndOfFile
+			TokenKind::EndOfFile
 		} else {
 			self.tokens[index].token_type()
 		}

@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::featurez::tokens::StrTokenSource;
-use crate::featurez::tokens::{tokenize, Token, TokenType};
+use crate::featurez::tokens::{tokenize, Token, TokenKind};
 use crate::featurez::syntax::TokenSource;
 
 macro_rules! single_token_tests {
@@ -165,15 +165,15 @@ token_sequence_tests! {
 	]),
 }
 
-fn assert_single_token(value: &str, expected_type: TokenType) {
+fn assert_single_token(value: &str, expected_type: TokenKind) {
 	let tokens = tokenize(value);
 
 	assert_eq!(tokens.len(), 2);
 	assert_eq!(tokens[0].token_type, expected_type);
-	assert_eq!(tokens[1].token_type, TokenType::EndOfFile);
+	assert_eq!(tokens[1].token_type, TokenKind::EndOfFile);
 }
 
-fn assert_token_sequence(value: &str, expected_tokens: &[TokenType]) {
+fn assert_token_sequence(value: &str, expected_tokens: &[TokenKind]) {
 	use std::cmp::min;
 
 	let actual_tokens = tokenize(value);
@@ -192,8 +192,8 @@ fn token_source_token_type_gets_type_at_position() {
 	let tokens = tokenize(source);
 	let token_source = StrTokenSource::new(source, tokens);
 	
-	assert_eq!(token_source.token_type(0), TokenType::IntegerLiteral);
-	assert_eq!(token_source.token_type(3), TokenType::EqualsEquals);
+	assert_eq!(token_source.token_type(0), TokenKind::IntegerLiteral);
+	assert_eq!(token_source.token_type(3), TokenKind::EqualsEquals);
 }
 
 #[test]
@@ -202,9 +202,9 @@ fn token_source_token_gets_token_at_position() {
 	let tokens = tokenize(source);
 	let token_source = StrTokenSource::new(source, tokens);
 
-	assert_eq!(token_source.token(0).token_type, TokenType::IntegerLiteral);
+	assert_eq!(token_source.token(0).token_type, TokenKind::IntegerLiteral);
 	assert_eq!(token_source.token(0).length, 1);
-	assert_eq!(token_source.token(3).token_type, TokenType::EqualsEquals);
+	assert_eq!(token_source.token(3).token_type, TokenKind::EqualsEquals);
 	assert_eq!(token_source.token(3).length, 2);
 }
 
@@ -214,9 +214,9 @@ fn token_source_token_type_gets_end_of_file_when_out_of_bounds() {
 	let tokens = tokenize(source);
 	let token_source = StrTokenSource::new(source, tokens);
 
-	assert_eq!(token_source.token_type(5), TokenType::SemiColon);
-	assert_eq!(token_source.token_type(6), TokenType::EndOfFile);
-	assert_eq!(token_source.token_type(10), TokenType::EndOfFile);
+	assert_eq!(token_source.token_type(5), TokenKind::SemiColon);
+	assert_eq!(token_source.token_type(6), TokenKind::EndOfFile);
+	assert_eq!(token_source.token_type(10), TokenKind::EndOfFile);
 }
 
 #[test]
@@ -225,9 +225,9 @@ fn token_source_token_gets_end_of_file_when_out_of_bounds() {
 	let tokens = tokenize(source);
 	let token_source = StrTokenSource::new(source, tokens);
 
-	assert_eq!(token_source.token(5).token_type, TokenType::SemiColon);
-	assert_eq!(token_source.token(6).token_type, TokenType::EndOfFile);
-	assert_eq!(token_source.token(10).token_type, TokenType::EndOfFile);
+	assert_eq!(token_source.token(5).token_type, TokenKind::SemiColon);
+	assert_eq!(token_source.token(6).token_type, TokenKind::EndOfFile);
+	assert_eq!(token_source.token(10).token_type, TokenKind::EndOfFile);
 }
 
 
@@ -239,8 +239,8 @@ fn token_source_token2_gets_some_tokens_when_space_allows() {
 
 	let result = token_source.token2(1).unwrap();
 	
-	assert_eq!(result.0.token_type, TokenType::Plus);
-	assert_eq!(result.1.token_type, TokenType::IntegerLiteral);
+	assert_eq!(result.0.token_type, TokenKind::Plus);
+	assert_eq!(result.1.token_type, TokenKind::IntegerLiteral);
 }
 
 #[test]
@@ -261,8 +261,8 @@ fn token_source_token2_gets_none_when_not_enough_tokens() {
 		.token2(3)
 		.map(|t| (t.0.token_type, t.1.token_type));
 
-	assert_eq!(end_minus_2, Some((TokenType::Plus, TokenType::Identifier)));
-	assert_eq!(end_minus_1, Some((TokenType::Identifier, TokenType::EndOfFile)));
+	assert_eq!(end_minus_2, Some((TokenKind::Plus, TokenKind::Identifier)));
+	assert_eq!(end_minus_1, Some((TokenKind::Identifier, TokenKind::EndOfFile)));
 	assert_eq!(end, None);
 }
 
@@ -277,7 +277,7 @@ fn token_source_token3_gets_some_tokens_when_space_allows() {
 		.token3(0)
 		.map(|t| (t.0.token_type, t.1.token_type, t.2.token_type));
 
-	assert_eq!(end_minus_3, Some((TokenType::IntegerLiteral, TokenType::Plus, TokenType::Identifier)));
+	assert_eq!(end_minus_3, Some((TokenKind::IntegerLiteral, TokenKind::Plus, TokenKind::Identifier)));
 }
 
 #[test]

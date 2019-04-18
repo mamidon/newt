@@ -10,7 +10,7 @@ mod token_source;
 mod tests;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
-pub enum TokenType {
+pub enum TokenKind {
 	WhiteSpace,
 	CommentLine,
 	CommentBlock,
@@ -74,30 +74,30 @@ pub enum TokenType {
 
 #[derive(Copy, Clone)]
 pub struct Token {
-	token_type: TokenType,
+	token_type: TokenKind,
 	length: usize,
 }
 
 impl Token {
-	fn new(token_type: TokenType, length: usize) -> Token {
+	fn new(token_type: TokenKind, length: usize) -> Token {
 		Token {
 			token_type,
 			length
 		}
 	}
 
-	fn merge_as(token_type: TokenType, left: &Token, right: &Token) -> Token {
+	fn merge_as(token_type: TokenKind, left: &Token, right: &Token) -> Token {
 		Token {
 			token_type,
 			length: left.length + right.length
 		}
 	}
 	
-	pub fn tomb_stone() -> Token { Token::new(TokenType::TombStone, 0) }
+	pub fn tomb_stone() -> Token { Token::new(TokenKind::TombStone, 0) }
 	
-	pub fn end_of_file() -> Token { Token::new(TokenType::EndOfFile, 0) }
+	pub fn end_of_file() -> Token { Token::new(TokenKind::EndOfFile, 0) }
 
-	pub fn token_type(&self) -> TokenType {
+	pub fn token_type(&self) -> TokenKind {
 		self.token_type
 	}
 
@@ -135,7 +135,7 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 		source = &source[token.length..];
 	}
 	
-	tokens.push(Token::new(TokenType::EndOfFile, 0));
+	tokens.push(Token::new(TokenKind::EndOfFile, 0));
 	tokens
 }
 
@@ -152,7 +152,7 @@ fn next_token(text: &str) -> Token {
 		token
 	} else {
 		cursor;
-		Token::new(TokenType::TombStone, 1)
+		Token::new(TokenKind::TombStone, 1)
 	}
 }
 
@@ -163,7 +163,7 @@ fn lex_whitespace(cursor: &mut Cursor) -> Option<Token> {
 	}
 
 	if cursor.len() > 0 {
-		Some(Token::new(TokenType::WhiteSpace, cursor.len()))
+		Some(Token::new(TokenKind::WhiteSpace, cursor.len()))
 	} else {
 		None
 	}
@@ -171,37 +171,37 @@ fn lex_whitespace(cursor: &mut Cursor) -> Option<Token> {
 
 
 fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
-	fn make_token(token_type: TokenType) -> Token {
+	fn make_token(token_type: TokenKind) -> Token {
 		Token::new(token_type, 1)
 	}
 
 	let current = cursor.current();
 	
 	let token = match current {
-		Some('{') => make_token(TokenType::LeftBrace),
-		Some('}') => make_token(TokenType::RightBrace),
-		Some('(') => make_token(TokenType::LeftParenthesis),
-		Some(')') => make_token(TokenType::RightParenthesis),
-		Some('[') => make_token(TokenType::LeftBracket),
-		Some(']') => make_token(TokenType::RightBracket),
+		Some('{') => make_token(TokenKind::LeftBrace),
+		Some('}') => make_token(TokenKind::RightBrace),
+		Some('(') => make_token(TokenKind::LeftParenthesis),
+		Some(')') => make_token(TokenKind::RightParenthesis),
+		Some('[') => make_token(TokenKind::LeftBracket),
+		Some(']') => make_token(TokenKind::RightBracket),
 
-		Some(',') => make_token(TokenType::Comma),
-		Some('.') => make_token(TokenType::Dot),
-		Some(':') => make_token(TokenType::Colon),
-		Some(';') => make_token(TokenType::SemiColon),
-		Some('_') => make_token(TokenType::UnderScore),
+		Some(',') => make_token(TokenKind::Comma),
+		Some('.') => make_token(TokenKind::Dot),
+		Some(':') => make_token(TokenKind::Colon),
+		Some(';') => make_token(TokenKind::SemiColon),
+		Some('_') => make_token(TokenKind::UnderScore),
 
-		Some('=') => make_token(TokenType::Equals),
-		Some('+') => make_token(TokenType::Plus),
-		Some('-') => make_token(TokenType::Minus),
-		Some('*') => make_token(TokenType::Star),
-		Some('/') => make_token(TokenType::Slash),
-		Some('>') => make_token(TokenType::Greater),
-		Some('<') => make_token(TokenType::Less),
+		Some('=') => make_token(TokenKind::Equals),
+		Some('+') => make_token(TokenKind::Plus),
+		Some('-') => make_token(TokenKind::Minus),
+		Some('*') => make_token(TokenKind::Star),
+		Some('/') => make_token(TokenKind::Slash),
+		Some('>') => make_token(TokenKind::Greater),
+		Some('<') => make_token(TokenKind::Less),
 
-		Some('|') => make_token(TokenType::Pipe),
-		Some('&') => make_token(TokenType::Ampersand),
-		Some('!') => make_token(TokenType::Bang),
+		Some('|') => make_token(TokenKind::Pipe),
+		Some('&') => make_token(TokenKind::Ampersand),
+		Some('!') => make_token(TokenKind::Bang),
 
 		_ => return None
 	};
@@ -213,14 +213,14 @@ fn lex_single_character_token(cursor: &mut Cursor) -> Option<Token> {
 
 
 fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
-	fn make_token(cursor: &mut Cursor, token_type: TokenType) -> Token {
+	fn make_token(cursor: &mut Cursor, token_type: TokenKind) -> Token {
 		cursor.next();
 		cursor.next();
 
 		Token::new(token_type, 2)
 	}
 
-	fn make_token_consume_line(cursor: &mut Cursor, token_type: TokenType) -> Token {
+	fn make_token_consume_line(cursor: &mut Cursor, token_type: TokenKind) -> Token {
 		let mut length = 2;
 		cursor.next();
 		cursor.next();
@@ -238,12 +238,12 @@ fn lex_two_character_token(cursor: &mut Cursor) -> Option<Token> {
 	
 	if let (Some(current), Some(next)) = (cursor.current(), cursor.peek(1)) {
 		let token = match (current, next) {
-			('=', '=') => make_token(cursor, TokenType::EqualsEquals),
-			('>', '=') => make_token(cursor, TokenType::GreaterEquals),
-			('<', '=') => make_token(cursor, TokenType::LessEquals),
-			('|', '|') => make_token(cursor, TokenType::PipePipe),
-			('&', '&') => make_token(cursor, TokenType::AmpersandAmpersand),
-			('/', '/') => make_token_consume_line(cursor, TokenType::CommentLine),
+			('=', '=') => make_token(cursor, TokenKind::EqualsEquals),
+			('>', '=') => make_token(cursor, TokenKind::GreaterEquals),
+			('<', '=') => make_token(cursor, TokenKind::LessEquals),
+			('|', '|') => make_token(cursor, TokenKind::PipePipe),
+			('&', '&') => make_token(cursor, TokenKind::AmpersandAmpersand),
+			('/', '/') => make_token_consume_line(cursor, TokenKind::CommentLine),
 			_ => return None
 		};
 
@@ -283,11 +283,11 @@ fn scan_identifier(cursor: &mut Cursor) -> Option<Token> {
 	}
 
 	if lexeme.len() == 1 && lexeme.starts_with('_') {
-		Some(Token::new(TokenType::UnderScore, cursor.len()))
+		Some(Token::new(TokenKind::UnderScore, cursor.len()))
 	} else if let Some(keyword) = match_identifier_to_keyword(&lexeme) {
 		Some(Token::new(keyword, cursor.len()))
 	} else {
-		Some(Token::new(TokenType::Identifier, cursor.len()))
+		Some(Token::new(TokenKind::Identifier, cursor.len()))
 	}
 }
 
@@ -305,9 +305,9 @@ fn scan_string_literal(cursor: &mut Cursor) -> Option<Token> {
 
 	if cursor.match_char('"') {
 		cursor.next();
-		Some(Token::new(TokenType::StringLiteral, cursor.len()))
+		Some(Token::new(TokenKind::StringLiteral, cursor.len()))
 	} else {
-		Some(Token::new(TokenType::TombStone, cursor.len()))
+		Some(Token::new(TokenKind::TombStone, cursor.len()))
 	}
 }
 
@@ -325,9 +325,9 @@ fn scan_glyph_literal(cursor: &mut Cursor) -> Option<Token> {
 
 	if cursor.match_char('\'') {
 		cursor.next();
-		Some(Token::new(TokenType::GlyphLiteral, cursor.len()))
+		Some(Token::new(TokenKind::GlyphLiteral, cursor.len()))
 	} else {
-		Some(Token::new(TokenType::TombStone, cursor.len()))
+		Some(Token::new(TokenKind::TombStone, cursor.len()))
 	}
 }
 
@@ -347,25 +347,25 @@ fn scan_numeric_literal(cursor: &mut Cursor) -> Option<Token> {
 			cursor.next();
 		}
 
-		Some(Token::new(TokenType::FloatLiteral, cursor.len()))
+		Some(Token::new(TokenKind::FloatLiteral, cursor.len()))
 	} else {
-		Some(Token::new(TokenType::IntegerLiteral, cursor.len()))
+		Some(Token::new(TokenKind::IntegerLiteral, cursor.len()))
 	}
 }
 
 
-fn match_identifier_to_keyword(lexeme: &str) -> Option<TokenType> {
+fn match_identifier_to_keyword(lexeme: &str) -> Option<TokenKind> {
 	match lexeme.to_lowercase().as_str() {
-		"fn" => Some(TokenType::Fn),
-		"return" => Some(TokenType::Return),
-		"if" => Some(TokenType::If),
-		"else" => Some(TokenType::Else),
-		"for" => Some(TokenType::For),
-		"in" => Some(TokenType::In),
-		"while" => Some(TokenType::While),
-		"let" => Some(TokenType::Let),
-		"true" => Some(TokenType::True),
-		"false" => Some(TokenType::False),
+		"fn" => Some(TokenKind::Fn),
+		"return" => Some(TokenKind::Return),
+		"if" => Some(TokenKind::If),
+		"else" => Some(TokenKind::Else),
+		"for" => Some(TokenKind::For),
+		"in" => Some(TokenKind::In),
+		"while" => Some(TokenKind::While),
+		"let" => Some(TokenKind::Let),
+		"true" => Some(TokenKind::True),
+		"false" => Some(TokenKind::False),
 		_ => None
 	}
 }

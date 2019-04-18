@@ -1,4 +1,4 @@
-use super::tokens::{Token, TokenType};
+use super::tokens::{Token, TokenKind};
 use std::rc::Rc;
 
 #[derive(PartialOrd, PartialEq, Debug)]
@@ -13,7 +13,7 @@ pub struct SyntaxNode {
 }
 
 pub struct SyntaxToken {
-	token_type: TokenType,
+	token_type: TokenKind,
 }
 
 pub enum SyntaxElement {
@@ -23,7 +23,7 @@ pub enum SyntaxElement {
 
 pub trait TokenSource {
 	fn token(&self, pos: usize) -> Token;
-	fn token_type(&self, pos: usize) -> TokenType;
+	fn token_type(&self, pos: usize) -> TokenKind;
 
 	fn token2(&self, pos: usize) -> Option<(Token, Token)>;
 	fn token3(&self, pos: usize) -> Option<(Token, Token, Token)>;
