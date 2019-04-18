@@ -1,6 +1,8 @@
 #![cfg(test)]
 
+use crate::featurez::tokens::StrTokenSource;
 use crate::featurez::tokens::{tokenize, Token, TokenType};
+use crate::featurez::syntax::TokenSource;
 
 macro_rules! single_token_tests {
 	($($name:ident: $value:expr,)*) => {
@@ -117,13 +119,13 @@ token_sequence_tests! {
 		TokenType::EndOfFile
 	]),
 														
-	tombstones_which_are_adjacent_are_merged: ("foo``fizz", [
+/*	tombstones_which_are_adjacent_are_merged: ("foo``fizz", [
 		TokenType::Identifier,
 		TokenType::TombStone,
 		TokenType::Identifier, 
 		TokenType::EndOfFile
 	]),
-														
+*/														
 	comment_lines_consume_whole_line: ("foo//not identifier`token\n123", [
 		TokenType::Identifier,
 		TokenType::CommentLine,
@@ -182,4 +184,111 @@ fn assert_token_sequence(value: &str, expected_tokens: &[TokenType]) {
 	}
 
 	assert_eq!(actual_tokens.len(), expected_tokens.len());
+}
+
+#[test]
+fn token_source_token_type_gets_type_at_position() {
+	let source = "2+2==4;";
+	let tokens = tokenize(source);
+	let token_source = StrTokenSource::new(source, tokens);
+	
+	assert_eq!(token_source.token_type(0), TokenType::IntegerLiteral);
+	assert_eq!(token_source.token_type(3), TokenType::EqualsEquals);
+}
+
+#[test]
+fn token_source_token_gets_token_at_position() {
+	let source = "2+2==4;";
+	let tokens = tokenize(source);
+	let token_source = StrTokenSource::new(source, tokens);
+
+	assert_eq!(token_source.token(0).token_type, TokenType::IntegerLiteral);
+	assert_eq!(token_source.token(0).length, 1);
+	assert_eq!(token_source.token(3).token_type, TokenType::EqualsEquals);
+	assert_eq!(token_source.token(3).length, 2);
+}
+
+#[test]
+fn token_source_token_type_gets_end_of_file_when_out_of_bounds() {
+	let source = "2+2==4;";
+	let tokens = tokenize(source);
+	let token_source = StrTokenSource::new(source, tokens);
+
+	assert_eq!(token_source.token_type(5), TokenType::SemiColon);
+	assert_eq!(token_source.token_type(6), TokenType::EndOfFile);
+	assert_eq!(token_source.token_type(10), TokenType::EndOfFile);
+}
+
+#[test]
+fn token_source_token_gets_end_of_file_when_out_of_bounds() {
+	let source = "2+2==4;";
+	let tokens = tokenize(source);
+	let token_source = StrTokenSource::new(source, tokens);
+
+	assert_eq!(token_source.token(5).token_type, TokenType::SemiColon);
+	assert_eq!(token_source.token(6).token_type, TokenType::EndOfFile);
+	assert_eq!(token_source.token(10).token_type, TokenType::EndOfFile);
+}
+
+
+#[test]
+fn token_source_token2_gets_some_tokens_when_space_allows() {
+	let source = "2+2==4;";
+	let tokens = tokenize(source);
+	let token_source = StrTokenSource::new(source, tokens);
+
+	let result = token_source.token2(1).unwrap();
+	
+	assert_eq!(result.0.token_type, TokenType::Plus);
+	assert_eq!(result.1.token_type, TokenType::IntegerLiteral);
+}
+
+#[test]
+fn token_source_token2_gets_none_when_not_enough_tokens() {
+	let source = "2+a";
+	let tokens = tokenize(source);
+	let token_source = StrTokenSource::new(source, tokens);
+
+	let end_minus_2 = token_source
+		.token2(1)
+		.map(|t| (t.0.token_type, t.1.token_type));
+	
+	let end_minus_1 = token_source
+		.token2(2)
+		.map(|t| (t.0.token_type, t.1.token_type));
+	
+	let end = token_source
+		.token2(3)
+		.map(|t| (t.0.token_type, t.1.token_type));
+
+	assert_eq!(end_minus_2, Some((TokenType::Plus, TokenType::Identifier)));
+	assert_eq!(end_minus_1, Some((TokenType::Identifier, TokenType::EndOfFile)));
+	assert_eq!(end, None);
+}
+
+
+#[test]
+fn token_source_token3_gets_some_tokens_when_space_allows() {
+	let source = "2+a";
+	let tokens = tokenize(source);
+	let token_source = StrTokenSource::new(source, tokens);
+
+	let end_minus_3 = token_source
+		.token3(0)
+		.map(|t| (t.0.token_type, t.1.token_type, t.2.token_type));
+
+	assert_eq!(end_minus_3, Some((TokenType::IntegerLiteral, TokenType::Plus, TokenType::Identifier)));
+}
+
+#[test]
+fn token_source_token3_gets_none_when_not_enough_tokens() {
+	let source = "2+a";
+	let tokens = tokenize(source);
+	let token_source = StrTokenSource::new(source, tokens);
+	
+	let end_minus_1 = token_source
+		.token3(2)
+		.map(|t| (t.0.token_type, t.1.token_type, t.2.token_type));
+	
+	assert_eq!(end_minus_1, None);
 }

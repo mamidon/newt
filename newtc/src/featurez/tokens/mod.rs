@@ -1,9 +1,12 @@
 use super::cursor::{Cursor};
 use super::syntax::TokenSource;
+pub use self::token_source::StrTokenSource;
 
 use std::fmt::{Display, Formatter};
 use std::fmt::Error;
+use std::fmt::Debug;
 
+mod token_source;
 mod tests;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
@@ -89,6 +92,10 @@ impl Token {
 			length: left.length + right.length
 		}
 	}
+	
+	pub fn tomb_stone() -> Token { Token::new(TokenType::TombStone, 0) }
+	
+	pub fn end_of_file() -> Token { Token::new(TokenType::EndOfFile, 0) }
 
 	pub fn token_type(&self) -> TokenType {
 		self.token_type
@@ -102,6 +109,18 @@ impl Token {
 impl Display for Token {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
 		write!(f, "{:?}[{}]", self.token_type, self.length)
+	}
+}
+
+impl Debug for Token {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		write!(f, "{:?}[{}]", self.token_type, self.length)
+	}
+}
+
+impl PartialEq for Token {
+	fn eq(&self, other: &Token) -> bool {
+		self.token_type == other.token_type && self.length == other.length
 	}
 }
 
