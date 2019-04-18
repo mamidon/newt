@@ -1,15 +1,15 @@
 #![allow(unused)]
-mod parse;
 
-mod featurez;
-
-use parse::tokens::{tokenize, TokenType, Token};
+use featurez::tokens::{tokenize, Token, TokenType};
 
 use std::env::args;
 use std::io::{stdin, stdout};
 use std::io::Write;
 use std::path::PathBuf;
 use std::str::Chars;
+
+mod featurez;
+
 
 struct Config {
     output_mode: OutputMode,

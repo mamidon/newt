@@ -73,7 +73,7 @@ single_token_tests! {
 	true_keyword: ("true", TokenType::True),
 	false_keyword: ("false", TokenType::False),
 }
-/*
+
 macro_rules! token_sequence_tests {
 	($($name:ident: $value:expr,)*) => {
 	$(
@@ -162,7 +162,7 @@ token_sequence_tests! {
 		TokenType::EndOfFile
 	]),
 }
-*/
+
 fn assert_single_token(value: &str, expected_type: TokenType) {
 	let tokens = tokenize(value);
 

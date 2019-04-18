@@ -1,4 +1,5 @@
 use super::cursor::{Cursor};
+use super::syntax::TokenSource;
 
 use std::fmt::{Display, Formatter};
 use std::fmt::Error;
@@ -109,11 +110,7 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 	let mut source = text;
 	
 	while !source.is_empty() {
-		let mut token = next_token(text);
-
-
-		println!("consumed: {:?}", &source[..token.length]);
-		println!("remaining: {:?}", &source[token.length..]);
+		let mut token = next_token(source);
 		
 		tokens.push(token);
 		source = &source[token.length..];
@@ -136,7 +133,7 @@ fn next_token(text: &str) -> Token {
 		token
 	} else {
 		cursor;
-		Token::new(TokenType::Identifier, 1)
+		Token::new(TokenType::TombStone, 1)
 	}
 }
 
