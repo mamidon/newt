@@ -1,14 +1,13 @@
 use crate::featurez::tokens::{Token, TokenKind};
 use crate::featurez::syntax::TokenSource;
 
-pub struct StrTokenSource<'a> {
-	text: &'a str,
+pub struct StrTokenSource {
 	tokens: Vec<Token>,
 	offsets: Vec<usize>
 }
 
-impl<'a> StrTokenSource<'a> {
-	pub fn new(text: &'a str, raw_tokens: Vec<Token>) -> StrTokenSource {
+impl StrTokenSource {
+	pub fn new(raw_tokens: Vec<Token>) -> StrTokenSource {
 		let mut tokens: Vec<Token> = vec![];
 		let mut offsets: Vec<usize> = vec![];
 		let mut length: usize = 0;
@@ -20,14 +19,13 @@ impl<'a> StrTokenSource<'a> {
 		}
 
 		StrTokenSource {
-			text,
 			tokens,
 			offsets
 		}
 	}
 }
 
-impl<'a> TokenSource for StrTokenSource<'a> {
+impl TokenSource for StrTokenSource {
 	fn token(&self, index: usize) -> Token {
 		if index >= self.tokens.len() {
 			Token::end_of_file()

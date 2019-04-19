@@ -46,11 +46,3 @@ impl BinaryExprNode {
 unsafe impl TransparentNewType for BinaryExprNode {
 	type Inner = SyntaxNode;
 }
-
-
-
-
-pub struct Parser<'a> {
-	source: &'a TokenSource,
-	consumed: usize,
-}

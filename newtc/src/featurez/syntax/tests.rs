@@ -8,7 +8,7 @@ use crate::featurez::tokens::TokenKind;
 fn parse_from_tokens() {
 	let text = "a+b+c";
 	let tokens = tokenize(text);
-	let source = StrTokenSource::new(text, tokens);
+	let source = StrTokenSource::new(tokens);
 	let mut sink = TextTreeSink::new();
 	
 	sink.begin_node(SyntaxKind::BinaryExpr, 0);

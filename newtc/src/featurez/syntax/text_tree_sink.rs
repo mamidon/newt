@@ -18,8 +18,6 @@ impl TextTreeSink {
 	}
 }
 
-
-
 impl TreeSink for TextTreeSink {
 	fn begin_node(&mut self, kind: SyntaxKind, offset: usize) {
 		self.stack.push((kind, self.working_set.len(), offset));
