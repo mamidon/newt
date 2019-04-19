@@ -8,4 +8,4 @@ mod tests;
 pub use self::token_source::StrTokenSource;
 pub use self::token::*;
 pub use self::tokenkind::*;
-pub use self::tokenize::*;
+pub use self::tokenize::tokenize;
