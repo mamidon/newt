@@ -1,8 +1,7 @@
 #![cfg(test)]
 
-use crate::featurez::tokens::StrTokenSource;
-use crate::featurez::tokens::{Token, TokenKind};
-use crate::featurez::tokens::tokenize::tokenize;
+use super::*;
+
 use crate::featurez::syntax::TokenSource;
 
 macro_rules! single_token_tests {

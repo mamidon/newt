@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use super::{Cursor};
+use super::*;
 
 #[test]
 fn cursor_next_iterates() {

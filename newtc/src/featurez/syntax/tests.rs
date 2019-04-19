@@ -1,13 +1,8 @@
+use super::*;
+
 use crate::featurez::tokens::StrTokenSource;
 use crate::featurez::tokens::tokenize;
-use super::{TextTreeSink, TokenSource, SyntaxKind};
-use super::TransparentNewType;
-use crate::featurez::syntax::TreeSink;
-use crate::featurez::syntax::SyntaxToken;
 use crate::featurez::tokens::TokenKind;
-use crate::featurez::syntax::SyntaxElement;
-use crate::featurez::syntax::BinaryExprNode;
-use crate::featurez::syntax::SyntaxTree;
 
 #[test]
 fn parse_from_tokens() {
