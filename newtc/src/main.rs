@@ -1,14 +1,14 @@
 #![allow(unused)]
 
-use featurez::tokens::{tokenize, Token, TokenKind};
+mod featurez;
+
+use crate::featurez::*;
 
 use std::env::args;
 use std::io::{stdin, stdout};
 use std::io::Write;
 use std::path::PathBuf;
 use std::str::Chars;
-
-mod featurez;
 
 
 struct Config {

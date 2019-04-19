@@ -1,5 +1,11 @@
 
 mod cursor;
-pub mod tokens;
+mod tokens;
 mod syntax;
 mod newtypes;
+
+pub use self::tokens::{
+	tokenize,
+	TokenKind,
+	Token
+};
