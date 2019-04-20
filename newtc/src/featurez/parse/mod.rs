@@ -16,21 +16,74 @@ use crate::featurez::syntax::{
 	LiteralExprNode,
 	BinaryExprNode
 };
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Error;
 
-enum ParseEvent {
+#[derive(Debug)]
+pub enum ParseEvent {
+	Token {
+		token: Token
+	},
 	BeginNode {
 		kind: SyntaxKind
 	},
 	EndNode,
 }
 
-struct Parser<'a> {
+impl ParseEvent {
+	pub fn tombstone() -> ParseEvent {
+		ParseEvent::BeginNode { kind: SyntaxKind::TombStone }
+	}
+}
+
+pub struct Marker {
+	index: usize,
+	disabled: bool
+}
+
+impl Marker {
+	pub fn new(index: usize) -> Marker {
+		Marker {
+			index,
+			disabled: false
+		}
+	}
+	
+	pub fn disable(&mut self) {
+		self.disabled = true;
+	}
+	
+	pub fn abandon(&mut self) {
+		self.disabled = true;
+	}
+}
+
+impl Drop for Marker {
+	fn drop(&mut self) {
+		if !self.disabled {
+			panic!("You must disable or abandon the marker!")
+		}
+	}
+}
+
+
+
+pub struct Parser<'a> {
 	text: &'a str,
 	source: StrTokenSource,
 	consumed_tokens: usize,
-	consumed_text: usize,
 	events: Vec<ParseEvent>,
 	errors: Vec<&'static str>
+}
+
+impl<'a> Display for Parser<'a> {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		for event in &self.events {
+			writeln!(f, "{:?}", event);
+		}
+		Ok(())
+	}
 }
 
 impl<'a> Parser<'a> {
@@ -39,7 +92,6 @@ impl<'a> Parser<'a> {
 			text,
 			source,
 			consumed_tokens: 0,
-			consumed_text: 0,
 			events: vec![],
 			errors: vec![]
 		}
@@ -48,8 +100,7 @@ impl<'a> Parser<'a> {
 	pub fn current(&self) -> Token {
 		self.source.token(self.consumed_tokens)
 	}
-
-
+	
 	pub fn current2(&self) -> Option<(Token, Token)> {
 		self.source.token2(self.consumed_tokens)
 	}
@@ -73,19 +124,34 @@ mod grammar {
 		use crate::featurez::{Token, TokenKind};
 
 		pub fn expr(p: &mut Parser) {
+			let mut start = p.begin_node();
 			add_expr(p);
+			p.end_node(&mut start, SyntaxKind::BinaryExpr);
 		}
 		
 		pub fn add_expr(p: &mut Parser) {
-			let left = integer_literal_expr(p);
 			
-			unimplemented!();
+			let mut start = p.begin_node();
+			
+			let left = integer_literal_expr(p);
+			let operator = plus_op(p);
+			let right = integer_literal_expr(p);
+			
+			p.end_node(&mut start, SyntaxKind::PlusExpr);
 		}
 		
-		pub fn integer_literal_expr(p: &mut Parser) -> Option<SyntaxNode> {
-			let current = p.current();
-			
-			unimplemented!();
+		pub fn integer_literal_expr(p: &mut Parser) {
+			if p.current().token_kind() == TokenKind::IntegerLiteral {
+				let mut start = p.begin_node();
+				p.token(p.current());
+				p.end_node(&mut start, SyntaxKind::LiteralExpr);
+			}
+		}
+		
+		pub fn plus_op(p: &mut Parser) {
+			if p.current().token_kind() == TokenKind::Plus {
+				p.token(p.current());
+			}
 		}
 	}
 	
@@ -94,12 +160,19 @@ mod grammar {
 	}
 }
 
-pub fn parse<F: FnOnce(&Parser) -> ()>(text: &str, root: F) {
+
+#[test]
+fn test_parse() {
+	parse("2 +2", grammar::root);
+}
+
+pub fn parse<F: FnOnce(&mut Parser) -> ()>(text: &str, root: F) {
 	let tokens = tokenize(text);
 	let source = StrTokenSource::new(tokens);
-	let parser = Parser::new(text, source);
+	let mut parser = Parser::new(text, source);
 	
-	root(&parser);
+	root(&mut parser);
+	println!("{}", parser);
 }
 
 // events lifecycle for 1+2+3

@@ -190,7 +190,7 @@ fn assert_token_sequence(value: &str, expected_tokens: &[TokenKind]) {
 fn token_source_token_kind_gets_type_at_position() {
 	let source = "2+2==4;";
 	let tokens = tokenize(source);
-	let token_source = StrTokenSource::new(source, tokens);
+	let token_source = StrTokenSource::new(tokens);
 	
 	assert_eq!(token_source.token_kind(0), TokenKind::IntegerLiteral);
 	assert_eq!(token_source.token_kind(3), TokenKind::EqualsEquals);
@@ -200,7 +200,7 @@ fn token_source_token_kind_gets_type_at_position() {
 fn token_source_token_gets_token_at_position() {
 	let source = "2+2==4;";
 	let tokens = tokenize(source);
-	let token_source = StrTokenSource::new(source, tokens);
+	let token_source = StrTokenSource::new(tokens);
 
 	assert_eq!(token_source.token(0).token_kind(), TokenKind::IntegerLiteral);
 	assert_eq!(token_source.token(0).lexeme_length(), 1);
@@ -212,7 +212,7 @@ fn token_source_token_gets_token_at_position() {
 fn token_source_token_kind_gets_end_of_file_when_out_of_bounds() {
 	let source = "2+2==4;";
 	let tokens = tokenize(source);
-	let token_source = StrTokenSource::new(source, tokens);
+	let token_source = StrTokenSource::new(tokens);
 
 	assert_eq!(token_source.token_kind(5), TokenKind::SemiColon);
 	assert_eq!(token_source.token_kind(6), TokenKind::EndOfFile);
@@ -223,7 +223,7 @@ fn token_source_token_kind_gets_end_of_file_when_out_of_bounds() {
 fn token_source_token_gets_end_of_file_when_out_of_bounds() {
 	let source = "2+2==4;";
 	let tokens = tokenize(source);
-	let token_source = StrTokenSource::new(source, tokens);
+	let token_source = StrTokenSource::new(tokens);
 
 	assert_eq!(token_source.token(5).token_kind(), TokenKind::SemiColon);
 	assert_eq!(token_source.token(6).token_kind(), TokenKind::EndOfFile);
@@ -235,7 +235,7 @@ fn token_source_token_gets_end_of_file_when_out_of_bounds() {
 fn token_source_token2_gets_some_tokens_when_space_allows() {
 	let source = "2+2==4;";
 	let tokens = tokenize(source);
-	let token_source = StrTokenSource::new(source, tokens);
+	let token_source = StrTokenSource::new(tokens);
 
 	let result = token_source.token2(1).unwrap();
 	
@@ -247,7 +247,7 @@ fn token_source_token2_gets_some_tokens_when_space_allows() {
 fn token_source_token2_gets_none_when_not_enough_tokens() {
 	let source = "2+a";
 	let tokens = tokenize(source);
-	let token_source = StrTokenSource::new(source, tokens);
+	let token_source = StrTokenSource::new(tokens);
 
 	let end_minus_2 = token_source
 		.token2(1)
@@ -271,7 +271,7 @@ fn token_source_token2_gets_none_when_not_enough_tokens() {
 fn token_source_token3_gets_some_tokens_when_space_allows() {
 	let source = "2+a";
 	let tokens = tokenize(source);
-	let token_source = StrTokenSource::new(source, tokens);
+	let token_source = StrTokenSource::new(tokens);
 
 	let end_minus_3 = token_source
 		.token3(0)
@@ -284,7 +284,7 @@ fn token_source_token3_gets_some_tokens_when_space_allows() {
 fn token_source_token3_gets_none_when_not_enough_tokens() {
 	let source = "2+a";
 	let tokens = tokenize(source);
-	let token_source = StrTokenSource::new(source, tokens);
+	let token_source = StrTokenSource::new(tokens);
 	
 	let end_minus_1 = token_source
 		.token3(2)
