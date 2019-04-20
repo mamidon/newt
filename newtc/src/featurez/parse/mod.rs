@@ -17,12 +17,19 @@ use crate::featurez::syntax::{
 	BinaryExprNode
 };
 
+enum ParseEvent {
+	BeginNode {
+		kind: SyntaxKind
+	},
+	EndNode,
+}
+
 struct Parser<'a> {
 	text: &'a str,
 	source: StrTokenSource,
-	sink: TextTreeSink,
 	consumed_tokens: usize,
 	consumed_text: usize,
+	events: Vec<ParseEvent>,
 	errors: Vec<&'static str>
 }
 
@@ -31,15 +38,24 @@ impl<'a> Parser<'a> {
 		Parser {
 			text,
 			source,
-			sink: TextTreeSink::new(),
 			consumed_tokens: 0,
 			consumed_text: 0,
+			events: vec![],
 			errors: vec![]
 		}
 	}
 	
 	pub fn current(&self) -> Token {
 		self.source.token(self.consumed_tokens)
+	}
+
+
+	pub fn current2(&self) -> Option<(Token, Token)> {
+		self.source.token2(self.consumed_tokens)
+	}
+	
+	pub fn nth(&self, n: usize) -> Token {
+		self.source.token(self.consumed_tokens + n)
 	}
 	
 	pub fn match_token_kind(&self, kind: TokenKind) -> bool {
