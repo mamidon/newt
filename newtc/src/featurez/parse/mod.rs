@@ -112,6 +112,48 @@ impl<'a> Parser<'a> {
 	pub fn match_token_kind(&self, kind: TokenKind) -> bool {
 		self.source.token_kind(self.consumed_tokens) == kind
 	}
+	
+	pub fn token(&mut self, token: Token) {
+		self.consumed_tokens += 1;
+		self.events.push(ParseEvent::Token { token });
+		
+		self.eat_trivia();
+	}
+	
+	pub fn begin_node(&mut self) -> Marker {
+		let index = self.events.len();
+		self.events.push(ParseEvent::tombstone());
+		
+		Marker::new(index)
+	}
+	
+	pub fn end_node(&mut self, marker: &mut Marker, kind: SyntaxKind) {
+		let begin = &mut self.events[marker.index];
+		
+		match begin {
+			ParseEvent::BeginNode { kind: ref mut slot } => {
+				marker.disable();
+				*slot = kind;
+			},
+			_ => panic!("Did not expect to complete a marker we don't have access to anymore!")
+		};
+		
+		self.events.push(ParseEvent::EndNode);
+	}
+	
+	fn eat_trivia(&mut self) {
+		loop {
+			match self.current().token_kind() {
+				TokenKind::WhiteSpace
+				| TokenKind::TombStone 
+				| TokenKind::CommentLine 
+				| TokenKind::CommentBlock => {},
+				_ => break
+			}
+			
+			self.consumed_tokens += 1;
+		}
+	}
 }
 
 mod grammar {
