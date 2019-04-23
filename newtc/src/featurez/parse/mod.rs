@@ -178,11 +178,6 @@ impl<'a> Parser<'a> {
 	}
 }
 
-#[test]
-fn test_parse() {
-	parse("2 +2", grammar::root);
-}
-
 pub fn parse<F: FnOnce(&mut Parser) -> ()>(text: &str, root: F) {
 	let tokens = tokenize(text);
 	let source = StrTokenSource::new(tokens);

@@ -2,7 +2,8 @@
 #[derive(PartialOrd, PartialEq, Debug, Copy, Clone)]
 pub enum SyntaxKind {
 	TombStone,
-	PlusExpr,
+	Expr,
 	BinaryExpr,
+	UnaryExpr,
 	LiteralExpr
 }
