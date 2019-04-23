@@ -78,9 +78,31 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Display for Parser<'a> {
+	
 	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		use std::iter::repeat;
+
+		let mut depth = 0;
+		let mut prefix: String = repeat("\t").take(depth).collect();
+		
 		for event in &self.events {
-			writeln!(f, "{:?}", event);
+			match event {
+				ParseEvent::BeginNode { kind: _ } => {
+					writeln!(f, "{}{:?}", prefix, event);
+					
+					depth += 1;
+					prefix = repeat("\t").take(depth).collect();
+				},
+				ParseEvent::EndNode => {
+					depth -= 1;
+					prefix = repeat("\t").take(depth).collect();
+					
+					writeln!(f, "{}{:?}", prefix, event);
+				},
+				_ => {
+					writeln!(f, "{}{:?}", prefix, event);
+				}
+			}
 		}
 		Ok(())
 	}
