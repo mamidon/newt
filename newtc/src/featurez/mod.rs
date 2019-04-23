@@ -4,6 +4,7 @@ mod tokens;
 mod syntax;
 mod parse;
 mod newtypes;
+mod grammar;
 
 pub use self::tokens::{
 	tokenize,
@@ -13,6 +14,7 @@ pub use self::tokens::{
 };
 
 pub use self::parse::{
-	Parser,
-	grammar::root	
+	Parser
 };
+
+pub use self::grammar::root;
