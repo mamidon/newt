@@ -8,5 +8,11 @@ mod newtypes;
 pub use self::tokens::{
 	tokenize,
 	TokenKind,
-	Token
+	Token,
+	StrTokenSource
+};
+
+pub use self::parse::{
+	Parser,
+	grammar::root	
 };

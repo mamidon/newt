@@ -178,7 +178,7 @@ impl<'a> Parser<'a> {
 	}
 }
 
-mod grammar {
+pub mod grammar {
 	use crate::featurez::parse::Parser;
 	use self::expr::*;
 	

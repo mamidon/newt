@@ -23,8 +23,6 @@ enum OutputMode {
     AbstractSyntaxTree,
 }
 
-
-
 fn main() {
     let arguments : Vec<String> = args()
         .collect();
@@ -54,6 +52,7 @@ fn main() {
 fn batch(file: String, output_mode: OutputMode) {
     match output_mode {
         OutputMode::Tokens => token_batch(file),
+		OutputMode::ParseTree => parse_batch(&file),
         _ => unimplemented!("Have not yet implemented batch processing for {:?}", output_mode)
     }
 }
@@ -61,6 +60,7 @@ fn batch(file: String, output_mode: OutputMode) {
 fn repl(output_mode: OutputMode) {
 	match output_mode {
 		OutputMode::Tokens => token_repl(),
+		OutputMode::ParseTree => parse_repl(),
 		_ => unimplemented!("Have not yet implemented repl for {:?}", output_mode)
 	}
 }
@@ -89,6 +89,36 @@ fn token_repl() {
 		
 		print_tokens(&sanitized_input, &tokens);
     }
+}
+
+fn parse_repl() {
+	let mut input_buffer = String::new();
+	loop {
+		input_buffer.clear();
+		print!("newt> ");
+		stdout().flush().ok().expect("failed to write to stdout");
+
+		stdin().read_line(&mut input_buffer);
+		let sanitized_input = input_buffer.trim();
+
+		if sanitized_input.len() == 0 {
+			break;
+		}
+
+		parse_batch(&input_buffer);
+	}
+}
+
+fn parse_batch(file: &str) {
+	use crate::featurez::root;
+	
+	let tokens = tokenize(&file);
+	let token_source = StrTokenSource::new(tokens);
+	let mut parser = Parser::new(&file, token_source);
+	
+	root(&mut parser);
+
+	println!("{}", parser);
 }
 
 fn print_tokens(source_text: &str, tokens: &Vec<Token>) {
