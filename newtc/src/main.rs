@@ -5,15 +5,14 @@ mod featurez;
 use crate::featurez::*;
 
 use std::env::args;
-use std::io::{stdin, stdout};
 use std::io::Write;
+use std::io::{stdin, stdout};
 use std::path::PathBuf;
 use std::str::Chars;
 
-
 struct Config {
     output_mode: OutputMode,
-    entry_file: Option<PathBuf>
+    entry_file: Option<PathBuf>,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -24,132 +23,130 @@ enum OutputMode {
 }
 
 fn main() {
-    let arguments : Vec<String> = args()
-        .collect();
-    
-    let borrowed_arguments = arguments
-        .iter()
-        .map(|s| s.as_ref())
-        .collect();
-    
+    let arguments: Vec<String> = args().collect();
+
+    let borrowed_arguments = arguments.iter().map(|s| s.as_ref()).collect();
+
     let config = Config::parse(&borrowed_arguments);
-	
-	match config {
-		Some(c) => {
-			let entry_file_contents =  c.entry_file
-				.and_then(|f| std::fs::read_to_string(f).ok());
-			
-			if let Some(entry_file_contents) = entry_file_contents {
-				batch(entry_file_contents, c.output_mode)
-			} else {
-				repl(c.output_mode)
-			}
-		},
-		None => print_help()
-	}
+
+    match config {
+        Some(c) => {
+            let entry_file_contents = c.entry_file.and_then(|f| std::fs::read_to_string(f).ok());
+
+            if let Some(entry_file_contents) = entry_file_contents {
+                batch(entry_file_contents, c.output_mode)
+            } else {
+                repl(c.output_mode)
+            }
+        }
+        None => print_help(),
+    }
 }
 
 fn batch(file: String, output_mode: OutputMode) {
     match output_mode {
         OutputMode::Tokens => token_batch(file),
-		OutputMode::ParseTree => parse_batch(&file),
-        _ => unimplemented!("Have not yet implemented batch processing for {:?}", output_mode)
+        OutputMode::ParseTree => parse_batch(&file),
+        _ => unimplemented!(
+            "Have not yet implemented batch processing for {:?}",
+            output_mode
+        ),
     }
 }
 
 fn repl(output_mode: OutputMode) {
-	match output_mode {
-		OutputMode::Tokens => token_repl(),
-		OutputMode::ParseTree => parse_repl(),
-		_ => unimplemented!("Have not yet implemented repl for {:?}", output_mode)
-	}
+    match output_mode {
+        OutputMode::Tokens => token_repl(),
+        OutputMode::ParseTree => parse_repl(),
+        _ => unimplemented!("Have not yet implemented repl for {:?}", output_mode),
+    }
 }
 
 fn token_batch(file: String) {
-	let tokens = tokenize(&file);
-	
-	print_tokens(&file, &tokens);
+    let tokens = tokenize(&file);
+
+    print_tokens(&file, &tokens);
 }
 
 fn token_repl() {
     let mut input_buffer = String::new();
     loop {
-		input_buffer.clear();
+        input_buffer.clear();
         print!("newt> ");
-		stdout().flush().ok().expect("failed to write to stdout");
-		
-		stdin().read_line(&mut input_buffer);
-		let sanitized_input = input_buffer.trim();
-		
-		if sanitized_input.len() == 0 {
-			break;
-		}
-		
-		let tokens = tokenize(&sanitized_input);
-		
-		print_tokens(&sanitized_input, &tokens);
+        stdout().flush().ok().expect("failed to write to stdout");
+
+        stdin().read_line(&mut input_buffer);
+        let sanitized_input = input_buffer.trim();
+
+        if sanitized_input.len() == 0 {
+            break;
+        }
+
+        let tokens = tokenize(&sanitized_input);
+
+        print_tokens(&sanitized_input, &tokens);
     }
 }
 
 fn parse_repl() {
-	let mut input_buffer = String::new();
-	loop {
-		input_buffer.clear();
-		print!("newt> ");
-		stdout().flush().ok().expect("failed to write to stdout");
+    let mut input_buffer = String::new();
+    loop {
+        input_buffer.clear();
+        print!("newt> ");
+        stdout().flush().ok().expect("failed to write to stdout");
 
-		stdin().read_line(&mut input_buffer);
-		let sanitized_input = input_buffer.trim();
+        stdin().read_line(&mut input_buffer);
+        let sanitized_input = input_buffer.trim();
 
-		if sanitized_input.len() == 0 {
-			break;
-		}
+        if sanitized_input.len() == 0 {
+            break;
+        }
 
-		parse_batch(&input_buffer);
-	}
+        parse_batch(&input_buffer);
+    }
 }
 
 fn parse_batch(file: &str) {
-	use crate::featurez::root;
-	
-	let tokens = tokenize(&file);
-	let token_source = StrTokenSource::new(tokens);
-	let mut parser = Parser::new(&file, token_source);
-	
-	root(&mut parser);
+    use crate::featurez::root;
 
-	println!("{}", parser);
+    let tokens = tokenize(&file);
+    let token_source = StrTokenSource::new(tokens);
+    let mut parser = Parser::new(&file, token_source);
+
+    root(&mut parser);
+
+    println!("{}", parser);
 }
 
 fn print_tokens(source_text: &str, tokens: &Vec<Token>) {
-	let mut offset = 0;
-	
-	for token in tokens {
-		let end = offset + token.lexeme_length();
+    let mut offset = 0;
 
-		match token.token_kind() {
-			TokenKind::TombStone => println!("{} '{}'", token, &source_text[offset..end]),
-			TokenKind::WhiteSpace => {
-				let mut printable_whitespace = String::new();
+    for token in tokens {
+        let end = offset + token.lexeme_length();
 
-				for c in source_text[offset..end].chars() {
-					match c {
-						' ' => printable_whitespace.push_str("\\s"),
-						'\t' => printable_whitespace.push_str("\\t"),
-						'\n' => printable_whitespace.push_str("\\n"),
-						_ => printable_whitespace.push(c)
-					}
-				}
+        match token.token_kind() {
+            TokenKind::TombStone => println!("{} '{}'", token, &source_text[offset..end]),
+            TokenKind::WhiteSpace => {
+                let mut printable_whitespace = String::new();
 
-				println!("{} '{}'", token, printable_whitespace);
-			}
-			_ => println!("{} '{}'", token, &source_text[offset..end])
-		}
+                for c in source_text[offset..end].chars() {
+                    match c {
+                        ' ' => printable_whitespace.push_str("\\s"),
+                        '\t' => printable_whitespace.push_str("\\t"),
+                        '\n' => printable_whitespace.push_str("\\n"),
+                        _ => printable_whitespace.push(c),
+                    }
+                }
 
-		offset = end;
-	}
+                println!("{} '{}'", token, printable_whitespace);
+            }
+            _ => println!("{} '{}'", token, &source_text[offset..end]),
+        }
 
-	println!();
+        offset = end;
+    }
+
+    println!();
 }
 
 fn print_help() {
@@ -158,20 +155,21 @@ fn print_help() {
 
 impl Config {
     pub fn parse(arguments: &Vec<&str>) -> Option<Config> {
-        if let (Some(output_mode), entry_file) = (Config::parse_output_mode(arguments), Config::parse_entry_file(arguments)) {
+        if let (Some(output_mode), entry_file) = (
+            Config::parse_output_mode(arguments),
+            Config::parse_entry_file(arguments),
+        ) {
             Some(Config {
                 output_mode,
-                entry_file
+                entry_file,
             })
         } else {
-            None   
+            None
         }
     }
-    
+
     fn parse_entry_file(arguments: &Vec<&str>) -> Option<PathBuf> {
-        let entry_file_flag_position = arguments
-            .iter()
-            .position(|arg| *arg == "--entry-file");
+        let entry_file_flag_position = arguments.iter().position(|arg| *arg == "--entry-file");
 
         match entry_file_flag_position {
             Some(position) => {
@@ -179,29 +177,25 @@ impl Config {
                     .get(position + 1)
                     .and_then(|s| Some(PathBuf::from(s)));
                 return entry_file;
-            },
-            None => None
+            }
+            None => None,
         }
     }
-    
+
     fn parse_output_mode(arguments: &Vec<&str>) -> Option<OutputMode> {
-        let output_mode_flag_position = arguments
-            .iter()
-            .position(|arg| *arg == "--output-mode");
-        
+        let output_mode_flag_position = arguments.iter().position(|arg| *arg == "--output-mode");
+
         match output_mode_flag_position {
             Some(position) => {
-                let output_mode_flag = arguments
-                    .get(position + 1)
-                    .and_then(|s| Some(*s));
+                let output_mode_flag = arguments.get(position + 1).and_then(|s| Some(*s));
                 match output_mode_flag {
                     Some("tokens") => Some(OutputMode::Tokens),
                     Some("parse-tree") => Some(OutputMode::ParseTree),
                     Some("ast") => Some(OutputMode::AbstractSyntaxTree),
-                    _ => None 
+                    _ => None,
                 }
-            },
-            None => None
+            }
+            None => None,
         }
     }
 }
@@ -209,9 +203,9 @@ impl Config {
 #[test]
 fn config_parse_output_mode_finds_tokens() {
     let args = vec!["--output-mode", "tokens"];
-    
+
     let output_mode = Config::parse_output_mode(&args);
-    
+
     assert_eq!(output_mode.is_some(), true);
     assert_eq!(output_mode.unwrap(), OutputMode::Tokens);
 }
@@ -253,5 +247,3 @@ fn config_parse_output_mode_expects_flag() {
 
     assert_eq!(output_mode.is_none(), true);
 }
-
-
