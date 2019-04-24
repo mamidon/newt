@@ -11,53 +11,59 @@ mod expr {
 
         add_expr(p);
 
-        p.end_node(&mut start, SyntaxKind::BinaryExpr);
+        p.end_node(&mut start, SyntaxKind::Expr);
     }
 
-    pub fn add_expr(p: &mut Parser) -> Option<SyntaxKind> {
+    pub fn add_expr(p: &mut Parser) {
         let mut start = p.begin_node();
 
-        let left = integer_literal_expr(p);
+        mult_expr(p);
 
         match p.current().token_kind() {
             TokenKind::Plus | TokenKind::Minus => {
                 p.token(p.current());
 
-                let right = integer_literal_expr(p);
+                expr(p);
                 p.end_node(&mut start, SyntaxKind::BinaryExpr);
             }
             _ => start.abandon(),
         }
-
-        return None;
     }
 
-    pub fn mult_expr(p: &mut Parser) -> Option<SyntaxKind> {
-        let mut start = p.begin_node();
+    pub fn mult_expr(p: &mut Parser) {
+		let mut start = p.begin_node();
 
-        let left = unary_expr(p);
+		unary_expr(p);
+
+		match p.current().token_kind() {
+			TokenKind::Star | TokenKind::Slash => {
+				p.token(p.current());
+
+				expr(p);
+				p.end_node(&mut start, SyntaxKind::BinaryExpr);
+			}
+			_ => start.abandon(),
+		}
     }
 
-    pub fn unary_expr(p: &mut Parser) -> Option<SyntaxKind> {
-        if let Some(primary_token) = primary_expr(p) {
-            return Some(primary_token);
-        }
-
-        match p.current().token_kind() {
-            TokenKind::Bang | TokenKind::Minus => {
-                let mut start = p.begin_node();
-                let expr = expr(p);
-                p.end_node(&mut start, SyntaxKind::UnaryExpr);
-
-                return Some(SyntaxKind::UnaryExpr);
-            }
-            _ => return None,
-        }
+    pub fn unary_expr(p: &mut Parser) {
+		match p.current().token_kind() {
+			TokenKind::Bang
+			| TokenKind::Minus => {
+				let mut start = p.begin_node();
+				
+				p.token(p.current());
+				let expr = expr(p);
+				
+				p.end_node(&mut start, SyntaxKind::UnaryExpr);
+			},
+			_ => { primary_expr(p); }
+		}
     }
 
     pub fn primary_expr(p: &mut Parser) -> Option<SyntaxKind> {
-        if let integer = integer_literal_expr(p) {
-            return integer;
+        if let Some(integer) = integer_literal_expr(p) {
+            return Some(integer);
         } else {
             return None;
         }

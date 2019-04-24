@@ -69,6 +69,7 @@ impl<'a> Display for Parser<'a> {
 
         for event in &self.events {
             match event {
+				ParseEvent::BeginNode { kind: SyntaxKind::TombStone } => {},
                 ParseEvent::BeginNode { kind: _ } => {
                     writeln!(f, "{}{:?}", prefix, event);
 
