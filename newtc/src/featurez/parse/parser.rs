@@ -39,9 +39,11 @@ impl<'a> Parser<'a> {
 		self.source.token_kind(self.consumed_tokens) == kind
 	}
 
-	pub fn token(&mut self, kind: TokenKind) {
+	pub fn token_remap(&mut self, kind: TokenKind) {
+		let token = self.source.token(self.consumed_tokens);
+		
 		self.consumed_tokens += 1;
-		self.events.push(ParseEvent::Token { kind });
+		self.events.push(ParseEvent::Token { kind: token.token_kind(), length: token.lexeme_length() });
 
 		self.eat_trivia();
 	}
@@ -50,9 +52,10 @@ impl<'a> Parser<'a> {
 		if self.current() != kind {
 			return false;
 		}
-		
+
+		let token = self.source.token(self.consumed_tokens);
 		self.consumed_tokens += 1;
-		self.events.push(ParseEvent::Token { kind });
+		self.events.push(ParseEvent::Token { kind: token.token_kind(), length: token.lexeme_length() });
 
 		self.eat_trivia();
 		
@@ -79,6 +82,10 @@ impl<'a> Parser<'a> {
 
 		self.events.push(ParseEvent::EndNode);
 	}
+	
+	pub fn end_parsing(self) -> Vec<ParseEvent> {
+		self.events
+	}
 
 	fn eat_trivia(&mut self) {
 		loop {
@@ -90,6 +97,8 @@ impl<'a> Parser<'a> {
 				_ => break,
 			}
 
+			let token = self.source.token(self.consumed_tokens);
+			self.events.push(ParseEvent::Trivia { kind: token.token_kind(), length: token.lexeme_length() });
 			self.consumed_tokens += 1;
 		}
 	}

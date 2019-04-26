@@ -3,7 +3,8 @@ use crate::featurez::syntax::SyntaxKind;
 
 #[derive(Debug)]
 pub enum ParseEvent {
-	Token { kind: TokenKind },
+	Token { kind: TokenKind, length: usize },
+	Trivia { kind: TokenKind, length: usize },
 	BeginNode { kind: SyntaxKind },
 	EndNode,
 }
