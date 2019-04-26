@@ -10,13 +10,16 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
 	pub fn new(text: &'a str, source: StrTokenSource) -> Parser<'a> {
-		Parser {
+		let mut p = Parser {
 			text,
 			source,
 			consumed_tokens: 0,
 			events: vec![],
 			errors: vec![],
-		}
+		};
+		p.eat_trivia();
+		
+		p
 	}
 
 	pub fn current(&self) -> TokenKind {
@@ -41,6 +44,19 @@ impl<'a> Parser<'a> {
 		self.events.push(ParseEvent::Token { kind });
 
 		self.eat_trivia();
+	}
+
+	pub fn token_if(&mut self, kind: TokenKind) -> bool {
+		if self.current() != kind {
+			return false;
+		}
+		
+		self.consumed_tokens += 1;
+		self.events.push(ParseEvent::Token { kind });
+
+		self.eat_trivia();
+		
+		return true;
 	}
 
 	pub fn begin_node(&mut self) -> Marker {

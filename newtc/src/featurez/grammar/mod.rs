@@ -15,19 +15,16 @@ mod expr {
     }
 
     pub fn add_expr(p: &mut Parser) {
-        let mut start = p.begin_node();
+		let mut start = p.begin_node();
 
-        mult_expr(p);
+		mult_expr(p);
 
-        match p.current() {
-            TokenKind::Plus | TokenKind::Minus => {
-                p.token(p.current());
-
-                expr(p);
-                p.end_node(&mut start, SyntaxKind::BinaryExpr);
-            }
-            _ => start.abandon(),
-        }
+		if p.token_if(TokenKind::Plus) || p.token_if(TokenKind::Minus) {
+			expr(p);
+			p.end_node(&mut start, SyntaxKind::BinaryExpr);
+		} else {
+			start.abandon();
+		}
     }
 
     pub fn mult_expr(p: &mut Parser) {
@@ -35,29 +32,25 @@ mod expr {
 
 		unary_expr(p);
 
-		match p.current() {
-			TokenKind::Star | TokenKind::Slash => {
-				p.token(p.current());
-
-				expr(p);
-				p.end_node(&mut start, SyntaxKind::BinaryExpr);
-			}
-			_ => start.abandon(),
+		if p.token_if(TokenKind::Star) || p.token_if(TokenKind::Slash) {
+			expr(p);
+			p.end_node(&mut start, SyntaxKind::BinaryExpr);
+		} else {
+			start.abandon();
 		}
     }
 
     pub fn unary_expr(p: &mut Parser) {
-		match p.current() {
-			TokenKind::Bang
-			| TokenKind::Minus => {
-				let mut start = p.begin_node();
-				
-				p.token(p.current());
-				let expr = expr(p);
-				
-				p.end_node(&mut start, SyntaxKind::UnaryExpr);
-			},
-			_ => { primary_expr(p); }
+		let mut start = p.begin_node();
+		
+		if p.token_if(TokenKind::Bang) || p.token_if(TokenKind::Minus) {
+			let expr = expr(p);
+			
+			p.end_node(&mut start, SyntaxKind::UnaryExpr);
+		} else {
+			start.abandon();
+			
+			primary_expr(p);
 		}
     }
 
@@ -70,14 +63,15 @@ mod expr {
     }
 
     pub fn integer_literal_expr(p: &mut Parser) -> Option<SyntaxKind> {
-        if p.current() == TokenKind::IntegerLiteral {
-            let mut start = p.begin_node();
-            p.token(p.current());
-            p.end_node(&mut start, SyntaxKind::LiteralExpr);
-
-            return Some(SyntaxKind::LiteralExpr);
-        }
-
+		let mut start = p.begin_node();
+		
+		if p.token_if(TokenKind::IntegerLiteral) {
+			
+			p.end_node(&mut start, SyntaxKind::LiteralExpr);
+			
+			return Some(SyntaxKind::LiteralExpr);
+		}
+		
         return None;
     }
 }
