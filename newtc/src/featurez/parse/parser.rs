@@ -19,25 +19,26 @@ impl<'a> Parser<'a> {
 		}
 	}
 
-	pub fn current(&self) -> Token {
-		self.source.token(self.consumed_tokens)
+	pub fn current(&self) -> TokenKind {
+		self.source.token(self.consumed_tokens).token_kind()
 	}
 
-	pub fn current2(&self) -> Option<(Token, Token)> {
+	pub fn current2(&self) -> Option<(TokenKind, TokenKind)> {
 		self.source.token2(self.consumed_tokens)
+			.map(|(t1,t2)| (t1.token_kind(), t2.token_kind()))
 	}
 
-	pub fn nth(&self, n: usize) -> Token {
-		self.source.token(self.consumed_tokens + n)
+	pub fn nth(&self, n: usize) -> TokenKind {
+		self.source.token(self.consumed_tokens + n).token_kind()
 	}
 
 	pub fn match_token_kind(&self, kind: TokenKind) -> bool {
 		self.source.token_kind(self.consumed_tokens) == kind
 	}
 
-	pub fn token(&mut self, token: Token) {
+	pub fn token(&mut self, kind: TokenKind) {
 		self.consumed_tokens += 1;
-		self.events.push(ParseEvent::Token { token });
+		self.events.push(ParseEvent::Token { kind });
 
 		self.eat_trivia();
 	}
@@ -65,7 +66,7 @@ impl<'a> Parser<'a> {
 
 	fn eat_trivia(&mut self) {
 		loop {
-			match self.current().token_kind() {
+			match self.current() {
 				TokenKind::WhiteSpace
 				| TokenKind::TombStone
 				| TokenKind::CommentLine

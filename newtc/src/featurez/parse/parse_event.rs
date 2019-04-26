@@ -1,9 +1,9 @@
-use crate::featurez::tokens::Token;
+use crate::featurez::tokens::{Token,TokenKind};
 use crate::featurez::syntax::SyntaxKind;
 
 #[derive(Debug)]
 pub enum ParseEvent {
-	Token { token: Token },
+	Token { kind: TokenKind },
 	BeginNode { kind: SyntaxKind },
 	EndNode,
 }
