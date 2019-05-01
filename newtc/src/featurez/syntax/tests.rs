@@ -23,6 +23,6 @@ fn parse_from_tokens() {
     sink.end_node(5);
 
     let root = &sink.end_tree();
-    let tree = SyntaxTree::new(&root, text);
-    println!("{}", tree);
+    //let tree = SyntaxTree::new(&root, text);
+    //println!("{}", tree);
 }

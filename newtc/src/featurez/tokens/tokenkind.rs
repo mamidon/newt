@@ -60,3 +60,16 @@ pub enum TokenKind {
     EndOfFile,
     TombStone,
 }
+
+impl TokenKind {
+	pub fn is_trivia(&self) -> bool {
+		match self {
+			TokenKind::TombStone
+			| TokenKind::CommentLine
+			| TokenKind::CommentLine
+			| TokenKind::WhiteSpace
+			=> true,
+			_ => false
+		}
+	}
+}

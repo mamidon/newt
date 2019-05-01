@@ -84,7 +84,10 @@ impl<'a> Parser<'a> {
 	}
 	
 	pub fn end_parsing(self) -> Vec<ParseEvent> {
-		self.events
+		self.events.into_iter().filter(|e| match e { 
+			ParseEvent::BeginNode { kind: SyntaxKind::TombStone } => false,
+			_ => true
+		}).collect()
 	}
 
 	fn eat_trivia(&mut self) {

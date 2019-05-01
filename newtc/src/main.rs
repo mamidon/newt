@@ -107,15 +107,12 @@ fn parse_repl() {
 }
 
 fn parse_batch(file: &str) {
-    use crate::featurez::root;
+    use crate::featurez::parse;
 
-    let tokens = tokenize(&file);
-    let token_source = StrTokenSource::new(tokens);
-    let mut parser = Parser::new(&file, token_source);
-
-    root(&mut parser);
-
-    println!("{}", parser);
+	
+	let tree = parse(file);
+	
+    println!("{}", tree);
 }
 
 fn print_tokens(source_text: &str, tokens: &Vec<Token>) {

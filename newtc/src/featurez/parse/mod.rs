@@ -8,7 +8,7 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 
 mod parse_event;
-use self::parse_event::ParseEvent;
+pub use self::parse_event::ParseEvent;
 
 mod marker;
 use self::marker::Marker;
@@ -16,11 +16,19 @@ use self::marker::Marker;
 mod parser;
 pub use self::parser::Parser;
 
-pub fn parse<F: FnOnce(&mut Parser) -> ()>(text: &str, root: F) {
+pub fn parse(text: &str) -> SyntaxTree {
+	use super::grammar::root;
+	
     let tokens = tokenize(text);
     let source = StrTokenSource::new(tokens);
     let mut parser = Parser::new(text, source);
 
     root(&mut parser);
-    println!("{}", parser);
+	
+	print!("{}", parser);
+	
+	let tree = SyntaxTree::from_parser(parser, text);
+	
+	tree
 }
+
