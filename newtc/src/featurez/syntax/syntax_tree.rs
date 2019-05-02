@@ -48,47 +48,41 @@ impl<'a> SyntaxTree<'a> {
 
 impl<'a> Display for SyntaxTree<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        print_tree_element(f, &self.root, 0, 0, self.text);
+        print_tree_element(f, &self.root, "", self.text, true);
         return Ok(());
 
         fn print_tree_element(
             f: &mut Formatter,
             element: &SyntaxElement,
-            depth: usize,
-            offset: usize,
+            prefix: &str,
             text: &str,
+			last: bool
         ) -> usize {
-            let prefix = "-".repeat(depth);
-
+			write!(f, "{}", prefix);
+			let next_prefix = if last {
+				write!(f, "┗ ");
+				prefix.to_owned() + "  "
+			} else {
+				write!(f, "┡ ");
+				prefix.to_owned() + "┃ "
+			};
+			
             match element {
                 SyntaxElement::Node(node) => {
-                    writeln!(
-                        f,
-                        "[{}..{}) {}{:?} '{}'",
-                        offset,
-                        offset + node.length(),
-                        prefix,
-                        node.kind(),
-                        &text[offset..offset + node.length()]
-                    );
+					writeln!(f, "{:?}", node.kind());
 
-                    let mut children_length = 0;
-                    for child in node.children().iter() {
-                        children_length += print_tree_element(f, child, depth + 1, offset + children_length, text);
-                    }
-                    return children_length;
+					let mut children_length = 0;
+					for (index, child) in node.children().iter().enumerate() {
+						let last_child = node.children().len() - 1 == index;
+						
+						children_length += print_tree_element(f, child, &next_prefix, &text[children_length..], last_child);
+					}
+					return children_length;
                 }
                 SyntaxElement::Token(token) => {
-                    writeln!(
-                        f,
-                        "[{}..{}) {}{:?} '{}'",
-                        offset,
-                        offset + token.length(),
-                        prefix,
-                        token.token_kind(),
-                        &text[offset..offset + token.length()]
-                    );
-                    return token.length();
+					writeln!(f, "{:?} {:?}", token.token_kind(), &text[..token.length()]);
+
+					return token.length();
                 }
             }
         }
