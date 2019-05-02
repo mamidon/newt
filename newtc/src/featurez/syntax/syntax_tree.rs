@@ -26,19 +26,15 @@ impl<'a> SyntaxTree<'a> {
 		for event in events.into_iter() {
 			match event {
 				ParseEvent::BeginNode { kind: k } => {
-					println!("begin_node: {:?}", k);
 					sink.begin_node(k, 0);
 				},
 				ParseEvent::EndNode => {
-					println!("end_node");
 					sink.end_node(0)
 				},
 				ParseEvent::Token { kind: k, length: l } => {
-					println!("token: {:?}, length: {}", k, l);
 					sink.attach_token(SyntaxToken::new(k, l))
 				},
 				ParseEvent::Trivia { kind: k, length: l } => {
-					println!("trivia: {:?}, length: {}", k, l);
 					sink.attach_token(SyntaxToken::new(k, l))
 				}
 			}
@@ -76,12 +72,11 @@ impl<'a> Display for SyntaxTree<'a> {
                         &text[offset..offset + node.length()]
                     );
 
-                    let mut children_offset = offset;
+                    let mut children_length = 0;
                     for child in node.children().iter() {
-                        children_offset +=
-                            print_tree_element(f, child, depth + 1, children_offset, text);
+                        children_length += print_tree_element(f, child, depth + 1, offset + children_length, text);
                     }
-                    return children_offset;
+                    return children_length;
                 }
                 SyntaxElement::Token(token) => {
                     writeln!(

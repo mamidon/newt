@@ -25,8 +25,6 @@ pub fn parse(text: &str) -> SyntaxTree {
 
     root(&mut parser);
 	
-	print!("{}", parser);
-	
 	let tree = SyntaxTree::from_parser(parser, text);
 	
 	tree
