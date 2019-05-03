@@ -9,7 +9,7 @@ fn parse_from_tokens() {
     let text = "a+b+c";
     let tokens = tokenize(text);
     let source = StrTokenSource::new(tokens);
-    let mut sink = TextTreeSink::new();
+    let mut sink = TreeSink::new();
 
     sink.begin_node(SyntaxKind::BinaryExpr, 0);
     sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1));

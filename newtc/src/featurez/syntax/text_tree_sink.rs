@@ -6,21 +6,21 @@ use crate::featurez::syntax::TreeSink;
 use crate::featurez::parse::Parser;
 use crate::featurez::parse::ParseEvent;
 
-pub struct TextTreeSink {
+pub struct TreeSink {
     stack: Vec<(SyntaxKind, usize, usize)>,
     working_set: Vec<SyntaxElement>,
 }
 
-impl TextTreeSink {
-    pub fn new() -> TextTreeSink {
-        TextTreeSink {
+impl TreeSink {
+    pub fn new() -> TreeSink {
+        TreeSink {
             stack: vec![],
             working_set: vec![],
         }
     }
 }
 
-impl TreeSink for TextTreeSink {
+impl TreeSink for TreeSink {
     fn begin_node(&mut self, kind: SyntaxKind, offset: usize) {
         self.stack.push((kind, self.working_set.len(), offset));
     }

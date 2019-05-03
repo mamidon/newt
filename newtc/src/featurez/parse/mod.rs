@@ -1,6 +1,6 @@
 use crate::featurez::syntax::{
-    BinaryExprNode, LiteralExprNode, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
-    SyntaxTree, TextTreeSink, TokenSource, TreeSink,
+	BinaryExprNode, LiteralExprNode, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
+	SyntaxTree, TreeSink, TokenSource, TreeSink,
 };
 use crate::featurez::tokens::{tokenize, StrTokenSource, Token, TokenKind};
 use std::fmt::Display;
