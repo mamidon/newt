@@ -21,7 +21,7 @@ pub use self::syntax_kind::SyntaxKind;
 pub use self::syntax_node::SyntaxNode;
 pub use self::syntax_token::SyntaxToken;
 pub use self::syntax_tree::SyntaxTree;
-pub use self::text_tree_sink::TreeSink;
+pub use self::text_tree_sink::TextTreeSink;
 pub use self::token_source::TokenSource;
 pub use self::tree_sink::TreeSink;
 

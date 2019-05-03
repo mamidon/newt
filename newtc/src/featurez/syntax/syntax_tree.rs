@@ -1,5 +1,5 @@
 use crate::featurez::syntax::SyntaxElement;
-use crate::featurez::syntax::TreeSink;
+use crate::featurez::syntax::TextTreeSink;
 use crate::featurez::syntax::tree_sink::TreeSink;
 use crate::featurez::syntax::SyntaxToken;
 use crate::featurez::Parser;
@@ -21,7 +21,7 @@ impl<'a> SyntaxTree<'a> {
 
 	pub fn from_parser(parser: Parser, text: &'a str) -> Self {
 		let events = parser.end_parsing();
-		let mut sink = TreeSink::new();
+		let mut sink = TextTreeSink::new();
 
 		for event in events.into_iter() {
 			match event {
