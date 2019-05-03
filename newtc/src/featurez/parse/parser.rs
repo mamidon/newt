@@ -7,6 +7,15 @@ pub struct Parser {
 	errors: Vec<&'static str>,
 }
 
+pub struct ParserCheckPoint {
+	consumed_tokens: usize,
+	event_count: usize
+}
+
+impl ParserCheckPoint {
+	
+}
+
 impl Parser {
 	pub fn new(source: StrTokenSource) -> Parser {
 		let mut p = Parser {
