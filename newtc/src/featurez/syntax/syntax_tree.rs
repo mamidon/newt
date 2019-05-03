@@ -63,7 +63,7 @@ impl<'a> Display for SyntaxTree<'a> {
 				write!(f, "┗ ");
 				prefix.to_owned() + "  "
 			} else {
-				write!(f, "┡ ");
+				write!(f, "┠ ");
 				prefix.to_owned() + "┃ "
 			};
 			
