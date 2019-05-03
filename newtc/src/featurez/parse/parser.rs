@@ -1,17 +1,15 @@
 use super::*;
 
-pub struct Parser<'a> {
-	text: &'a str,
+pub struct Parser {
 	source: StrTokenSource,
 	consumed_tokens: usize,
 	events: Vec<ParseEvent>,
 	errors: Vec<&'static str>,
 }
 
-impl<'a> Parser<'a> {
-	pub fn new(text: &'a str, source: StrTokenSource) -> Parser<'a> {
+impl Parser {
+	pub fn new(source: StrTokenSource) -> Parser {
 		let mut p = Parser {
-			text,
 			source,
 			consumed_tokens: 0,
 			events: vec![],
@@ -104,37 +102,5 @@ impl<'a> Parser<'a> {
 			self.events.push(ParseEvent::Trivia { kind: token.token_kind(), length: token.lexeme_length() });
 			self.consumed_tokens += 1;
 		}
-	}
-}
-
-
-impl<'a> Display for Parser<'a> {
-	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-		use std::iter::repeat;
-
-		let mut depth = 0;
-		let mut prefix: String = repeat("\t").take(depth).collect();
-
-		for event in &self.events {
-			match event {
-				ParseEvent::BeginNode { kind: SyntaxKind::TombStone } => {},
-				ParseEvent::BeginNode { kind: _ } => {
-					writeln!(f, "{}{:?}", prefix, event);
-
-					depth += 1;
-					prefix = repeat("\t").take(depth).collect();
-				}
-				ParseEvent::EndNode => {
-					depth -= 1;
-					prefix = repeat("\t").take(depth).collect();
-
-					writeln!(f, "{}{:?}", prefix, event);
-				}
-				_ => {
-					writeln!(f, "{}{:?}", prefix, event);
-				}
-			}
-		}
-		Ok(())
 	}
 }

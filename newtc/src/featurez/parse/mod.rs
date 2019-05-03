@@ -21,7 +21,7 @@ pub fn parse(text: &str) -> SyntaxTree {
 	
     let tokens = tokenize(text);
     let source = StrTokenSource::new(tokens);
-    let mut parser = Parser::new(text, source);
+    let mut parser = Parser::new(source);
 
     root(&mut parser);
 	
