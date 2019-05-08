@@ -28,7 +28,7 @@ impl Marker {
 impl Drop for Marker {
 	fn drop(&mut self) {
 		if !self.disabled {
-			panic!("You must disable or abandon the marker!")
+			//panic!("You must disable or abandon the marker!")
 		}
 	}
 }

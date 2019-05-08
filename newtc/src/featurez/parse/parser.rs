@@ -4,16 +4,7 @@ pub struct Parser {
 	source: StrTokenSource,
 	consumed_tokens: usize,
 	events: Vec<ParseEvent>,
-	errors: Vec<&'static str>,
-}
-
-pub struct ParserCheckPoint {
-	consumed_tokens: usize,
-	event_count: usize
-}
-
-impl ParserCheckPoint {
-	
+	panicking: bool,
 }
 
 impl Parser {
@@ -22,7 +13,7 @@ impl Parser {
 			source,
 			consumed_tokens: 0,
 			events: vec![],
-			errors: vec![],
+			panicking: false,
 		};
 		p.eat_trivia();
 		
@@ -46,15 +37,6 @@ impl Parser {
 		self.source.token_kind(self.consumed_tokens) == kind
 	}
 
-	pub fn token_remap(&mut self, kind: TokenKind) {
-		let token = self.source.token(self.consumed_tokens);
-		
-		self.consumed_tokens += 1;
-		self.events.push(ParseEvent::Token { kind: token.token_kind(), length: token.lexeme_length() });
-
-		self.eat_trivia();
-	}
-
 	pub fn token_if(&mut self, kind: TokenKind) -> bool {
 		if self.current() != kind {
 			return false;
@@ -67,6 +49,34 @@ impl Parser {
 		self.eat_trivia();
 		
 		return true;
+	}
+	
+	pub fn expect_token_kind(&mut self, kind: TokenKind, msg: &'static str) {
+		if self.token_if(kind) {
+			self.panicking = false;
+			return;
+		}
+		
+		if self.panicking {
+			self.remap_token(TokenKind::TombStone);
+		} else {
+			self.panicking = true;
+			
+			self.report_error(msg);
+		}
+	}
+	
+	fn report_error(&mut self, message: &'static str) {
+		let mut error = self.begin_node();
+
+		let token = self.source.token(self.consumed_tokens);
+
+		self.consumed_tokens += 1;
+		self.events.push(ParseEvent::Token { kind: token.token_kind(), length: token.lexeme_length() });
+
+		self.eat_trivia();
+		
+		self.end_node(&mut error, SyntaxKind::Error(message));
 	}
 
 	pub fn begin_node(&mut self) -> Marker {
@@ -90,11 +100,22 @@ impl Parser {
 		self.events.push(ParseEvent::EndNode);
 	}
 	
-	pub fn end_parsing(self) -> Vec<ParseEvent> {
+	pub fn end_parsing(mut self) -> Vec<ParseEvent> {
+		self.eat_remaining_tokens();
+		
 		self.events.into_iter().filter(|e| match e { 
 			ParseEvent::BeginNode { kind: SyntaxKind::TombStone } => false,
 			_ => true
 		}).collect()
+	}
+	
+	fn remap_token(&mut self, kind: TokenKind) {
+		let token = self.source.token(self.consumed_tokens);
+
+		self.consumed_tokens += 1;
+		self.events.push(ParseEvent::Token { kind, length: token.lexeme_length() });
+
+		self.eat_trivia();
 	}
 
 	fn eat_trivia(&mut self) {
@@ -111,5 +132,31 @@ impl Parser {
 			self.events.push(ParseEvent::Trivia { kind: token.token_kind(), length: token.lexeme_length() });
 			self.consumed_tokens += 1;
 		}
+	}
+	
+	fn eat_remaining_tokens(&mut self) {
+		if self.current() == TokenKind::EndOfFile {
+			return;
+		}
+
+		self.events.pop(); // crack open the root element
+		
+		let mut remaining = self.begin_node();
+		println!("Remaining..");
+		loop {
+			if self.current() == TokenKind::EndOfFile {
+				break;
+			}
+			
+			
+			let token = self.source.token(self.consumed_tokens);
+			println!("Remaining..{:?}", token.token_kind());
+			self.events.push(ParseEvent::Trivia { kind: token.token_kind(), length: token.lexeme_length() });
+			self.consumed_tokens += 1;
+		}
+		println!("Remaining..done");
+		self.end_node(&mut remaining, SyntaxKind::Error("Unexpected text"));
+		
+		self.events.push(ParseEvent::EndNode); // close the root element
 	}
 }

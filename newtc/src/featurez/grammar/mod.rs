@@ -54,25 +54,16 @@ mod expr {
 		}
     }
 
-    pub fn primary_expr(p: &mut Parser) -> Option<SyntaxKind> {
-        if let Some(integer) = integer_literal_expr(p) {
-            return Some(integer);
-        } else {
-            return None;
-        }
+    pub fn primary_expr(p: &mut Parser) {
+        integer_literal_expr(p);
     }
 
-    pub fn integer_literal_expr(p: &mut Parser) -> Option<SyntaxKind> {
+    pub fn integer_literal_expr(p: &mut Parser) {
 		let mut start = p.begin_node();
 		
-		if p.token_if(TokenKind::IntegerLiteral) {
-			
-			p.end_node(&mut start, SyntaxKind::LiteralExpr);
-			
-			return Some(SyntaxKind::LiteralExpr);
-		}
+		p.expect_token_kind(TokenKind::IntegerLiteral, "Expected integer literal");
 		
-        return None;
+		p.end_node(&mut start, SyntaxKind::LiteralExpr);
     }
 }
 
