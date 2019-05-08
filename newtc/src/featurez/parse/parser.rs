@@ -142,7 +142,7 @@ impl Parser {
 		self.events.pop(); // crack open the root element
 		
 		let mut remaining = self.begin_node();
-		println!("Remaining..");
+
 		loop {
 			if self.current() == TokenKind::EndOfFile {
 				break;
@@ -150,11 +150,10 @@ impl Parser {
 			
 			
 			let token = self.source.token(self.consumed_tokens);
-			println!("Remaining..{:?}", token.token_kind());
 			self.events.push(ParseEvent::Trivia { kind: token.token_kind(), length: token.lexeme_length() });
 			self.consumed_tokens += 1;
 		}
-		println!("Remaining..done");
+
 		self.end_node(&mut remaining, SyntaxKind::Error("Unexpected text"));
 		
 		self.events.push(ParseEvent::EndNode); // close the root element
