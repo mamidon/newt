@@ -3,11 +3,12 @@ use crate::featurez::tokens::TokenKind;
 pub struct SyntaxToken {
     token_kind: TokenKind,
     length: usize,
+	lexeme: String,
 }
 
 impl SyntaxToken {
-    pub fn new(token_kind: TokenKind, length: usize) -> SyntaxToken {
-        SyntaxToken { token_kind, length }
+    pub fn new(token_kind: TokenKind, length: usize, lexeme: &str) -> SyntaxToken {
+        SyntaxToken { token_kind, length, lexeme: lexeme.to_string() }
     }
 
     pub fn token_kind(&self) -> TokenKind {
@@ -17,4 +18,8 @@ impl SyntaxToken {
     pub fn length(&self) -> usize {
         self.length
     }
+	
+	pub fn lexeme(&self) -> &str {
+		self.lexeme.as_str()
+	}
 }

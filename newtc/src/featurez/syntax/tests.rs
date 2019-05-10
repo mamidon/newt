@@ -12,13 +12,13 @@ fn parse_from_tokens() {
     let mut sink = TextTreeSink::new();
 
     sink.begin_node(SyntaxKind::BinaryExpr, 0);
-    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1));
-    sink.attach_token(SyntaxToken::new(TokenKind::Plus, 1));
+    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1, ""));
+    sink.attach_token(SyntaxToken::new(TokenKind::Plus, 1, ""));
 
     sink.begin_node(SyntaxKind::BinaryExpr, 2);
-    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1));
-    sink.attach_token(SyntaxToken::new(TokenKind::Plus, 1));
-    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1));
+    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1, ""));
+    sink.attach_token(SyntaxToken::new(TokenKind::Plus, 1, ""));
+    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1, ""));
     sink.end_node(5);
     sink.end_node(5);
 

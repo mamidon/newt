@@ -18,11 +18,11 @@ impl<'a> SyntaxTree<'a> {
     pub fn new(root: SyntaxElement, text: &'a str) -> SyntaxTree<'a> {
         SyntaxTree { text, root }
     }
-
+	pub fn root(&self) -> &SyntaxElement { &self.root }
 	pub fn from_parser(parser: Parser, text: &'a str) -> Self {
 		let events = parser.end_parsing();
 		let mut sink = TextTreeSink::new();
-
+		let mut offset = 0;
 		for event in events.into_iter() {
 			match event {
 				ParseEvent::BeginNode { kind: k } => {
@@ -32,10 +32,12 @@ impl<'a> SyntaxTree<'a> {
 					sink.end_node(0)
 				},
 				ParseEvent::Token { kind: k, length: l } => {
-					sink.attach_token(SyntaxToken::new(k, l))
+					sink.attach_token(SyntaxToken::new(k, l, &text[offset..offset + l]));
+					offset += l;
 				},
 				ParseEvent::Trivia { kind: k, length: l } => {
-					sink.attach_token(SyntaxToken::new(k, l))
+					sink.attach_token(SyntaxToken::new(k, l, &text[offset..offset + l]));
+					offset += l;
 				}
 			}
 		}

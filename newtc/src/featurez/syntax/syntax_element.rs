@@ -31,4 +31,11 @@ impl SyntaxElement {
             SyntaxElement::Token(_) => None,
         }
     }
+	
+	pub fn as_token(&self) -> Option<&SyntaxToken> {
+		match self {
+			SyntaxElement::Token(t) => Some(t),
+			_ => None
+		}
+	}
 }

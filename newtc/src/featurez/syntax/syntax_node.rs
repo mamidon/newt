@@ -1,4 +1,5 @@
-use crate::featurez::syntax::{SyntaxElement, SyntaxKind};
+use crate::featurez::syntax::{SyntaxElement, SyntaxToken, SyntaxKind};
+use crate::featurez::TokenKind;
 
 pub struct SyntaxNode {
     kind: SyntaxKind,
@@ -15,30 +16,27 @@ impl SyntaxNode {
         }
     }
 
-    pub fn nth_node_kind(&self, n: usize, kind: SyntaxKind) -> &SyntaxNode {
+    pub fn nth_node(&self, n: usize) -> &SyntaxNode {
         let node = self
             .children
             .iter()
-            .filter(|c| SyntaxNode::node_predicate(c, kind))
+			.filter_map(|e| e.as_node())
             .nth(n)
             .unwrap();
 
-        SyntaxNode::node_selecter(node)
+		node
     }
 
-    fn node_predicate(node: &SyntaxElement, kind: SyntaxKind) -> bool {
-        match node {
-            SyntaxElement::Node(n) => n.kind == kind,
-            _ => false,
-        }
-    }
+	pub fn nth_token(&self, n: usize) -> &SyntaxToken {
+		let token = self
+			.children
+			.iter()
+			.filter_map(|e| e.as_token())
+			.nth(n)
+			.unwrap();
 
-    fn node_selecter(node: &SyntaxElement) -> &SyntaxNode {
-        match node {
-            SyntaxElement::Node(n) => n,
-            _ => panic!("noo"),
-        }
-    }
+		token
+	}
 
     pub fn kind(&self) -> SyntaxKind {
         self.kind

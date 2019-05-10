@@ -7,11 +7,7 @@ mod expr {
     use crate::featurez::{Token, TokenKind};
 
     pub fn expr(p: &mut Parser) {
-        let mut start = p.begin_node();
-
         add_expr(p);
-
-        p.end_node(&mut start, SyntaxKind::Expr);
     }
 
     pub fn add_expr(p: &mut Parser) {
