@@ -16,7 +16,7 @@ mod expr {
 		mult_expr(p);
 
 		if p.token_if(TokenKind::Plus) || p.token_if(TokenKind::Minus) {
-			expr(p);
+			add_expr(p);
 			p.end_node(&mut start, SyntaxKind::BinaryExpr);
 		} else {
 			start.abandon();
@@ -29,7 +29,7 @@ mod expr {
 		unary_expr(p);
 
 		if p.token_if(TokenKind::Star) || p.token_if(TokenKind::Slash) {
-			expr(p);
+			mult_expr(p);
 			p.end_node(&mut start, SyntaxKind::BinaryExpr);
 		} else {
 			start.abandon();
