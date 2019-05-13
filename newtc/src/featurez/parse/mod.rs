@@ -38,6 +38,6 @@ pub fn parse(text: &str) -> SyntaxTree {
 		_ => unimplemented!()
 	};
 	
-	
+	// implement test coverage for (str)TokenSource, Parser, SyntaxTree
 	tree
 }
