@@ -8,16 +8,16 @@ pub struct Token {
 }
 
 impl Token {
-    pub(super) fn new(token_kind: TokenKind, length: usize) -> Token {
+    pub fn new(token_kind: TokenKind, length: usize) -> Token {
         Token {
-            token_kind: token_kind,
+            token_kind,
             length,
         }
     }
 
     fn merge_as(token_kind: TokenKind, left: &Token, right: &Token) -> Token {
         Token {
-            token_kind: token_kind,
+            token_kind,
             length: left.length + right.length,
         }
     }

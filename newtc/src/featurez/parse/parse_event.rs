@@ -1,7 +1,7 @@
 use crate::featurez::tokens::{Token,TokenKind};
 use crate::featurez::syntax::SyntaxKind;
 
-#[derive(Debug)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub enum ParseEvent {
 	Token { kind: TokenKind, length: usize },
 	Trivia { kind: TokenKind, length: usize },

@@ -37,10 +37,6 @@ impl Parser {
 		self.source.token(self.consumed_tokens + n).token_kind()
 	}
 
-	pub fn match_token_kind(&self, kind: TokenKind) -> bool {
-		self.source.token_kind(self.consumed_tokens) == kind
-	}
-
 	pub fn token_if(&mut self, kind: TokenKind) -> bool {
 		if self.current() != kind {
 			return false;

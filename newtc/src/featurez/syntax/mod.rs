@@ -1,4 +1,5 @@
 mod ast_node;
+mod expr_kind;
 mod nodes;
 mod syntax_element;
 mod syntax_kind;
@@ -22,12 +23,3 @@ pub use self::text_tree_sink::TextTreeSink;
 pub use self::token_source::TokenSource;
 pub use self::tree_sink::TreeSink;
 
-mod expr_kind {
-	use crate::featurez::syntax::nodes::*;
-	
-	pub enum ExprKind<'a> {
-		BinaryExpr(&'a BinaryExprNode),
-		UnaryExpr(&'a UnaryExprNode),
-		LiteralExpr(&'a LiteralExprNode)
-	}
-}
