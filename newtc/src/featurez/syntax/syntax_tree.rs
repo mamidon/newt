@@ -18,25 +18,43 @@ impl<'a> SyntaxTree<'a> {
     pub fn new(root: SyntaxElement, text: &'a str) -> SyntaxTree<'a> {
         SyntaxTree { text, root }
     }
+	
 	pub fn root(&self) -> &SyntaxElement { &self.root }
+	
 	pub fn from_parser(parser: Parser, text: &'a str) -> Self {
 		let events = parser.end_parsing();
 		let mut sink = TextTreeSink::new();
 		let mut offset = 0;
-		for event in events.into_iter() {
+		for (index, event) in events.iter().enumerate() {
 			match event {
-				ParseEvent::BeginNode { kind: k } => {
-					sink.begin_node(k, 0);
+				ParseEvent::BeginNode { kind: k, is_forward_parent, forward_parent_offset } => {
+					if let Some(forward_parent_offset) = forward_parent_offset {
+						let parent_event = match &events[index + forward_parent_offset] {
+							ParseEvent::BeginNode { 
+									 kind: parent_kind, 
+									 is_forward_parent, 
+									 forward_parent_offset: _ 
+							 } => {
+								println!("foo:{:?}", parent_kind);
+								sink.begin_node(*parent_kind, 0);
+							},
+							_ => panic!("Did not expect invalid forward parent offset")
+						};
+					}
+					
+					if !is_forward_parent {
+						sink.begin_node(*k, 0);
+					}
 				},
 				ParseEvent::EndNode => {
 					sink.end_node(0)
 				},
 				ParseEvent::Token { kind: k, length: l } => {
-					sink.attach_token(SyntaxToken::new(k, l, &text[offset..offset + l]));
+					sink.attach_token(SyntaxToken::new(*k, *l, &text[offset..offset + l]));
 					offset += l;
 				},
 				ParseEvent::Trivia { kind: k, length: l } => {
-					sink.attach_token(SyntaxToken::new(k, l, &text[offset..offset + l]));
+					sink.attach_token(SyntaxToken::new(*k, *l, &text[offset..offset + l]));
 					offset += l;
 				}
 			}

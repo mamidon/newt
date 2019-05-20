@@ -6,6 +6,7 @@ use crate::featurez::parse::ParseEvent;
 use crate::featurez::StrTokenSource;
 use crate::featurez::TokenKind;
 use crate::featurez::syntax::SyntaxKind;
+use crate::featurez::syntax::SyntaxTree;
 
 
 // todo cover begin & end node logic.. additionally we need to add coverage to the tree builder
@@ -113,7 +114,7 @@ fn parser_expect_token_kind_produces_error_syntax_node_on_mismatch() {
 	let expected_plus_token = &events[1];
 	let expected_error_node_end = &events[2];
 	
-	assert_eq!(expected_error_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::Error("Expected '-'") });
+	assert_eq!(expected_error_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::Error("Expected '-'"), is_forward_parent: false, forward_parent_offset: None });
 	assert_eq!(expected_plus_token, &ParseEvent::Token { kind: TokenKind::Plus, length: 1 });
 	assert_eq!(expected_error_node_end, &ParseEvent::EndNode);
 }
@@ -161,7 +162,7 @@ fn parser_expect_token_kind_recovers_from_panicking_if_expectation_is_met() {
 	let expected_second_error_node = &events[5];
 	
 	assert_eq!(expected_slash_token, &ParseEvent::Token { kind: TokenKind::Slash, length: 1 });
-	assert_eq!(expected_second_error_node, &ParseEvent::BeginNode { kind: SyntaxKind::Error("Second error")})
+	assert_eq!(expected_second_error_node, &ParseEvent::BeginNode { kind: SyntaxKind::Error("Second error"), is_forward_parent: false, forward_parent_offset: None })
 }
 
 #[test]
@@ -174,7 +175,7 @@ fn parser_produces_error_node_if_tokens_remain_at_parsing_end() {
 	let expected_plus_token = &events[1];
 	let expected_error_node_end = &events[2];
 
-	assert_eq!(expected_error_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::Error("Unexpected text") });
+	assert_eq!(expected_error_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::Error("Unexpected text"), is_forward_parent: false, forward_parent_offset: None });
 	assert_eq!(expected_plus_token, &ParseEvent::Trivia { kind: TokenKind::Plus, length: 1 });
 	assert_eq!(expected_error_node_end, &ParseEvent::EndNode);
 }
@@ -189,10 +190,10 @@ fn parser_begin_node_can_nest_nodes() {
 	
 	let mut inner = parser.begin_node();
 	parser.token_if(TokenKind::Minus);
-	parser.end_node(&mut inner, SyntaxKind::UnaryExpr);
+	parser.end_node(inner, SyntaxKind::UnaryExpr);
 	
 	parser.token_if(TokenKind::Slash);
-	parser.end_node(&mut outer, SyntaxKind::LiteralExpr);
+	parser.end_node(outer, SyntaxKind::LiteralExpr);
 	
 	let events = parser.end_parsing();
 
@@ -208,13 +209,56 @@ fn parser_begin_node_can_nest_nodes() {
 		println!("event: {:?}", event);
 	}
 	
-	assert_eq!(expected_outer_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::LiteralExpr });
+	assert_eq!(expected_outer_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::LiteralExpr, is_forward_parent: false, forward_parent_offset: None });
 	assert_eq!(expected_plus_token, &ParseEvent::Token { kind: TokenKind::Plus, length: 1 });
 	
-	assert_eq!(expected_inner_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::UnaryExpr });
+	assert_eq!(expected_inner_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::UnaryExpr, is_forward_parent: false,forward_parent_offset: None });
 	assert_eq!(expected_minus_token, &ParseEvent::Token { kind: TokenKind::Minus, length: 1 });
 	assert_eq!(expected_inner_node_end, &ParseEvent::EndNode);
 	
+	assert_eq!(expected_slash_token, &ParseEvent::Token { kind: TokenKind::Slash, length: 1 });
+	assert_eq!(expected_outer_node_end, &ParseEvent::EndNode);
+}
+
+
+#[test]
+fn parser_precede_node_can_precede_nodes() {
+	let token_source = StrTokenSource::new(tokenize("+-/"));
+	let mut parser = Parser::new(token_source);
+
+	let mut outer= parser.begin_node();
+	parser.token_if(TokenKind::Plus);
+
+	let mut inner = parser.begin_node();
+	parser.token_if(TokenKind::Minus);
+	parser.end_node(inner, SyntaxKind::BinaryExpr);
+	
+	parser.token_if(TokenKind::Slash);
+	let mut child = parser.end_node(outer, SyntaxKind::LiteralExpr);
+	let last = parser.begin_node();
+	parser.precede_node(&mut child, &last);
+	parser.end_node(last, SyntaxKind::UnaryExpr);
+	
+	let events = parser.end_parsing();
+	let expected_outer_node_start= &events[0];
+	let expected_plus_token = &events[1];
+	let expected_inner_node_start = &events[2];
+	let expected_minus_token = &events[3];
+	let expected_inner_node_end = &events[4];
+	let expected_slash_token = &events[5];
+	let expected_outer_node_end = &events[6];
+
+	for event in events.iter() {
+		println!("event: {:?}", event);
+	}
+
+	assert_eq!(expected_outer_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::LiteralExpr, is_forward_parent: false, forward_parent_offset: Some(7) });
+	assert_eq!(expected_plus_token, &ParseEvent::Token { kind: TokenKind::Plus, length: 1 });
+
+	assert_eq!(expected_inner_node_start, &ParseEvent::BeginNode { kind: SyntaxKind::BinaryExpr, is_forward_parent: false, forward_parent_offset: None });
+	assert_eq!(expected_minus_token, &ParseEvent::Token { kind: TokenKind::Minus, length: 1 });
+	assert_eq!(expected_inner_node_end, &ParseEvent::EndNode);
+
 	assert_eq!(expected_slash_token, &ParseEvent::Token { kind: TokenKind::Slash, length: 1 });
 	assert_eq!(expected_outer_node_end, &ParseEvent::EndNode);
 }

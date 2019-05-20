@@ -2,7 +2,9 @@ use crate::featurez::syntax::{SyntaxKind, TokenSource};
 use crate::featurez::tokens::TokenKind;
 use crate::featurez::parse::ParseEvent;
 use crate::featurez::StrTokenSource;
-use crate::featurez::parse::marker::Marker;
+use crate::featurez::parse::marker::{Marker, CompletedMarker};
+
+use std::mem::replace;
 
 pub struct Parser {
 	source: StrTokenSource,
@@ -76,7 +78,7 @@ impl Parser {
 
 		self.eat_trivia();
 		
-		self.end_node(&mut error, SyntaxKind::Error(message));
+		self.end_node(error, SyntaxKind::Error(message));
 	}
 
 	pub fn begin_node(&mut self) -> Marker {
@@ -86,27 +88,44 @@ impl Parser {
 		Marker::new(index)
 	}
 
-	pub fn end_node(&mut self, marker: &mut Marker, kind: SyntaxKind) {
+	pub fn end_node(&mut self, marker: Marker, kind: SyntaxKind) -> CompletedMarker {
 		let begin = &mut self.events[marker.index()];
 
-		match begin {
-			ParseEvent::BeginNode { kind: ref mut slot } => {
-				marker.disable();
+		return match begin {
+			ParseEvent::BeginNode { kind: ref mut slot, is_forward_parent: _, forward_parent_offset: _ } => {
 				*slot = kind;
-			}
-			_ => panic!("Did not expect to complete a marker we don't have access to anymore!"),
+				let completed_marker = marker.defuse(self.events.len(), kind);
+				self.events.push(ParseEvent::EndNode);
+				
+				return completed_marker;
+			},
+			_ => panic!("Did not expect to complete a marker we don't have access to anymore!{:?}{}", begin, marker.index()),
 		};
-
-		self.events.push(ParseEvent::EndNode);
+	}
+	
+	pub fn precede_node(&mut self, child: &mut CompletedMarker, parent: &Marker) {
+		match self.events[child.start()] {
+			ParseEvent::BeginNode { 
+				kind: _, 
+				ref mut is_forward_parent, 
+				ref mut forward_parent_offset
+			} => {
+				*forward_parent_offset = Some(parent.index() - child.start());
+			},
+			_ => panic!("Expected BeginNode event, got {:?} event", &self.events[child.start()])
+		}
+		
+		replace(&mut self.events[parent.index()], ParseEvent::BeginNode { 
+			kind: SyntaxKind::TombStone, 
+			is_forward_parent: true, 
+			forward_parent_offset: None 
+		});
 	}
 	
 	pub fn end_parsing(mut self) -> Vec<ParseEvent> {
 		self.eat_remaining_tokens();
 		
-		self.events.into_iter().filter(|e| match e { 
-			ParseEvent::BeginNode { kind: SyntaxKind::TombStone } => false,
-			_ => true
-		}).collect()
+		self.events
 	}
 	
 	fn remap_token(&mut self, kind: TokenKind) {
@@ -154,7 +173,7 @@ impl Parser {
 			self.consumed_tokens += 1;
 		}
 
-		self.end_node(&mut remaining, SyntaxKind::Error("Unexpected text"));
+		self.end_node(remaining, SyntaxKind::Error("Unexpected text"));
 		
 		self.events.push(ParseEvent::EndNode); // close the root element
 	}

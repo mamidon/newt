@@ -75,3 +75,17 @@ function Approve-Tokens {
 
 	Approve-Files -candidateSuffix $outputSuffix -approvedSuffix $approvedSuffix
 }
+
+function Approve-Syntax {
+    $inputSuffix = ".syntax.newt"
+    $outputSuffix = ".syntax.candidate"
+    $approvedSuffix = ".syntax.approved"
+
+    Get-ChildItem -Recurse -Filter "*.syntax.newt" . | % {
+        $outputFile = Replace-Suffix -text ($_.FullName) -oldSuffix $inputSuffix -newSuffix $outputSuffix
+
+        & cargo run --quiet -- --entry-file $_.FullName --output-mode parse-tree > $outputFile
+    }
+
+    Approve-Files -candidateSuffix $outputSuffix -approvedSuffix $approvedSuffix
+}

@@ -17,7 +17,7 @@ mod expr {
 
 		if p.token_if(TokenKind::Plus) || p.token_if(TokenKind::Minus) {
 			add_expr(p);
-			p.end_node(&mut start, SyntaxKind::BinaryExpr);
+			p.end_node(start, SyntaxKind::BinaryExpr);
 		} else {
 			start.abandon();
 		}
@@ -27,10 +27,15 @@ mod expr {
 		let mut start = p.begin_node();
 
 		unary_expr(p);
-
+		
 		if p.token_if(TokenKind::Star) || p.token_if(TokenKind::Slash) {
-			mult_expr(p);
-			p.end_node(&mut start, SyntaxKind::BinaryExpr);
+			while p.token_if(TokenKind::Star) || p.token_if(TokenKind::Slash) {
+				let mut inner = p.begin_node();
+				unary_expr(p);
+				p.end_node(inner, SyntaxKind::BinaryExpr);
+			}
+			
+			p.end_node(start, SyntaxKind::BinaryExpr);
 		} else {
 			start.abandon();
 		}
@@ -42,7 +47,7 @@ mod expr {
 		if p.token_if(TokenKind::Bang) || p.token_if(TokenKind::Minus) {
 			let expr = expr(p);
 			
-			p.end_node(&mut start, SyntaxKind::UnaryExpr);
+			p.end_node(start, SyntaxKind::UnaryExpr);
 		} else {
 			start.abandon();
 			
@@ -59,7 +64,7 @@ mod expr {
 		
 		p.expect_token_kind(TokenKind::IntegerLiteral, "Expected integer literal");
 		
-		p.end_node(&mut start, SyntaxKind::LiteralExpr);
+		p.end_node(start, SyntaxKind::LiteralExpr);
     }
 }
 
