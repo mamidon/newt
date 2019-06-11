@@ -14,7 +14,8 @@ mod parse_event;
 mod tests;
 
 pub use self::parse_event::ParseEvent;
-use self::marker::Marker;
+pub use self::marker::Marker;
+pub use self::marker::CompletedMarker;
 pub use self::parser::Parser;
 
 

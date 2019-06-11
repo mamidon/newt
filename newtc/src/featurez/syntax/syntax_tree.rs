@@ -35,7 +35,6 @@ impl<'a> SyntaxTree<'a> {
 									 is_forward_parent, 
 									 forward_parent_offset: _ 
 							 } => {
-								println!("foo:{:?}", parent_kind);
 								sink.begin_node(*parent_kind, 0);
 							},
 							_ => panic!("Did not expect invalid forward parent offset")

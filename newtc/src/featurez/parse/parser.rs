@@ -68,6 +68,23 @@ impl Parser {
 		}
 	}
 	
+	pub fn expect_token_kind_in(&mut self, kinds: &[TokenKind], msg: &'static str) {
+		for kind in kinds {
+			if self.token_if(*kind) {
+				self.panicking = false;
+				return;
+			}
+		}
+
+		if self.panicking {
+			self.remap_token(TokenKind::TombStone);
+		} else {
+			self.panicking = true;
+
+			self.report_error(msg);
+		}
+	}
+	
 	fn report_error(&mut self, message: &'static str) {
 		let mut error = self.begin_node();
 
