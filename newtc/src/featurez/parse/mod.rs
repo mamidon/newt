@@ -33,9 +33,9 @@ pub fn parse(text: &str) -> SyntaxTree {
 	
 	match tree.root() {
 		SyntaxElement::Node(n) => {
-			let root = ExprNode::cast(&n).unwrap();
+			/*let root = ExprNode::cast(&n).unwrap();
 			let result: i32 = machine.visit_expr(root);
-			println!("RESULT: {}", result);
+			println!("RESULT: {}", result);*/
 		},
 		_ => unimplemented!()
 	};

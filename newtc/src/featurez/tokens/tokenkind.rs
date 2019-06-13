@@ -1,4 +1,4 @@
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug, Hash)]
 pub enum TokenKind {
     WhiteSpace,
     CommentLine,

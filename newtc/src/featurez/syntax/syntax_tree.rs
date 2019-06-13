@@ -26,24 +26,36 @@ impl<'a> SyntaxTree<'a> {
 		let mut sink = TextTreeSink::new();
 		let mut offset = 0;
 		for (index, event) in events.iter().enumerate() {
+			println!("event: {:?}", event);
+			
 			match event {
-				ParseEvent::BeginNode { kind: k, is_forward_parent, forward_parent_offset } => {
-					if let Some(forward_parent_offset) = forward_parent_offset {
-						let parent_event = match &events[index + forward_parent_offset] {
-							ParseEvent::BeginNode { 
-									 kind: parent_kind, 
-									 is_forward_parent, 
-									 forward_parent_offset: _ 
-							 } => {
-								sink.begin_node(*parent_kind, 0);
-							},
-							_ => panic!("Did not expect invalid forward parent offset")
-						};
+				ParseEvent::BeginNode { kind: k, is_forward_parent: false, forward_parent_offset } => {
+					if let Some(first_parent_offset) = forward_parent_offset {
+						let mut offset = *first_parent_offset;
+
+						loop {
+							match &events[index + offset] {
+								ParseEvent::BeginNode {
+									kind: parent_kind,
+									is_forward_parent: true,
+									forward_parent_offset: next_offset
+								} => {
+									sink.begin_node(*parent_kind, 0);
+									if let Some(next_offset) = next_offset {
+										offset += next_offset
+									} else {
+										break
+									}
+								},
+								_ => break
+							};
+						}
 					}
 					
-					if !is_forward_parent {
-						sink.begin_node(*k, 0);
-					}
+					sink.begin_node(*k, 0);
+				},
+				ParseEvent::BeginNode { kind: _, is_forward_parent: true, forward_parent_offset: _ } => {
+					// noop
 				},
 				ParseEvent::EndNode => {
 					sink.end_node(0)

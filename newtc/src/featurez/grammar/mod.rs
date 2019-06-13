@@ -6,16 +6,28 @@ mod expr {
 	use crate::featurez::parse::CompletedMarker;
     use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
     use crate::featurez::{Token, TokenKind};
+	use std::collections::HashMap;
 
-	const PRECEDENCE_TABLE: &[(&[TokenKind], fn(&mut Parser, Option<CompletedMarker>) -> CompletedMarker)] = &[
-		(&[TokenKind::IntegerLiteral], primary_expr2),
-		(&[TokenKind::Minus, TokenKind::Bang], unary_expr2),
-		(&[TokenKind::Star, TokenKind::Slash], mult_expr2),
-		(&[TokenKind::Plus, TokenKind::Minus], add_expr2),
-	];
+	type BinaryOperatorHandler =  fn(&mut Parser, CompletedMarker) -> CompletedMarker;
+	type UnaryOperatorHandler = fn(&mut Parser) -> CompletedMarker;
+	type PrecedenceTable = HashMap<TokenKind, (usize, bool, bool)>;
+	
+	lazy_static! {
+		static ref PRECEDENCE_TABLE: PrecedenceTable = [
+			(TokenKind::IntegerLiteral, 0, false, true),
+			(TokenKind::Star, 2, true, false),
+			(TokenKind::Plus, 3, true, false),
+			(TokenKind::Minus, 3, true, true),
+			(TokenKind::Bang, 1, false, true),
+		].iter()
+			.map(|tuple| (tuple.0, (tuple.1, tuple.2, tuple.3)))
+			.collect::<HashMap<_,_>>();
+	}
 	
     pub fn expr(p: &mut Parser) {
-		expr_core(p, PRECEDENCE_TABLE.len() - 1);
+		let lhs = primary_expr(p);
+		
+		expr_core(p, lhs);
     }
 	
 	// https://en.wikipedia.org/wiki/Operator-precedence_parser#Example_execution_of_the_algorithm
@@ -23,125 +35,43 @@ mod expr {
 	// additionally I only need an explicit function for parsing primary expressions, but I 
 	// do need to encode the precedence & associativity of operators
 	// also see http://craftinginterpreters.com/compiling-expressions.html#a-pratt-parser
-	fn expr_core(p: &mut Parser, precedence: usize) -> Option<CompletedMarker> {
-		if precedence >= PRECEDENCE_TABLE.len() {
-			return None;
+	fn expr_core(p: &mut Parser, first_lhs: CompletedMarker) -> CompletedMarker {
+		let mut lookahead = p.current();
+		let mut lhs = first_lhs;
+		
+		while lookahead == TokenKind::Plus {
+			let mut node = p.begin_node();
+			p.precede_node(&mut lhs, &node);
+			p.token_if(lookahead);
+			let rhs = primary_expr(p);
+			
+			lhs = p.end_node(node, SyntaxKind::BinaryExpr);
+			
+			lookahead = p.current();
 		}
 		
-		let (acceptable_tokens, handler) 
-			= PRECEDENCE_TABLE[precedence];
-		
-		let mut preceding_expr: Option<CompletedMarker> = None;
-	
-		if !acceptable_tokens.contains(&p.current()) {
-			preceding_expr = expr_core(p, precedence - 1);
-		}
-		
-		loop {	
-			if acceptable_tokens.contains(&p.current()) {
-				return Some(handler(p, preceding_expr));
-			} else {
-				return preceding_expr;
-			}
-		}
+		lhs
 	}
 	
-	fn add_expr2(p: &mut Parser, preceding_expr: Option<CompletedMarker>) -> CompletedMarker {
-		let mut node = p.begin_node();
-		
-		p.expect_token_kind_in(&[TokenKind::Plus, TokenKind::Minus], "Shouldn't happen");
-		p.precede_node(&mut preceding_expr.unwrap(), &node);
-		
-		expr_core(p, 3);
-		
-		p.end_node(node, SyntaxKind::BinaryExpr)
+	fn lookahead_precedence(token: TokenKind) -> usize {
+		PRECEDENCE_TABLE[&token].0
+	}
+	
+	fn lookahead_binary(token: TokenKind) -> bool {
+		PRECEDENCE_TABLE[&token].1
 	}
 
-	fn mult_expr2(p: &mut Parser, preceding_expr: Option<CompletedMarker>) -> CompletedMarker {
-		let mut node = p.begin_node();
-
-		p.expect_token_kind_in(&[TokenKind::Star, TokenKind::Slash], "Shouldn't happen");
-		p.precede_node(&mut preceding_expr.unwrap(), &node);
-		
-		expr_core(p, 2);
-		
-		p.end_node(node, SyntaxKind::BinaryExpr)
+	fn lookahead_unary(token: TokenKind) -> bool {
+		PRECEDENCE_TABLE[&token].2
 	}
 
-	fn unary_expr2(p: &mut Parser, preceding_expr: Option<CompletedMarker>) -> CompletedMarker {
-		let mut node = p.begin_node();
-
-		p.expect_token_kind_in(&[TokenKind::Bang, TokenKind::Minus], "Shouldn't happen");
-		p.precede_node(&mut preceding_expr.unwrap(), &node);
-
-		expr_core(p, 1);
-		
-		p.end_node(node, SyntaxKind::UnaryExpr)
-	}
-
-	fn primary_expr2(p: &mut Parser, preceding_expr: Option<CompletedMarker>) -> CompletedMarker {
+	fn primary_expr(p: &mut Parser) -> CompletedMarker {
 		let mut node = p.begin_node();
 
 		p.expect_token_kind_in(&[TokenKind::IntegerLiteral], "Shouldn't happen");
 
 		p.end_node(node, SyntaxKind::LiteralExpr)
 	}
-
-    pub fn add_expr(p: &mut Parser) {
-		let mut start = p.begin_node();
-
-		mult_expr(p);
-		if p.token_if(TokenKind::Plus) || p.token_if(TokenKind::Minus) {
-			add_expr(p);
-			p.end_node(start, SyntaxKind::BinaryExpr);
-		} else {
-			start.abandon();
-		}
-    }
-
-    pub fn mult_expr(p: &mut Parser) {
-		let mut start = p.begin_node();
-
-		unary_expr(p);
-		
-		if p.token_if(TokenKind::Star) || p.token_if(TokenKind::Slash) {
-			while p.token_if(TokenKind::Star) || p.token_if(TokenKind::Slash) {
-				let mut inner = p.begin_node();
-				unary_expr(p);
-				p.end_node(inner, SyntaxKind::BinaryExpr);
-			}
-			
-			p.end_node(start, SyntaxKind::BinaryExpr);
-		} else {
-			start.abandon();
-		}
-    }
-
-    pub fn unary_expr(p: &mut Parser) {
-		let mut start = p.begin_node();
-		
-		if p.token_if(TokenKind::Bang) || p.token_if(TokenKind::Minus) {
-			let expr = expr(p);
-			
-			p.end_node(start, SyntaxKind::UnaryExpr);
-		} else {
-			start.abandon();
-			
-			primary_expr(p);
-		}
-    }
-
-    pub fn primary_expr(p: &mut Parser) {
-        integer_literal_expr(p);
-    }
-
-    pub fn integer_literal_expr(p: &mut Parser) {
-		let mut start = p.begin_node();
-		
-		p.expect_token_kind(TokenKind::IntegerLiteral, "Expected integer literal");
-		
-		p.end_node(start, SyntaxKind::LiteralExpr);
-    }
 }
 
 pub fn root(p: &mut Parser) {
