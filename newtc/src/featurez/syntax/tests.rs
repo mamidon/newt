@@ -1,28 +1,40 @@
+#![cfg(test)]
+
 use super::*;
+
+use insta::assert_debug_snapshot_matches;
 
 use crate::featurez::tokens::tokenize;
 use crate::featurez::tokens::StrTokenSource;
 use crate::featurez::tokens::TokenKind;
+use crate::featurez::Parser;
+use crate::featurez::grammar::root;
 
 #[test]
-fn parse_from_tokens() {
-    let text = "a+b+c";
+fn left_associativity_is_deeply_nested() {
+    let text = "1+2+3";
     let tokens = tokenize(text);
     let source = StrTokenSource::new(tokens);
-    let mut sink = TextTreeSink::new();
+	let mut parser = Parser::new(source);
 
-    sink.begin_node(SyntaxKind::BinaryExpr, 0);
-    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1, ""));
-    sink.attach_token(SyntaxToken::new(TokenKind::Plus, 1, ""));
+	root(&mut parser);
+	
+    let tree = SyntaxTree::from_parser(parser, text);
+	
+	assert_debug_snapshot_matches!("left_associativity_is_deeply_nested", tree);
+}
 
-    sink.begin_node(SyntaxKind::BinaryExpr, 2);
-    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1, ""));
-    sink.attach_token(SyntaxToken::new(TokenKind::Plus, 1, ""));
-    sink.attach_token(SyntaxToken::new(TokenKind::Identifier, 1, ""));
-    sink.end_node(5);
-    sink.end_node(5);
 
-    let root = &sink.end_tree();
-    //let tree = SyntaxTree::new(&root, text);
-    //println!("{}", tree);
+#[test]
+fn right_associativity_is_deeply_nested() {
+	let text = "1+2*3";
+	let tokens = tokenize(text);
+	let source = StrTokenSource::new(tokens);
+	let mut parser = Parser::new(source);
+
+	root(&mut parser);
+
+	let tree = SyntaxTree::from_parser(parser, text);
+
+	assert_debug_snapshot_matches!("right_associativity_is_deeply_nested", tree);
 }

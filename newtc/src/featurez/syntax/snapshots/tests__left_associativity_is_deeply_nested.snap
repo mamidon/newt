@@ -1,0 +1,17 @@
+---
+created: "2019-07-22T16:03:52.962789Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/syntax/tests.rs
+expression: tree
+---
+┗ BinaryExpr
+  ┠ BinaryExpr
+  ┃ ┠ LiteralExpr
+  ┃ ┃ ┗ IntegerLiteral "1"
+  ┃ ┠ Plus "+"
+  ┃ ┗ LiteralExpr
+  ┃   ┗ IntegerLiteral "2"
+  ┠ Plus "+"
+  ┗ LiteralExpr
+    ┗ IntegerLiteral "3"
+

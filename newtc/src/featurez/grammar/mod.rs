@@ -27,7 +27,7 @@ mod expr {
     pub fn expr(p: &mut Parser) {
 		let lhs = primary_expr(p);
 		
-		expr_core(p, lhs);
+		expr_core(p, lhs, 3);
     }
 	
 	// https://en.wikipedia.org/wiki/Operator-precedence_parser#Example_execution_of_the_algorithm
@@ -35,19 +35,23 @@ mod expr {
 	// additionally I only need an explicit function for parsing primary expressions, but I 
 	// do need to encode the precedence & associativity of operators
 	// also see http://craftinginterpreters.com/compiling-expressions.html#a-pratt-parser
-	fn expr_core(p: &mut Parser, first_lhs: CompletedMarker) -> CompletedMarker {
+	fn expr_core(p: &mut Parser, first_lhs: CompletedMarker, precedence: usize) -> CompletedMarker {
 		let mut lookahead = p.current();
 		let mut lhs = first_lhs;
 		
-		while lookahead == TokenKind::Plus {
+		while lookahead != TokenKind::EndOfFile && lookahead_precedence(lookahead) == precedence {
 			let mut node = p.begin_node();
 			p.precede_node(&mut lhs, &node);
 			p.token_if(lookahead);
 			let rhs = primary_expr(p);
+
+			lookahead = p.current();
+
+			if lookahead != TokenKind::EndOfFile && lookahead_precedence(lookahead) < precedence {
+				expr_core(p, rhs, lookahead_precedence(lookahead));
+			}
 			
 			lhs = p.end_node(node, SyntaxKind::BinaryExpr);
-			
-			lookahead = p.current();
 		}
 		
 		lhs

@@ -5,13 +5,39 @@ use crate::featurez::syntax::SyntaxToken;
 use crate::featurez::Parser;
 use crate::featurez::parse::ParseEvent;
 
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
+use std::iter::{Iterator, IntoIterator};
 
 pub struct SyntaxTree<'a> {
     text: &'a str,
     root: SyntaxElement,
+}
+
+pub struct SyntaxTreeTraversal<'a> {
+	stack: Vec<&'a SyntaxElement>,
+	current_element: &'a SyntaxElement,
+	current_child: Option<usize>
+}
+
+impl<'a> SyntaxTreeTraversal<'a> {
+	fn new(tree: &'a SyntaxTree) -> SyntaxTreeTraversal<'a> {
+		SyntaxTreeTraversal {
+			stack: vec![],
+			current_element: &tree.root,
+			current_child: None
+		}
+	}
+}
+
+impl<'a> Iterator for SyntaxTreeTraversal<'a> {
+	type Item = SyntaxElement;
+
+	fn next(&mut self) -> Option<<Self as Iterator>::Item> {
+		unimplemented!()
+	}
 }
 
 impl<'a> SyntaxTree<'a> {
@@ -26,8 +52,6 @@ impl<'a> SyntaxTree<'a> {
 		let mut sink = TextTreeSink::new();
 		let mut offset = 0;
 		for (index, event) in events.iter().enumerate() {
-			println!("event: {:?}", event);
-			
 			match event {
 				ParseEvent::BeginNode { kind: k, is_forward_parent: false, forward_parent_offset } => {
 					if let Some(first_parent_offset) = forward_parent_offset {
@@ -75,20 +99,18 @@ impl<'a> SyntaxTree<'a> {
 
 		SyntaxTree::new(root, text)
 	}
-}
 
-impl<'a> Display for SyntaxTree<'a> {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        print_tree_element(f, &self.root, "", self.text, true);
-        return Ok(());
+	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		print_tree_element(f, &self.root, "", self.text, true);
+		return Ok(());
 
-        fn print_tree_element(
-            f: &mut Formatter,
-            element: &SyntaxElement,
-            prefix: &str,
-            text: &str,
+		fn print_tree_element(
+			f: &mut Formatter,
+			element: &SyntaxElement,
+			prefix: &str,
+			text: &str,
 			last: bool
-        ) -> usize {
+		) -> usize {
 			write!(f, "{}", prefix);
 			let next_prefix = if last {
 				write!(f, "┗ ");
@@ -97,25 +119,37 @@ impl<'a> Display for SyntaxTree<'a> {
 				write!(f, "┠ ");
 				prefix.to_owned() + "┃ "
 			};
-			
-            match element {
-                SyntaxElement::Node(node) => {
+
+			match element {
+				SyntaxElement::Node(node) => {
 					writeln!(f, "{:?}", node.kind());
 
 					let mut children_length = 0;
 					for (index, child) in node.children().iter().enumerate() {
 						let last_child = node.children().len() - 1 == index;
-						
+
 						children_length += print_tree_element(f, child, &next_prefix, &text[children_length..], last_child);
 					}
 					return children_length;
-                }
-                SyntaxElement::Token(token) => {
+				}
+				SyntaxElement::Token(token) => {
 					writeln!(f, "{:?} {:?}", token.token_kind(), &text[..token.length()]);
 
 					return token.length();
-                }
-            }
-        }
-    }
+				}
+			}
+		}
+	}
+}
+
+impl<'a> Display for SyntaxTree<'a> {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		SyntaxTree::fmt(self, f)
+	}
+}
+
+impl<'a> Debug for SyntaxTree<'a> {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		SyntaxTree::fmt(self, f)
+	}
 }
