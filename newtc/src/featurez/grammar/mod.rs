@@ -39,7 +39,7 @@ mod expr {
 		let mut lookahead = p.current();
 		let mut lhs = first_lhs;
 		
-		while lookahead != TokenKind::EndOfFile && lookahead_precedence(lookahead) == precedence {
+		while lookahead.is_binary_operator() && lookahead_precedence(lookahead) <= precedence {
 			let mut node = p.begin_node();
 			p.precede_node(&mut lhs, &node);
 			p.token_if(lookahead);
@@ -47,8 +47,10 @@ mod expr {
 
 			lookahead = p.current();
 
-			if lookahead != TokenKind::EndOfFile && lookahead_precedence(lookahead) < precedence {
+			if lookahead.is_binary_operator() && lookahead_precedence(lookahead) < precedence {
 				expr_core(p, rhs, lookahead_precedence(lookahead));
+				
+				lookahead = p.current();
 			}
 			
 			lhs = p.end_node(node, SyntaxKind::BinaryExpr);

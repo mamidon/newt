@@ -72,4 +72,24 @@ impl TokenKind {
 			_ => false
 		}
 	}
+	
+	pub fn is_binary_operator(&self) -> bool {
+		match self {
+			TokenKind::Plus
+			| TokenKind::Minus
+			| TokenKind::Star
+			| TokenKind::Slash
+			=> true,
+			_ => false
+		}
+	}
+	
+	pub fn is_unary_operator(&self) -> bool {
+		match self {
+			TokenKind::Bang
+			| TokenKind::Minus
+			=> true,
+			_ => false
+		}
+	}
 }

@@ -4,13 +4,13 @@ creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
 ---
-1+2+3
+1*2+3
 ===>
 ┗ BinaryExpr
   ┠ BinaryExpr
   ┃ ┠ LiteralExpr
   ┃ ┃ ┗ IntegerLiteral "1"
-  ┃ ┠ Plus "+"
+  ┃ ┠ Star "*"
   ┃ ┗ LiteralExpr
   ┃   ┗ IntegerLiteral "2"
   ┠ Plus "+"
