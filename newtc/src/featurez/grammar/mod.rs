@@ -74,7 +74,18 @@ mod expr {
 	fn primary_expr(p: &mut Parser) -> CompletedMarker {
 		let mut node = p.begin_node();
 
-		p.expect_token_kind_in(&[TokenKind::IntegerLiteral], "Shouldn't happen");
+		match p.current2() {
+			Some((TokenKind::Minus, TokenKind::IntegerLiteral)) => {
+				p.token_if(TokenKind::Minus);
+				p.token_if(TokenKind::IntegerLiteral);
+			}, 
+			Some((TokenKind::IntegerLiteral, _)) => {
+				p.token_if(TokenKind::IntegerLiteral);
+			},
+			_ => {
+				p.expect_token_kind(TokenKind::IntegerLiteral, "Shouldn't happen");
+			}
+		};
 
 		p.end_node(node, SyntaxKind::LiteralExpr)
 	}
