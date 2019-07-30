@@ -16,6 +16,7 @@ mod expr {
 		static ref PRECEDENCE_TABLE: PrecedenceTable = [
 			(TokenKind::IntegerLiteral, 0, false, true),
 			(TokenKind::Star, 2, true, false),
+			(TokenKind::Slash, 2, true, false),
 			(TokenKind::Plus, 3, true, false),
 			(TokenKind::Minus, 3, true, true),
 			(TokenKind::Bang, 1, false, true),

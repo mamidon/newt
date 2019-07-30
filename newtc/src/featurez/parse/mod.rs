@@ -17,7 +17,7 @@ pub use self::parse_event::ParseEvent;
 pub use self::marker::Marker;
 pub use self::marker::CompletedMarker;
 pub use self::parser::Parser;
-
+use super::runtime::NewtValue;
 
 pub fn parse(text: &str) -> SyntaxTree {
 	use super::grammar::root;
@@ -33,9 +33,9 @@ pub fn parse(text: &str) -> SyntaxTree {
 	
 	match tree.root() {
 		SyntaxElement::Node(n) => {
-			/*let root = ExprNode::cast(&n).unwrap();
-			let result: i32 = machine.visit_expr(root);
-			println!("RESULT: {}", result);*/
+			let root = ExprNode::cast(&n).unwrap();
+			let result: NewtValue = machine.visit_expr(root);
+			println!("RESULT: {:?}", result);
 		},
 		_ => unimplemented!()
 	};
