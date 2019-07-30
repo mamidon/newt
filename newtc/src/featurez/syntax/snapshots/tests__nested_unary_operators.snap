@@ -1,0 +1,19 @@
+---
+created: "2019-07-30T15:12:24.818681Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/syntax/tests.rs
+expression: approval_document
+---
+1*--2
+===>
+┗ BinaryExpr
+  ┠ LiteralExpr
+  ┃ ┗ IntegerLiteral "1"
+  ┠ Star "*"
+  ┗ UnaryExpr
+    ┠ Minus "-"
+    ┗ UnaryExpr
+      ┠ Minus "-"
+      ┗ LiteralExpr
+        ┗ IntegerLiteral "2"
+

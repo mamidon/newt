@@ -36,6 +36,7 @@ syntax_tree_tests! {
 	higher_precedence_is_evaluated_first: "1+2*3",
 	higher_precedence_is_noop_when_first: "1*2+3",
 	unary_operators_are_properly_grouped: "-1*2+-3",
+	nested_unary_operators: "1*--2",
 	grouping_is_highest_precedence: "(1+2)*3",
 }
 
