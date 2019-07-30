@@ -2,6 +2,7 @@
 pub enum SyntaxKind {
     TombStone,
 	Error(&'static str),
+	GroupingExpr,
     BinaryExpr,
     UnaryExpr,
     LiteralExpr,

@@ -30,9 +30,18 @@ macro_rules! syntax_tree_tests {
 	}
 }
 
+// associativity & precedence
 syntax_tree_tests! {
 	left_associativity_is_deeply_nested: "1+2+3",
 	higher_precedence_is_evaluated_first: "1+2*3",
 	higher_precedence_is_noop_when_first: "1*2+3",
-	unary_operators_are_parsed: "-1*2+-3",
+	unary_operators_are_properly_grouped: "-1*2+-3",
+	grouping_is_highest_precedence: "(1+2)*3",
 }
+
+// error handling
+syntax_tree_tests! {
+	
+}
+
+// operators 

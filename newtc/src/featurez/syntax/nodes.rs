@@ -52,6 +52,7 @@ impl ExprNode {
 			SyntaxKind::BinaryExpr => ExprKind::BinaryExpr(BinaryExprNode::from_inner(self.to_inner())),
 			SyntaxKind::UnaryExpr => ExprKind::UnaryExpr(UnaryExprNode::from_inner(self.to_inner())),
 			SyntaxKind::LiteralExpr => ExprKind::LiteralExpr(LiteralExprNode::from_inner(self.to_inner())),
+			SyntaxKind::GroupingExpr => ExprKind::GroupingExpr(GroupingExprNode::from_inner(self.to_inner())),
 			_ => unreachable!("This shouldn't happen")
 		}
 	}
@@ -104,6 +105,18 @@ impl UnaryExprNode {
 	}
 
 	pub fn rhs(&self) -> &ExprNode {
+		ExprNode::cast(self.0.nth_node(0)).unwrap()
+	}
+}
+
+pub struct GroupingExprNode(SyntaxNode);
+
+unsafe impl TransparentNewType for GroupingExprNode {
+	type Inner = SyntaxNode;
+}
+
+impl GroupingExprNode {
+	pub fn expr(&self) -> &ExprNode { 
 		ExprNode::cast(self.0.nth_node(0)).unwrap()
 	}
 }

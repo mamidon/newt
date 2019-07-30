@@ -73,21 +73,32 @@ mod expr {
 
 	fn primary_expr(p: &mut Parser) -> CompletedMarker {
 		let mut node = p.begin_node();
-
-		match p.current2() {
-			Some((TokenKind::Minus, TokenKind::IntegerLiteral)) => {
+		
+		let completed = match (p.nth(0), p.nth(1)) {
+			(TokenKind::Minus, TokenKind::IntegerLiteral) => {
 				p.token_if(TokenKind::Minus);
 				p.token_if(TokenKind::IntegerLiteral);
+				p.end_node(node, SyntaxKind::LiteralExpr)
 			}, 
-			Some((TokenKind::IntegerLiteral, _)) => {
+			(TokenKind::IntegerLiteral, _) => {
 				p.token_if(TokenKind::IntegerLiteral);
+				p.end_node(node, SyntaxKind::LiteralExpr)
+			},
+			(TokenKind::LeftParenthesis, _) => {
+				p.expect_token_kind(TokenKind::LeftParenthesis, "Shouldn't happen");
+				
+				expr(p);
+				
+				p.expect_token_kind(TokenKind::RightParenthesis, "Expected ')' to close grouping");
+				p.end_node(node, SyntaxKind::GroupingExpr)
 			},
 			_ => {
 				p.expect_token_kind(TokenKind::IntegerLiteral, "Shouldn't happen");
+				p.end_node(node, SyntaxKind::LiteralExpr)
 			}
 		};
 
-		p.end_node(node, SyntaxKind::LiteralExpr)
+		completed		
 	}
 }
 

@@ -1,6 +1,7 @@
 use crate::featurez::TokenKind;
 use crate::featurez::syntax::{
-	BinaryExprNode, UnaryExprNode, LiteralExprNode, AstNode, ExprNode, ExprKind,
+	BinaryExprNode, UnaryExprNode, LiteralExprNode, GroupingExprNode,
+	AstNode, ExprNode, ExprKind,
 	SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
 	SyntaxTree, TextTreeSink, TokenSource, TreeSink,
 };
@@ -13,13 +14,15 @@ pub trait ExprVisitor<T>
 		match expr.kind() {
 			ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
 			ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
-			ExprKind::LiteralExpr(node) => self.visit_literal_expr(node)
+			ExprKind::LiteralExpr(node) => self.visit_literal_expr(node),
+			ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
 		}
 	}
 
 	fn visit_binary_expr(&self, node: &BinaryExprNode) -> T;
 	fn visit_unary_expr(&self, node: &UnaryExprNode) -> T;
 	fn visit_literal_expr(&self, node: &LiteralExprNode) -> T;
+	fn visit_grouping_expr(&self, node: &GroupingExprNode) -> T;
 }
 
 pub struct ExprVirtualMachine {}
@@ -67,5 +70,11 @@ impl<T> ExprVisitor<T> for ExprVirtualMachine
 			Ok(v) => v,
 			Err(_)=> unimplemented!()
 		}
+	}
+	
+	fn visit_grouping_expr(&self, node: &GroupingExprNode) -> T {
+		let expr = node.expr();
+		
+		self.visit_expr(expr)
 	}
 }
