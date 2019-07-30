@@ -2,6 +2,9 @@
 
 use super::*;
 
+use std::string::ToString;
+use insta::assert_snapshot_matches;
+
 use crate::featurez::syntax::TokenSource;
 
 macro_rules! single_token_tests {
@@ -81,43 +84,26 @@ macro_rules! token_sequence_tests {
 	$(
 		#[test]
 		fn $name() {
-			let (input_text, expected_token_sequence) = $value;
-			assert_token_sequence(input_text, &expected_token_sequence);
+			let input_text = $value;
+			let tokens = tokenize(input_text)
+				.iter()
+				.map(|t| t.to_string())
+				.collect::<Vec<String>>();
+				
+			let document = format!("{}\n\n===\n\n{}", input_text, tokens.join("\n"));
+			
+			assert_snapshot_matches!(stringify!($name), document);
 		}
 	)*
 	}
 }
 
 token_sequence_tests! {
-    identifiers_can_start_with_underscore: ("_foo123", [
-        TokenKind::Identifier,
-        TokenKind::EndOfFile
-    ]),
-
-    identifiers_can_have_underscores_in_middle: ("foo_123", [
-        TokenKind::Identifier,
-        TokenKind::EndOfFile
-    ]),
-
-    identifiers_can_not_start_with_numbers: ("123foo", [
-        TokenKind::IntegerLiteral,
-        TokenKind::Identifier,
-        TokenKind::EndOfFile
-    ]),
-
-    identifiers_can_not_be_just_underscores: ("_", [
-        TokenKind::UnderScore,
-        TokenKind::EndOfFile
-    ]),
-
-    tombstones_do_not_stop_tokenizing: ("foo`bar`fizz", [
-        TokenKind::Identifier,
-        TokenKind::TombStone,
-        TokenKind::Identifier,
-        TokenKind::TombStone,
-        TokenKind::Identifier,
-        TokenKind::EndOfFile
-    ]),
+    identifiers_can_start_with_underscore: "_foo123",
+    identifiers_can_have_underscores_in_middle: "foo_123",
+    identifiers_can_not_start_with_numbers: "123foo", 
+    identifiers_can_not_be_just_underscores: "_",
+    tombstones_do_not_stop_tokenizing: "foo`bar`fizz",
 
 /*	tombstones_which_are_adjacent_are_merged: ("foo``fizz", [
         TokenKind::Identifier,
@@ -126,48 +112,17 @@ token_sequence_tests! {
         TokenKind::EndOfFile
     ]),
 */
-    comment_lines_consume_whole_line: ("foo//not identifier`token\n123", [
-        TokenKind::Identifier,
-        TokenKind::CommentLine,
-        TokenKind::WhiteSpace,
-        TokenKind::IntegerLiteral,
-        TokenKind::EndOfFile
-    ]),
-
-    equals_equals_equals: ("===", [
-        TokenKind::EqualsEquals,
-        TokenKind::Equals,
-        TokenKind::EndOfFile
-    ]),
-
-    greater_equals_equals: (">==", [
-        TokenKind::GreaterEquals,
-        TokenKind::Equals,
-        TokenKind::EndOfFile
-    ]),
-
-    less_equals_equals: ("<==", [
-        TokenKind::LessEquals,
-        TokenKind::Equals,
-        TokenKind::EndOfFile
-    ]),
-
-    ampersand_ampersand_ampersand: ("&&&", [
-        TokenKind::AmpersandAmpersand,
-        TokenKind::Ampersand,
-        TokenKind::EndOfFile
-    ]),
-
-    pipe_pipe_pipe: ("|||", [
-        TokenKind::PipePipe,
-        TokenKind::Pipe,
-        TokenKind::EndOfFile
-    ]),
+    comment_lines_consume_whole_line: "foo//not identifier`token\n123",
+    equals_equals_equals: "===", 
+    greater_equals_equals: ">==",
+    less_equals_equals: "<==",
+    ampersand_ampersand_ampersand: "&&&", 
+    pipe_pipe_pipe: "|||", 
 }
 
 fn assert_single_token(value: &str, expected_type: TokenKind) {
     let tokens = tokenize(value);
-
+	
     assert_eq!(tokens.len(), 2);
     assert_eq!(tokens[0].token_kind(), expected_type);
     assert_eq!(tokens[1].token_kind(), TokenKind::EndOfFile);
