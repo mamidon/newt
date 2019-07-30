@@ -75,6 +75,12 @@ mod expr {
 		let mut node = p.begin_node();
 		
 		let completed = match p.current() {
+			TokenKind::Bang => {
+				p.token_if(TokenKind::Bang);
+				expr(p);
+				
+				p.end_node(node, SyntaxKind::UnaryExpr)
+			},
 			TokenKind::Minus => {
 				p.token_if(TokenKind::Minus);
 				expr(p);
@@ -86,6 +92,21 @@ mod expr {
 				
 				p.end_node(node, SyntaxKind::LiteralExpr)
 			},
+			TokenKind::FloatLiteral => {
+				p.token_if(TokenKind::FloatLiteral);
+
+				p.end_node(node, SyntaxKind::LiteralExpr)
+			},
+			TokenKind::GlyphLiteral => {
+				p.token_if(TokenKind::GlyphLiteral);
+				
+				p.end_node(node, SyntaxKind::LiteralExpr)
+			},
+			TokenKind::StringLiteral => {
+				p.token_if(TokenKind::StringLiteral);
+				
+				p.end_node(node, SyntaxKind::LiteralExpr)
+			},
 			TokenKind::LeftParenthesis => {
 				p.token_if(TokenKind::LeftParenthesis);
 				expr(p);
@@ -93,6 +114,7 @@ mod expr {
 				
 				p.end_node(node, SyntaxKind::GroupingExpr)
 			},
+			// TODO identifiers, function calls
 			_ => {
 				p.expect_token_kind_in(&[], "Expected a primary expression");
 				

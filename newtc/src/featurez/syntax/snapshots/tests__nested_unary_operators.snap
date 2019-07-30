@@ -1,10 +1,10 @@
 ---
-created: "2019-07-30T15:12:24.818681Z"
+created: "2019-07-30T15:17:29.368981Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
 ---
-1*--2
+1*--2.12
 ===>
 ┗ BinaryExpr
   ┠ LiteralExpr
@@ -15,5 +15,5 @@ expression: approval_document
     ┗ UnaryExpr
       ┠ Minus "-"
       ┗ LiteralExpr
-        ┗ IntegerLiteral "2"
+        ┗ FloatLiteral "2.12"
 
