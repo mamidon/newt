@@ -1,0 +1,40 @@
+---
+created: "2019-07-30T14:55:35.010539Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/tokens/tests.rs
+expression: document
+---
+if else 
+let 
+fn
+while
+for in
+return
+module
+true
+false
+
+===
+
+If[2]
+WhiteSpace[1]
+Else[4]
+WhiteSpace[2]
+Let[3]
+WhiteSpace[2]
+Fn[2]
+WhiteSpace[1]
+While[5]
+WhiteSpace[1]
+For[3]
+WhiteSpace[1]
+In[2]
+WhiteSpace[1]
+Return[6]
+WhiteSpace[1]
+Identifier[6]
+WhiteSpace[1]
+True[4]
+WhiteSpace[1]
+False[5]
+EndOfFile[0]

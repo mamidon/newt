@@ -1,0 +1,13 @@
+---
+created: "2019-07-30T14:48:25.073233Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/tokens/tests.rs
+expression: document
+---
+>==
+
+===
+
+GreaterEquals[2]
+Equals[1]
+EndOfFile[0]

@@ -1,0 +1,112 @@
+---
+created: "2019-07-30T14:55:35.012502Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/tokens/tests.rs
+expression: document
+---
+// Math operators
+let x=1+2-3/4*5+(6);
+// Logic operators
+let y=true&&false||!true;
+// Comparison operators 
+let z=2==2;
+let a=4<2;
+let b=4>2;
+let c=4<=2;
+let c=4>=2;
+// Assignment operator, used throughout
+let d=2;
+
+===
+
+CommentLine[17]
+WhiteSpace[1]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+IntegerLiteral[1]
+Plus[1]
+IntegerLiteral[1]
+Minus[1]
+IntegerLiteral[1]
+Slash[1]
+IntegerLiteral[1]
+Star[1]
+IntegerLiteral[1]
+Plus[1]
+LeftParenthesis[1]
+IntegerLiteral[1]
+RightParenthesis[1]
+SemiColon[1]
+WhiteSpace[1]
+CommentLine[18]
+WhiteSpace[1]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+True[4]
+AmpersandAmpersand[2]
+False[5]
+PipePipe[2]
+Bang[1]
+True[4]
+SemiColon[1]
+WhiteSpace[1]
+CommentLine[24]
+WhiteSpace[1]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+IntegerLiteral[1]
+EqualsEquals[2]
+IntegerLiteral[1]
+SemiColon[1]
+WhiteSpace[1]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+IntegerLiteral[1]
+Less[1]
+IntegerLiteral[1]
+SemiColon[1]
+WhiteSpace[1]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+IntegerLiteral[1]
+Greater[1]
+IntegerLiteral[1]
+SemiColon[1]
+WhiteSpace[1]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+IntegerLiteral[1]
+LessEquals[2]
+IntegerLiteral[1]
+SemiColon[1]
+WhiteSpace[1]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+IntegerLiteral[1]
+GreaterEquals[2]
+IntegerLiteral[1]
+SemiColon[1]
+WhiteSpace[1]
+CommentLine[39]
+WhiteSpace[1]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+IntegerLiteral[1]
+SemiColon[1]
+EndOfFile[0]

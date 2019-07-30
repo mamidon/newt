@@ -1,0 +1,16 @@
+---
+created: "2019-07-30T14:48:25.071815Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/tokens/tests.rs
+expression: document
+---
+foo//not identifier`token
+123
+
+===
+
+Identifier[3]
+CommentLine[22]
+WhiteSpace[1]
+IntegerLiteral[3]
+EndOfFile[0]

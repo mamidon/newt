@@ -1,0 +1,21 @@
+---
+created: "2019-07-30T14:55:35.011544Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/tokens/tests.rs
+expression: document
+---
+1234
+3.14
+'c'
+"foo"
+
+===
+
+IntegerLiteral[4]
+WhiteSpace[1]
+FloatLiteral[4]
+WhiteSpace[1]
+GlyphLiteral[3]
+WhiteSpace[1]
+StringLiteral[5]
+EndOfFile[0]

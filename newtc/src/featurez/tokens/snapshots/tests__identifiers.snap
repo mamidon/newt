@@ -1,0 +1,24 @@
+---
+created: "2019-07-30T14:55:35.008661Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/tokens/tests.rs
+expression: document
+---
+_validIdentifier123
+_456validIdentifier
+456badIdentifier
+seperate identifiers
+
+===
+
+Identifier[19]
+WhiteSpace[1]
+Identifier[19]
+WhiteSpace[1]
+IntegerLiteral[3]
+Identifier[13]
+WhiteSpace[1]
+Identifier[8]
+WhiteSpace[1]
+Identifier[11]
+EndOfFile[0]

@@ -118,6 +118,39 @@ token_sequence_tests! {
     less_equals_equals: "<==",
     ampersand_ampersand_ampersand: "&&&", 
     pipe_pipe_pipe: "|||", 
+    literals:
+"1234
+3.14
+'c'
+\"foo\"",
+	identifiers:
+"_validIdentifier123
+_456validIdentifier
+456badIdentifier
+seperate identifiers",
+	keywords:
+"if else 
+let 
+fn
+while
+for in
+return
+module
+true
+false",
+	operators:
+"// Math operators
+let x=1+2-3/4*5+(6);
+// Logic operators
+let y=true&&false||!true;
+// Comparison operators 
+let z=2==2;
+let a=4<2;
+let b=4>2;
+let c=4<=2;
+let c=4>=2;
+// Assignment operator, used throughout
+let d=2;",
 }
 
 fn assert_single_token(value: &str, expected_type: TokenKind) {

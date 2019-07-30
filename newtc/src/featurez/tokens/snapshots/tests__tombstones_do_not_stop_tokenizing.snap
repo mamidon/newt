@@ -1,0 +1,16 @@
+---
+created: "2019-07-30T14:48:25.152491Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/tokens/tests.rs
+expression: document
+---
+foo`bar`fizz
+
+===
+
+Identifier[3]
+TombStone[1]
+Identifier[3]
+TombStone[1]
+Identifier[4]
+EndOfFile[0]
