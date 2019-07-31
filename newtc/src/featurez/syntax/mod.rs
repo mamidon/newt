@@ -1,5 +1,6 @@
 mod ast_node;
 mod expr_kind;
+mod stmt_kind;
 mod nodes;
 mod syntax_element;
 mod syntax_kind;
@@ -13,6 +14,7 @@ mod tree_sink;
 
 pub use self::ast_node::AstNode;
 pub use self::expr_kind::ExprKind;
+pub use self::stmt_kind::StmtKind;
 pub use self::nodes::*;
 pub use self::syntax_element::SyntaxElement;
 pub use self::syntax_kind::SyntaxKind;

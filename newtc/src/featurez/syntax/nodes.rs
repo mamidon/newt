@@ -7,14 +7,71 @@ use crate::featurez::syntax::{
 	SyntaxNode,
 	SyntaxKind,
 	SyntaxToken,
-	AstNode
+	AstNode,
+	ExprKind,
+	StmtKind
 };
-use crate::featurez::syntax::ExprKind;
 
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::rc::Rc;
+
+#[repr(transparent)]
+pub struct StmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for StmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl AstNode for StmtNode {
+	fn cast(node: &SyntaxNode) -> Option<&Self> {
+		match node.kind() {
+			SyntaxKind::VariableDeclarationStmt
+			| SyntaxKind::VariableAssignmentStmt
+			=> Some(StmtNode::from_inner(node)),
+			_ => None
+		}
+	}
+
+	fn syntax(&self) -> &SyntaxNode {
+		self.to_inner()
+	}
+}
+
+impl StmtNode {
+	pub fn kind(&self) -> StmtKind {
+		match self.syntax().kind() {
+			SyntaxKind::VariableDeclarationStmt =>
+				StmtKind::VariableDeclarationStmt(VariableDeclarationStmtNode::from_inner(self.syntax())),
+			SyntaxKind::VariableAssignmentStmt =>
+				StmtKind::VariableAssignmentStmt(VariableAssignmentStmtNode::from_inner(self.syntax())),
+			_ => unreachable!("StmtNode cannot be constructed from invalid SyntaxKind")
+		}
+	}
+}
+
+#[repr(transparent)]
+pub struct VariableDeclarationStmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for VariableDeclarationStmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl VariableDeclarationStmtNode {
+	
+}
+
+#[repr(transparent)]
+pub struct VariableAssignmentStmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for VariableAssignmentStmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl VariableAssignmentStmtNode {
+
+}
 
 #[repr(transparent)]
 pub struct ExprNode(SyntaxNode);
@@ -36,6 +93,7 @@ impl AstNode for ExprNode {
 			SyntaxKind::BinaryExpr
 			| SyntaxKind::UnaryExpr
 			| SyntaxKind::LiteralExpr
+			| SyntaxKind::GroupingExpr
 			=> Some(ExprNode::from_inner(node)),
 			_ => None
 		}
@@ -53,7 +111,7 @@ impl ExprNode {
 			SyntaxKind::UnaryExpr => ExprKind::UnaryExpr(UnaryExprNode::from_inner(self.to_inner())),
 			SyntaxKind::LiteralExpr => ExprKind::LiteralExpr(LiteralExprNode::from_inner(self.to_inner())),
 			SyntaxKind::GroupingExpr => ExprKind::GroupingExpr(GroupingExprNode::from_inner(self.to_inner())),
-			_ => unreachable!("This shouldn't happen")
+			_ => unreachable!("ExprNode cannot be constructed from invalid SyntaxKind")
 		}
 	}
 }
