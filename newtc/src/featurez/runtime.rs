@@ -8,13 +8,19 @@ use crate::featurez::syntax::{
 use std::ops::{Add, Sub, Mul, Div, Not, Neg};
 use std::str::FromStr;
 
+type NewtResult = Result<NewtValue, NewtRuntimeError>;
+
+#[derive(Debug)]
+pub enum NewtRuntimeError {
+	TypeError
+}
+
 #[derive(Debug)]
 pub enum NewtValue {
 	Int(i64),
 	Float(f64),
 	Glyph(char),
 	String(String),
-	RuntimeError(String)
 }
 
 impl NewtValue {
@@ -33,97 +39,89 @@ impl NewtValue {
 			TokenKind::IntegerLiteral => NewtValue::Int(lexeme.parse().expect("unparsable literal token")),
 			TokenKind::FloatLiteral => NewtValue::Float(lexeme.parse().expect("unparsable literal token")),
 			TokenKind::StringLiteral => NewtValue::String(lexeme.to_string()),
-			TokenKind::GlyphLiteral => NewtValue::Glyph(lexeme.parse().expect("unparsable literal token")),
+			TokenKind::GlyphLiteral => NewtValue::Glyph(lexeme[1..2].parse().expect("unparsable literal token")),
 			_ => panic!("Literal node has non-literal token")
 		}
 	}
 }
 
-// Add<Output=T>
-//	+ Sub<Output=T>
-//	+ Mul<Output=T>
-//	+ Div<Output=T>
-//	+ Not<Output=T>
-//	+ Neg<Output=T>
 impl Add for NewtValue {
-	type Output = Self;
+	type Output = NewtResult;
 
 	fn add(self, rhs: Self) -> <Self as Add<Self>>::Output {
 		match (self, rhs) {
-			(NewtValue::Int(l), NewtValue::Int(r)) => NewtValue::Int(l + r),
-			(NewtValue::Float(l), NewtValue::Float(r)) => NewtValue::Float(l + r),
-			_ => NewtValue::RuntimeError(format!("Cannot add"))
+			(NewtValue::Int(l), NewtValue::Int(r)) => Ok(NewtValue::Int(l + r)),
+			(NewtValue::Float(l), NewtValue::Float(r)) => Ok(NewtValue::Float(l + r)),
+			_ => Err(NewtRuntimeError::TypeError)
 		}
 	}
 }
 
 
 impl Sub for NewtValue {
-	type Output = Self;
+	type Output = NewtResult;
 
 	fn sub(self, rhs: Self) -> <Self as Add<Self>>::Output {
 		match (self, rhs) {
-			(NewtValue::Int(l), NewtValue::Int(r)) => NewtValue::Int(l - r),
-			(NewtValue::Float(l), NewtValue::Float(r)) => NewtValue::Float(l - r),
-			_ => NewtValue::RuntimeError(format!("Cannot sub"))
+			(NewtValue::Int(l), NewtValue::Int(r)) => Ok(NewtValue::Int(l - r)),
+			(NewtValue::Float(l), NewtValue::Float(r)) => Ok(NewtValue::Float(l - r)),
+			_ => Err(NewtRuntimeError::TypeError)
 		}
 	}
 }
 
 
 impl Mul for NewtValue {
-	type Output = Self;
+	type Output = NewtResult;
 
 	fn mul(self, rhs: Self) -> <Self as Add<Self>>::Output {
 		match (self, rhs) {
-			(NewtValue::Int(l), NewtValue::Int(r)) => NewtValue::Int(l * r),
-			(NewtValue::Float(l), NewtValue::Float(r)) => NewtValue::Float(l - r),
-			_ => NewtValue::RuntimeError(format!("Cannot mul"))
+			(NewtValue::Int(l), NewtValue::Int(r)) => Ok(NewtValue::Int(l * r)),
+			(NewtValue::Float(l), NewtValue::Float(r)) => Ok(NewtValue::Float(l - r)),
+			_ => Err(NewtRuntimeError::TypeError)
 		}
 	}
 }
 
 
 impl Div for NewtValue {
-	type Output = Self;
+	type Output = NewtResult;
 
 	fn div(self, rhs: Self) -> <Self as Add<Self>>::Output {
 		match (self, rhs) {
-			(NewtValue::Int(l), NewtValue::Int(r)) => NewtValue::Int(l / r),
-			(NewtValue::Float(l), NewtValue::Float(r)) => NewtValue::Float(l / r),
-			_ => NewtValue::RuntimeError(format!("Cannot div"))
+			(NewtValue::Int(l), NewtValue::Int(r)) => Ok(NewtValue::Int(l / r)),
+			(NewtValue::Float(l), NewtValue::Float(r)) => Ok(NewtValue::Float(l / r)),
+			_ => Err(NewtRuntimeError::TypeError)
 		}
 	}
 }
 
 
 impl Not for NewtValue {
-	type Output = NewtValue;
+	type Output = NewtResult;
 
 	fn not(self) -> <Self as Not>::Output {
 		match self {
-			NewtValue::Int(l) => NewtValue::Int(l),
-			NewtValue::Float(l) => NewtValue::Float(l),
-			_ => NewtValue::RuntimeError(format!("Cannot not"))
+			_ => Err(NewtRuntimeError::TypeError)
 		}
 	}
 }
 
 impl Neg for NewtValue {
-	type Output = NewtValue;
+	type Output = NewtResult;
 
 	fn neg(self) -> <Self as Neg>::Output {
 		match self {
-			NewtValue::Int(l) => NewtValue::Int(-l),
-			NewtValue::Float(l) => NewtValue::Float(-l),
-			_ => NewtValue::RuntimeError(format!("Cannot neg"))
+			NewtValue::Int(l) => Ok(NewtValue::Int(-l)),
+			NewtValue::Float(l) => Ok(NewtValue::Float(-l)),
+			_ => Err(NewtRuntimeError::TypeError)
 		}
 	}
 }
 
-pub trait ExprVisitor<T>
+pub trait ExprVisitor
 {
-	fn visit_expr(&self, expr: &ExprNode) -> T {
+	fn visit_expr(&self, expr: &ExprNode) -> NewtResult {
 		match expr.kind() {
 			ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
 			ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
@@ -132,10 +130,10 @@ pub trait ExprVisitor<T>
 		}
 	}
 
-	fn visit_binary_expr(&self, node: &BinaryExprNode) -> T;
-	fn visit_unary_expr(&self, node: &UnaryExprNode) -> T;
-	fn visit_literal_expr(&self, node: &LiteralExprNode) -> T;
-	fn visit_grouping_expr(&self, node: &GroupingExprNode) -> T;
+	fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtResult;
+	fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult;
+	fn visit_literal_expr(&self, node: &LiteralExprNode) -> NewtResult;
+	fn visit_grouping_expr(&self, node: &GroupingExprNode) -> NewtResult;
 }
 
 pub struct ExprVirtualMachine {}
@@ -144,10 +142,10 @@ impl ExprVirtualMachine {
 	pub fn new() -> ExprVirtualMachine { ExprVirtualMachine {} }
 }
 
-impl ExprVisitor<NewtValue> for ExprVirtualMachine {
-	fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtValue {
-		let lhs = self.visit_expr(node.lhs());
-		let rhs = self.visit_expr(node.rhs());
+impl ExprVisitor for ExprVirtualMachine {
+	fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtResult {
+		let lhs = self.visit_expr(node.lhs())?;
+		let rhs = self.visit_expr(node.rhs())?;
 
 		match node.operator() {
 			TokenKind::Plus => lhs + rhs,
@@ -158,8 +156,8 @@ impl ExprVisitor<NewtValue> for ExprVirtualMachine {
 		}
 	}
 
-	fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtValue {
-		let rhs = self.visit_expr(node.rhs());
+	fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult {
+		let rhs = self.visit_expr(node.rhs())?;
 
 		match node.operator() {
 			TokenKind::Bang => !rhs,
@@ -168,14 +166,14 @@ impl ExprVisitor<NewtValue> for ExprVirtualMachine {
 		}
 	}
 
-	fn visit_literal_expr(&self, node: &LiteralExprNode) -> NewtValue {
+	fn visit_literal_expr(&self, node: &LiteralExprNode) -> NewtResult {
 		let literal = node.literal();
 		let value = NewtValue::from_literal_node(node);
 
-		value
+		Ok(value)
 	}
 	
-	fn visit_grouping_expr(&self, node: &GroupingExprNode) -> NewtValue {
+	fn visit_grouping_expr(&self, node: &GroupingExprNode) -> NewtResult {
 		let expr = node.expr();
 		
 		self.visit_expr(expr)

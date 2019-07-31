@@ -32,9 +32,6 @@ mod expr {
     }
 	
 	// https://en.wikipedia.org/wiki/Operator-precedence_parser#Example_execution_of_the_algorithm
-	// I've got the sort of right idea here -- but my notion of precedence is backwards 
-	// additionally I only need an explicit function for parsing primary expressions, but I 
-	// do need to encode the precedence & associativity of operators
 	// also see http://craftinginterpreters.com/compiling-expressions.html#a-pratt-parser
 	fn expr_core(p: &mut Parser, first_lhs: CompletedMarker, precedence: usize) -> CompletedMarker {
 		let mut lookahead = p.current();

@@ -34,7 +34,7 @@ pub fn parse(text: &str) -> SyntaxTree {
 	match tree.root() {
 		SyntaxElement::Node(n) => {
 			let root = ExprNode::cast(&n).unwrap();
-			let result: NewtValue = machine.visit_expr(root);
+			let result = machine.visit_expr(root);
 			println!("RESULT: {:?}", result);
 		},
 		_ => unimplemented!()
