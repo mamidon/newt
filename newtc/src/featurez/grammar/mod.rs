@@ -7,20 +7,18 @@ mod expr {
     use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
     use crate::featurez::{Token, TokenKind};
 	use std::collections::HashMap;
-
-	type BinaryOperatorHandler =  fn(&mut Parser, CompletedMarker) -> CompletedMarker;
-	type UnaryOperatorHandler = fn(&mut Parser) -> CompletedMarker;
-	type PrecedenceTable = HashMap<TokenKind, (usize, bool, bool)>;
+	
+	type PrecedenceTable = HashMap<TokenKind, (usize, bool)>;
 	
 	lazy_static! {
 		static ref PRECEDENCE_TABLE: PrecedenceTable = [
-			(TokenKind::Star, 2, true, false),
-			(TokenKind::Slash, 2, true, false),
-			(TokenKind::Plus, 3, true, false),
-			(TokenKind::Minus, 3, true, true),
-			(TokenKind::Bang, 1, false, true),
+			(TokenKind::Star, 2, true),
+			(TokenKind::Slash, 2, true),
+			(TokenKind::Plus, 3, true),
+			(TokenKind::Minus, 3, true),
+			(TokenKind::Bang, 1, false),
 		].iter()
-			.map(|tuple| (tuple.0, (tuple.1, tuple.2, tuple.3)))
+			.map(|tuple| (tuple.0, (tuple.1, tuple.2)))
 			.collect::<HashMap<_,_>>();
 	}
 	
@@ -62,10 +60,6 @@ mod expr {
 	
 	fn lookahead_binary(token: TokenKind) -> bool {
 		PRECEDENCE_TABLE[&token].1
-	}
-
-	fn lookahead_unary(token: TokenKind) -> bool {
-		PRECEDENCE_TABLE[&token].2
 	}
 
 	fn primary_expr(p: &mut Parser) -> CompletedMarker {
