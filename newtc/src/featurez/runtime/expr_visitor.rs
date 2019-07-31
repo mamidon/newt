@@ -48,9 +48,11 @@ impl ExprVisitor for ExprVirtualMachine {
 		}
 	}
 
+
+	//noinspection RsTypeCheck -- faulty on the match statement
 	fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult {
 		let rhs = self.visit_expr(node.rhs())?;
-
+		
 		match node.operator() {
 			TokenKind::Bang => !rhs,
 			TokenKind::Minus => -rhs,
