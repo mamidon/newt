@@ -14,7 +14,6 @@ mod expr {
 	
 	lazy_static! {
 		static ref PRECEDENCE_TABLE: PrecedenceTable = [
-			(TokenKind::IntegerLiteral, 0, false, true),
 			(TokenKind::Star, 2, true, false),
 			(TokenKind::Slash, 2, true, false),
 			(TokenKind::Plus, 3, true, false),
