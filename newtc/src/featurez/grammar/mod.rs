@@ -1,4 +1,6 @@
-use self::expr::*;
+use self::expr::expr;
+use self::stmt::stmt;
+
 use crate::featurez::parse::Parser;
 
 mod expr;
