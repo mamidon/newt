@@ -59,7 +59,9 @@ unsafe impl TransparentNewType for VariableDeclarationStmtNode {
 }
 
 impl VariableDeclarationStmtNode {
-	
+	pub fn identifier(&self) -> &SyntaxToken {
+		self.0.nth_token(1)
+	}
 }
 
 #[repr(transparent)]
@@ -70,7 +72,9 @@ unsafe impl TransparentNewType for VariableAssignmentStmtNode {
 }
 
 impl VariableAssignmentStmtNode {
-
+	pub fn identifier(&self) -> &SyntaxToken {
+		self.0.nth_token(0)
+	}
 }
 
 #[repr(transparent)]

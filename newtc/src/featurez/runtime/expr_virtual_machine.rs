@@ -8,7 +8,10 @@ use crate::featurez::syntax::{
 	LiteralExprNode,
 	NewtResult,
 	NewtValue,
-	ExprVisitor
+	ExprVisitor,
+	StmtVisitor,
+	VariableAssignmentStmtNode,
+	VariableDeclarationStmtNode
 };
 
 pub struct ExprVirtualMachine {}
@@ -54,5 +57,15 @@ impl ExprVisitor for ExprVirtualMachine {
 		let expr = node.expr();
 
 		self.visit_expr(expr)
+	}
+}
+
+impl StmtVisitor for ExprVirtualMachine {
+	fn visit_variable_declaration_stmt(&self, node: &VariableDeclarationStmtNode) {
+		
+	}
+
+	fn visit_variable_assignment_stmt(&self, node: &VariableAssignmentStmtNode) {
+		unimplemented!()
 	}
 }
