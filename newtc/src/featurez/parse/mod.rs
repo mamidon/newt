@@ -1,8 +1,12 @@
 use crate::featurez::syntax::{SyntaxTree, SyntaxElement};
 use crate::featurez::tokens::{tokenize, StrTokenSource, Token, TokenKind};
-use crate::featurez::runtime::{ExprVirtualMachine, ExprVisitor};
-use crate::featurez::syntax::{ExprNode, AstNode};
-
+use crate::featurez::runtime::ExprVirtualMachine;
+use crate::featurez::syntax::{
+	ExprNode, 
+	AstNode,
+	ExprVisitor,
+	NewtValue
+};
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
@@ -17,7 +21,6 @@ pub use self::parse_event::ParseEvent;
 pub use self::marker::Marker;
 pub use self::marker::CompletedMarker;
 pub use self::parser::Parser;
-use super::runtime::NewtValue;
 
 pub fn parse(text: &str) -> SyntaxTree {
 	use super::grammar::root;

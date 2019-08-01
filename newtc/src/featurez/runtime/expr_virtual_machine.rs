@@ -1,32 +1,15 @@
 use crate::featurez::TokenKind;
 use crate::featurez::syntax::{
-	ExprKind, 
-	ExprNode, 
-	GroupingExprNode, 
-	BinaryExprNode, 
+	ExprKind,
+	ExprNode,
+	GroupingExprNode,
+	BinaryExprNode,
 	UnaryExprNode,
-	LiteralExprNode
+	LiteralExprNode,
+	NewtResult,
+	NewtValue,
+	ExprVisitor
 };
-
-use super::NewtResult;
-use super::NewtValue;
-
-pub trait ExprVisitor
-{
-	fn visit_expr(&self, expr: &ExprNode) -> NewtResult {
-		match expr.kind() {
-			ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
-			ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
-			ExprKind::LiteralExpr(node) => self.visit_literal_expr(node),
-			ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
-		}
-	}
-
-	fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtResult;
-	fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult;
-	fn visit_literal_expr(&self, node: &LiteralExprNode) -> NewtResult;
-	fn visit_grouping_expr(&self, node: &GroupingExprNode) -> NewtResult;
-}
 
 pub struct ExprVirtualMachine {}
 
@@ -52,7 +35,7 @@ impl ExprVisitor for ExprVirtualMachine {
 	//noinspection RsTypeCheck -- faulty on the match statement
 	fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult {
 		let rhs = self.visit_expr(node.rhs())?;
-		
+
 		match node.operator() {
 			TokenKind::Bang => !rhs,
 			TokenKind::Minus => -rhs,

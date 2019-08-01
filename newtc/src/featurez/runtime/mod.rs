@@ -1,11 +1,6 @@
-mod expr_visitor;
-mod newt_runtime_error;
-mod newt_value;
+mod expr_virtual_machine;
 
-pub use self::expr_visitor::{ExprVisitor, ExprVirtualMachine};
-pub use self::newt_runtime_error::NewtRuntimeError;
-pub use self::newt_value::NewtValue;
+pub use self::expr_virtual_machine::ExprVirtualMachine;
 
-type NewtResult = Result<NewtValue, NewtRuntimeError>;
 
 
