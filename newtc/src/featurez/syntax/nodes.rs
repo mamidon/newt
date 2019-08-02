@@ -60,7 +60,12 @@ unsafe impl TransparentNewType for VariableDeclarationStmtNode {
 
 impl VariableDeclarationStmtNode {
 	pub fn identifier(&self) -> &SyntaxToken {
-		self.0.nth_token(1)
+		self.0.nth_token(0)
+	}
+	
+	pub fn expr(&self) -> &ExprNode { 
+		ExprNode::cast(self.0.nth_node(1))
+			.expect("Expected an expression node in variable declaration statement")
 	}
 }
 
@@ -74,6 +79,11 @@ unsafe impl TransparentNewType for VariableAssignmentStmtNode {
 impl VariableAssignmentStmtNode {
 	pub fn identifier(&self) -> &SyntaxToken {
 		self.0.nth_token(0)
+	}
+
+	pub fn expr(&self) -> &ExprNode {
+		ExprNode::cast(self.0.nth_node(0))
+			.expect("Expected an expression node in variable declaration statement")
 	}
 }
 

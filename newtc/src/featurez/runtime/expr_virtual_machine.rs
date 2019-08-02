@@ -8,16 +8,36 @@ use crate::featurez::syntax::{
 	LiteralExprNode,
 	NewtResult,
 	NewtValue,
+	NewtRuntimeError,
 	ExprVisitor,
 	StmtVisitor,
 	VariableAssignmentStmtNode,
 	VariableDeclarationStmtNode
 };
+use super::scope::Scope;
 
-pub struct ExprVirtualMachine {}
+pub struct ExprVirtualMachine {
+	scope: Scope,
+	halting_error: Option<NewtRuntimeError>
+}
 
 impl ExprVirtualMachine {
-	pub fn new() -> ExprVirtualMachine { ExprVirtualMachine {} }
+	pub fn new() -> ExprVirtualMachine { 
+		ExprVirtualMachine {
+			scope: Scope::new(),
+			halting_error: None
+		}
+	}
+	
+	fn halt(&mut self, error: NewtRuntimeError) {
+		if !self.halted() {
+			self.halting_error = Some(error)
+		}
+	}
+	
+	fn halted(&self) -> bool {
+		self.halting_error.is_some()
+	}
 }
 
 impl ExprVisitor for ExprVirtualMachine {
@@ -61,11 +81,26 @@ impl ExprVisitor for ExprVirtualMachine {
 }
 
 impl StmtVisitor for ExprVirtualMachine {
-	fn visit_variable_declaration_stmt(&self, node: &VariableDeclarationStmtNode) {
+	fn visit_variable_declaration_stmt(&mut self, node: &VariableDeclarationStmtNode) {
+		let result = self.visit_expr(node.expr());
+		let identifier = node.identifier().lexeme();
 		
+		match result {
+			Ok(value) => self.scope.bind(&identifier, value),
+			Err(error) => self.halt(error)
+		}
 	}
 
-	fn visit_variable_assignment_stmt(&self, node: &VariableAssignmentStmtNode) {
-		unimplemented!()
+	fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) {
+		let identifier = node.identifier().lexeme();
+		
+		let result = self.scope.resolve(&identifier)
+			.ok_or(NewtRuntimeError::UndefinedVariable)
+			.and_then(|_| self.visit_expr(node.expr()));
+		
+		match result {
+			Ok(value) => self.scope.bind(&identifier, value),
+			Err(error) => self.halt(error)
+		};
 	}
 }
