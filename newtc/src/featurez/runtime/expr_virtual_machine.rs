@@ -12,7 +12,8 @@ use crate::featurez::syntax::{
 	ExprVisitor,
 	StmtVisitor,
 	VariableAssignmentStmtNode,
-	VariableDeclarationStmtNode
+	VariableDeclarationStmtNode,
+	StmtListStmtNode
 };
 use super::scope::Scope;
 
@@ -102,5 +103,15 @@ impl StmtVisitor for ExprVirtualMachine {
 			Ok(value) => self.scope.bind(&identifier, value),
 			Err(error) => self.halt(error)
 		};
+	}
+
+	fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) {
+		for stmt in node.stmts() {
+			if self.halted() {
+				return;
+			}
+			
+			self.visit_stmt(stmt)
+		}
 	}
 }

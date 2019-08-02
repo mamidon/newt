@@ -88,6 +88,22 @@ impl VariableAssignmentStmtNode {
 }
 
 #[repr(transparent)]
+pub struct StmtListStmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for StmtListStmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl StmtListStmtNode {
+	pub fn stmts(&self) -> impl IntoIterator<Item=&StmtNode> {
+		self.0.children()
+			.iter()
+			.filter_map(|n| n.as_node())
+			.filter_map(StmtNode::cast)
+	}
+}
+
+#[repr(transparent)]
 pub struct ExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for ExprNode {
