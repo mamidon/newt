@@ -2,7 +2,7 @@ use crate::featurez::syntax::SyntaxElement;
 use crate::featurez::syntax::TextTreeSink;
 use crate::featurez::syntax::tree_sink::TreeSink;
 use crate::featurez::syntax::SyntaxToken;
-use crate::featurez::Parser;
+use crate::featurez::parse::Parser;
 use crate::featurez::parse::ParseEvent;
 
 use std::fmt::Debug;

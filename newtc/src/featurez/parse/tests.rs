@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::featurez::tokenize;
-use crate::featurez::Parser;
+use crate::featurez::parse::Parser;
 use crate::featurez::parse::ParseEvent;
 use crate::featurez::StrTokenSource;
 use crate::featurez::TokenKind;

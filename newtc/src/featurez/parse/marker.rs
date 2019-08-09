@@ -1,5 +1,4 @@
 use crate::featurez::syntax::SyntaxKind;
-use crate::featurez::Parser;
 
 pub struct Marker {
 	index: usize,

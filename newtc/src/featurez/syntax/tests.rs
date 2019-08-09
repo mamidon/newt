@@ -7,8 +7,8 @@ use insta::assert_snapshot_matches;
 use crate::featurez::tokens::tokenize;
 use crate::featurez::tokens::StrTokenSource;
 use crate::featurez::tokens::TokenKind;
-use crate::featurez::Parser;
-use crate::featurez::grammar::root;
+use crate::featurez::parse::Parser;
+use crate::featurez::grammar::root_expr;
 
 macro_rules! syntax_tree_tests {
 	($($name:ident: $test_source:expr,)*) => {
@@ -20,7 +20,7 @@ macro_rules! syntax_tree_tests {
 			let source = StrTokenSource::new(tokens);
 			let mut parser = Parser::new(source);
 			
-			root(&mut parser);
+			root_expr(&mut parser);
 			
 			let tree = SyntaxTree::from_parser(parser, text);
 			let approval_document = format!("{}\n===>\n{:#?}", text, tree);

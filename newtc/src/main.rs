@@ -116,9 +116,15 @@ fn parse_repl() {
 fn parse_batch(file: &str) {
     use crate::featurez::parse;
 
-	
-	let tree = parse(file);
-	
+	let session = InterpretingSession {
+        kind: InterpretingSessionKind::Stmt,
+        source: file
+    };
+
+	let tree = build(session);
+	let mut machine = ExprVirtualMachine::new();
+    interpret(&mut machine, &tree);
+
     println!("{}", tree);
 }
 

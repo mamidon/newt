@@ -7,5 +7,9 @@ mod expr;
 mod stmt;
 
 pub fn root(p: &mut Parser) {
+    stmt(p);
+}
+
+pub fn root_expr(p: &mut Parser) {
     expr(p);
 }
