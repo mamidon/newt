@@ -104,6 +104,19 @@ impl StmtListStmtNode {
 }
 
 #[repr(transparent)]
+pub struct ExprStmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for ExprStmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl ExprStmtNode {
+	pub fn expr(&self) -> &ExprNode {
+		ExprNode::from_inner(self.0.nth_node(0))
+	}
+}
+
+#[repr(transparent)]
 pub struct ExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for ExprNode {

@@ -99,4 +99,8 @@ impl StmtVisitor for ExprVirtualMachine {
 			self.visit_stmt(stmt)
 		}
 	}
+
+	fn visit_expr_stmt(&mut self, node: &ExprStmtNode) {
+		self.visit_expr(node.expr());
+	}
 }

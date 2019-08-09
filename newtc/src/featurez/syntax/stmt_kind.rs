@@ -4,4 +4,5 @@ pub enum StmtKind<'a> {
 	VariableDeclarationStmt(&'a VariableDeclarationStmtNode),
 	VariableAssignmentStmt(&'a VariableAssignmentStmtNode),
 	StmtListStmt(&'a StmtListStmtNode),
+	ExprStmt(&'a ExprStmtNode)
 }

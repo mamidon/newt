@@ -7,10 +7,12 @@ pub trait StmtVisitor
 			StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node),
 			StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node),
 			StmtKind::StmtListStmt(node) => self.visit_stmt_list_stmt(node),
+			StmtKind::ExprStmt(node) => self.visit_expr_stmt(node)
 		}
 	}
 
 	fn visit_variable_declaration_stmt(&mut self, node: &VariableDeclarationStmtNode);
 	fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode);
 	fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode);
+	fn visit_expr_stmt(&mut self, node: &ExprStmtNode);
 }

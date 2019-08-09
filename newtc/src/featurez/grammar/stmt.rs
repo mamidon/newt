@@ -13,17 +13,37 @@ pub fn stmt(p: &mut Parser) {
 		TokenKind::Let,
 		TokenKind::Return,
 		TokenKind::While,
+		TokenKind::LeftBrace
 	];
 	
 	let node = p.begin_node();
-	
-	if p.token_if(TokenKind::Let) {
-		stmt_let(p, node);	
+
+	match p.current() {
+		TokenKind::Let => stmt_let(p, node),
+		TokenKind::LeftBrace => stmt_list(p, node),
+		_ => stmt_expr(p, node)
 	}
-	
+}
+
+fn stmt_expr(p: &mut Parser, node: Marker) {
+	expr(p);
+
+	p.expect_token_kind(TokenKind::SemiColon, "Expected ';'");
+	p.end_node(node, SyntaxKind::BinaryExpr);
+}
+
+fn stmt_list(p: &mut Parser, node: Marker) {
+	p.expect_token_kind(TokenKind::LeftBrace, "Expected '{'");
+
+	while !p.token_if(TokenKind::RightBrace) {
+		stmt(p);
+	}
+
+	p.end_node(node, SyntaxKind::StmtListStmt);
 }
 
 fn stmt_let(p: &mut Parser, node: Marker) {
+	p.expect_token_kind(TokenKind::Let, "Expected 'let'");
 	p.expect_token_kind(TokenKind::Identifier, "Expected identifier");
 	p.expect_token_kind(TokenKind::Equals, "Expected equals");
 	
