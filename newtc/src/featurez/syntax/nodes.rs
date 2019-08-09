@@ -210,6 +210,7 @@ impl UnaryExprNode {
 	}
 }
 
+#[repr(transparent)]
 pub struct GroupingExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for GroupingExprNode {
@@ -219,5 +220,18 @@ unsafe impl TransparentNewType for GroupingExprNode {
 impl GroupingExprNode {
 	pub fn expr(&self) -> &ExprNode { 
 		ExprNode::cast(self.0.nth_node(0)).unwrap()
+	}
+}
+
+#[repr(transparent)]
+pub struct VariableExprNode(SyntaxNode);
+
+unsafe impl TransparentNewType for VariableExprNode {
+	type Inner = SyntaxNode;
+}
+
+impl VariableExprNode {
+	pub fn identifier(&self) -> &SyntaxToken {
+		self.0.nth_token(0)
 	}
 }
