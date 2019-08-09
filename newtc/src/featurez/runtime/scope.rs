@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use crate::featurez::syntax::NewtValue;
 
+#[derive(Debug)]
 pub struct Scope {
 	stack: Vec<Box<HashMap<String, NewtValue>>>,
 	values: HashMap<String, NewtValue>

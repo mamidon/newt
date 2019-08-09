@@ -60,11 +60,15 @@ unsafe impl TransparentNewType for VariableDeclarationStmtNode {
 
 impl VariableDeclarationStmtNode {
 	pub fn identifier(&self) -> &SyntaxToken {
-		self.0.nth_token(0)
+		self.0.children().iter()
+            .filter_map(|c| c.as_token())
+            .filter(|c| c.token_kind() == TokenKind::Identifier)
+            .nth(0)
+            .unwrap()
 	}
 	
 	pub fn expr(&self) -> &ExprNode { 
-		ExprNode::cast(self.0.nth_node(1))
+		ExprNode::cast(self.0.nth_node(0))
 			.expect("Expected an expression node in variable declaration statement")
 	}
 }

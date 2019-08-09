@@ -29,7 +29,7 @@ fn stmt_expr(p: &mut Parser, node: Marker) {
 	expr(p);
 
 	p.expect_token_kind(TokenKind::SemiColon, "Expected ';'");
-	p.end_node(node, SyntaxKind::BinaryExpr);
+	p.end_node(node, SyntaxKind::ExprStmt);
 }
 
 fn stmt_list(p: &mut Parser, node: Marker) {

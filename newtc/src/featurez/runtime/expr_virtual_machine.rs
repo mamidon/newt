@@ -2,6 +2,7 @@ use crate::featurez::TokenKind;
 use crate::featurez::syntax::*;
 use super::scope::Scope;
 
+#[derive(Debug)]
 pub struct ExprVirtualMachine {
 	scope: Scope,
 	halting_error: Option<NewtRuntimeError>
