@@ -11,9 +11,10 @@ use crate::featurez::syntax::{
 	SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
 	SyntaxTree, TextTreeSink, TokenSource, TreeSink,
 };
+use std::rc::Rc;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NewtValue {
 	Int(i64),
 	Float(f64),
