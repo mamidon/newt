@@ -114,8 +114,6 @@ fn parse_repl() {
 }
 
 fn parse_batch(file: &str) {
-    use crate::featurez::parse;
-
 	let session = InterpretingSession {
         kind: InterpretingSessionKind::Stmt,
         source: file
