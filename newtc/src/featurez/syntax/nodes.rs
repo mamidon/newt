@@ -46,6 +46,7 @@ impl StmtNode {
 				StmtKind::VariableDeclarationStmt(VariableDeclarationStmtNode::from_inner(self.syntax())),
 			SyntaxKind::VariableAssignmentStmt =>
 				StmtKind::VariableAssignmentStmt(VariableAssignmentStmtNode::from_inner(self.syntax())),
+            SyntaxKind::ExprStmt => StmtKind::ExprStmt(ExprStmtNode::from_inner(self.syntax())),
 			_ => unreachable!("StmtNode cannot be constructed from invalid SyntaxKind")
 		}
 	}
@@ -141,6 +142,7 @@ impl AstNode for ExprNode {
 			| SyntaxKind::UnaryExpr
 			| SyntaxKind::LiteralExpr
 			| SyntaxKind::GroupingExpr
+            | SyntaxKind::VariableExpr
 			=> Some(ExprNode::from_inner(node)),
 			_ => None
 		}
@@ -158,6 +160,7 @@ impl ExprNode {
 			SyntaxKind::UnaryExpr => ExprKind::UnaryExpr(UnaryExprNode::from_inner(self.to_inner())),
 			SyntaxKind::LiteralExpr => ExprKind::LiteralExpr(LiteralExprNode::from_inner(self.to_inner())),
 			SyntaxKind::GroupingExpr => ExprKind::GroupingExpr(GroupingExprNode::from_inner(self.to_inner())),
+            SyntaxKind::VariableExpr => ExprKind::VariableExpr(VariableExprNode::from_inner(self.to_inner())),
 			_ => unreachable!("ExprNode cannot be constructed from invalid SyntaxKind")
 		}
 	}

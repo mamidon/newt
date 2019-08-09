@@ -1,6 +1,6 @@
 use crate::featurez::parse::Parser;
 use crate::featurez::parse::CompletedMarker;
-use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
+use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, SyntaxTree};
 use crate::featurez::{Token, TokenKind};
 use std::collections::HashMap;
 
@@ -101,7 +101,12 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
 			
 			p.end_node(node, SyntaxKind::GroupingExpr)
 		},
-		// TODO identifiers, function calls
+		TokenKind::Identifier => {
+			p.token_if(TokenKind::Identifier);
+
+			p.end_node(node, SyntaxKind::VariableExpr)
+		},
+		// TODO function calls
 		_ => {
 			p.expect_token_kind_in(&[], "Expected a primary expression");
 			
