@@ -8,6 +8,7 @@ pub trait ExprVisitor
 			ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
 			ExprKind::LiteralExpr(node) => self.visit_literal_expr(node),
 			ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
+			ExprKind::VariableExpr(node) => self.visit_variable_expr(node),
 		}
 	}
 
@@ -15,4 +16,5 @@ pub trait ExprVisitor
 	fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult;
 	fn visit_literal_expr(&self, node: &LiteralExprNode) -> NewtResult;
 	fn visit_grouping_expr(&self, node: &GroupingExprNode) -> NewtResult;
+	fn visit_variable_expr(&self, node: &VariableExprNode) -> NewtResult;
 }

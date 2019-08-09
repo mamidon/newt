@@ -40,7 +40,6 @@ impl ExprVisitor for ExprVirtualMachine {
 		}
 	}
 
-
 	//noinspection RsTypeCheck -- faulty on the match statement
 	fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult {
 		let rhs = self.visit_expr(node.rhs())?;
@@ -63,6 +62,12 @@ impl ExprVisitor for ExprVirtualMachine {
 		let expr = node.expr();
 
 		self.visit_expr(expr)
+	}
+
+	fn visit_variable_expr(&self, node: &VariableExprNode) -> NewtResult {
+		self.scope.resolve(node.identifier().lexeme())
+			.map(|value| value.clone())
+			.ok_or(NewtRuntimeError::UndefinedVariable)
 	}
 }
 
