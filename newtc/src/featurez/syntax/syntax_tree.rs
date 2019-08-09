@@ -16,30 +16,6 @@ pub struct SyntaxTree<'a> {
     root: SyntaxElement,
 }
 
-pub struct SyntaxTreeTraversal<'a> {
-	stack: Vec<&'a SyntaxElement>,
-	current_element: &'a SyntaxElement,
-	current_child: Option<usize>
-}
-
-impl<'a> SyntaxTreeTraversal<'a> {
-	fn new(tree: &'a SyntaxTree) -> SyntaxTreeTraversal<'a> {
-		SyntaxTreeTraversal {
-			stack: vec![],
-			current_element: &tree.root,
-			current_child: None
-		}
-	}
-}
-
-impl<'a> Iterator for SyntaxTreeTraversal<'a> {
-	type Item = SyntaxElement;
-
-	fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-		unimplemented!()
-	}
-}
-
 impl<'a> SyntaxTree<'a> {
     pub fn new(root: SyntaxElement, text: &'a str) -> SyntaxTree<'a> {
         SyntaxTree { text, root }

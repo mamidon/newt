@@ -1,20 +1,5 @@
 use crate::featurez::TokenKind;
-use crate::featurez::syntax::{
-	ExprKind,
-	ExprNode,
-	GroupingExprNode,
-	BinaryExprNode,
-	UnaryExprNode,
-	LiteralExprNode,
-	NewtResult,
-	NewtValue,
-	NewtRuntimeError,
-	ExprVisitor,
-	StmtVisitor,
-	VariableAssignmentStmtNode,
-	VariableDeclarationStmtNode,
-	StmtListStmtNode
-};
+use crate::featurez::syntax::*;
 use super::scope::Scope;
 
 pub struct ExprVirtualMachine {
