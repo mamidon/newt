@@ -1,4 +1,4 @@
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum TokenKind {
 	Error,
 	EndOfFile,
@@ -15,7 +15,7 @@ pub enum TokenKind {
 	Plus
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct Token {
 	pub kind: TokenKind,
 	pub offset: usize,
