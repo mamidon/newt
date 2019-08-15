@@ -1,30 +1,55 @@
-#[derive(Debug, Clone)]
-pub struct TokenizationError {
-	line_number: usize,
-	preceding_chars: usize,
-	message: &'static str
-}
-
-#[derive(Debug, Clone)]
-pub enum Token {
-	Error(TokenizationError),
+#[derive(Debug, Eq, PartialEq)]
+pub enum TokenKind {
+	Error,
 	EndOfFile,
-	Trivia(String),
-	Identifier(String),
+	Trivia,
+	Identifier,
 	Arrow,
 	LeftParenthesis,
 	RightParenthesis,
 	LeftBracket,
 	RightBracket,
-	Quoted(String),
+	Quoted,
 	Pipe,
 	Star,
 	Plus
 }
 
+#[derive(Debug)]
+pub struct Token {
+	pub kind: TokenKind,
+	pub offset: usize,
+	pub length: usize
+}
+
+impl Token {
+	pub fn new(kind: TokenKind, offset: usize, length: usize) -> Token {
+		Token {
+			kind,
+			offset,
+			length
+		}
+	}
+
+	pub fn is_trivia(&self) -> bool {
+		self.kind == TokenKind::Trivia
+	}
+
+	pub fn is_error(&self) -> bool {
+		self.kind == TokenKind::Error
+	}
+
+	pub fn is_identifier(&self) -> bool {
+		self.kind == TokenKind::Identifier
+	}
+
+	pub fn is_quoted(&self) -> bool {
+		self.kind == TokenKind::Quoted
+	}
+}
+
 struct Characters<'a> {
 	source: &'a str,
-	lines_consumed: usize,
 	chars_consumed: usize
 }
 
@@ -32,7 +57,6 @@ impl<'a> Characters<'a> {
 	pub fn new(source: &str) -> Characters {
 		Characters {
 			source,
-			lines_consumed: 0,
 			chars_consumed: 0
 		}
 	}
@@ -45,20 +69,13 @@ impl<'a> Characters<'a> {
 		self.source.chars().nth(offset)
 	}
 
-	pub fn lines_consumed(&self) -> usize {
-		self.lines_consumed
-	}
-
 	pub fn chars_consumed(&self) -> usize {
 		self.chars_consumed
 	}
 
 	pub fn consume(&mut self) {
-		if let Some(c) = self.peek() {
-			if c == '\n' {
-				self.lines_consumed += 1;
-			}
-
+		if let Some(_) = self.peek() {
+			self.chars_consumed += 1;
 			self.source = &self.source[1..];
 		}
 	}
@@ -71,93 +88,75 @@ pub fn tokenize(source: &str) -> Vec<Token> {
 	while cursor.peek().is_some() {
 		tokens.push(next_token(&mut cursor));
 	}
-	tokens.push(Token::EndOfFile);
+	tokens.push(Token::new(TokenKind::EndOfFile, cursor.chars_consumed, 0));
 
 	tokens
 }
 
 fn next_token(cursor: &mut Characters) -> Token {
 	let character = cursor.peek().expect("tokenize should've handled EndOfFile");
+	let offset = cursor.chars_consumed;
+
 	cursor.consume();
 
 	match character {
-		'=' => next_token_arrow(cursor),
-		'(' => Token::LeftParenthesis,
-		')' => Token::RightParenthesis,
-		'[' => Token::LeftBracket,
-		']' => Token::RightBracket,
-		'|' => Token::Pipe,
-		'*' => Token::Star,
-		'+' => Token::Plus,
+		'=' => next_token_arrow(cursor, offset),
+		'(' => Token::new(TokenKind::LeftParenthesis, offset, 1),
+		')' => Token::new(TokenKind::RightParenthesis, offset, 1),
+		'[' => Token::new(TokenKind::LeftBracket, offset, 1),
+		']' => Token::new(TokenKind::RightBracket, offset, 1),
+		'|' => Token::new(TokenKind::Pipe, offset, 1),
+		'*' => Token::new(TokenKind::Star, offset, 1),
+		'+' => Token::new(TokenKind::Plus, offset, 1),
 		'\'' => next_token_quoted(cursor),
-		c if c.is_alphabetic() => next_token_identifier(cursor, c),
-		c if c.is_whitespace() => next_token_trivia(cursor, c),
-		c => next_token_error(cursor, c)
+		c if c.is_alphabetic() => next_token_identifier(cursor, offset),
+		c if c.is_whitespace() => next_token_trivia(cursor, offset),
+		_ => next_token_error(cursor, offset)
 	}
 
 }
 
-fn next_token_arrow(cursor: &mut Characters) -> Token {
+fn next_token_arrow(cursor: &mut Characters, start_offset: usize) -> Token {
 	match cursor.peek() {
 		Some('>') => {
 			cursor.consume();
 
-			Token::Arrow
+			Token::new(TokenKind::Arrow, start_offset, cursor.chars_consumed - start_offset)
 		},
-		_ => Token::Error(TokenizationError {
-			line_number: cursor.lines_consumed(),
-			preceding_chars: cursor.chars_consumed(),
-			message: "Expected a '>' in '=>'"
-		})
+		_ => Token::new(TokenKind::Error, start_offset, cursor.chars_consumed - start_offset)
 	}
 }
 
-fn next_token_identifier(cursor: &mut Characters, first: char) -> Token {
-	let mut identifier = first.to_string();
-
-	while let Some(c) = cursor.peek().filter(|c| c.is_alphabetic()) {
-		identifier.push(c);
+fn next_token_identifier(cursor: &mut Characters, start_offset: usize) -> Token {
+	while let Some(_) = cursor.peek().filter(|c| c.is_alphabetic()) {
 		cursor.consume();
 	}
 
-	Token::Identifier(identifier)
+	Token::new(TokenKind::Identifier, start_offset, cursor.chars_consumed - start_offset)
 }
 
 fn next_token_quoted(cursor: &mut Characters) -> Token {
-	let mut quoted = String::new();
+	let offset = cursor.chars_consumed - 1;
 
 	while let Some(c) = cursor.peek() {
 		cursor.consume();
 
-		if c != '\'' {
-			quoted.push(c);
-		} else {
-			return Token::Quoted(quoted);
+		if c == '\'' {
+			return Token::new(TokenKind::Quoted, offset, cursor.chars_consumed - offset);
 		}
 	}
 
-	return Token::Error(TokenizationError {
-		line_number: cursor.lines_consumed(),
-		preceding_chars: cursor.chars_consumed(),
-		message: "Expected a closing ', but found end of file"
-	});
+	Token::new(TokenKind::Error, offset, cursor.chars_consumed - offset)
 }
 
-fn next_token_trivia(cursor: &mut Characters, first: char) -> Token {
-	let mut trivia = first.to_string();
-
-	while let Some(c) = cursor.peek().filter(|c| c.is_whitespace()) {
-		trivia.push(c);
+fn next_token_trivia(cursor: &mut Characters, start_offset: usize) -> Token {
+	while let Some(_) = cursor.peek().filter(|c| c.is_whitespace()) {
 		cursor.consume();
 	}
 
-	Token::Trivia(trivia)
+	Token::new(TokenKind::Quoted, start_offset, cursor.chars_consumed - start_offset)
 }
 
-fn next_token_error(cursor: &mut Characters, _fault: char) -> Token {
-	Token::Error(TokenizationError {
-		line_number: cursor.lines_consumed(),
-		preceding_chars: cursor.chars_consumed(),
-		message: "Unexpected character '{}'"
-	})
+fn next_token_error(cursor: &mut Characters, start_offset: usize) -> Token {
+	Token::new(TokenKind::Error, start_offset, cursor.chars_consumed - start_offset)
 }
