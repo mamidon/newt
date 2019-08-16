@@ -73,7 +73,7 @@ fn root(cursor: &mut Tokens) -> Vec<Syntax> {
 fn rule(cursor: &mut Tokens) -> Result<Syntax, ParseError> {
 	let name = cursor.expect(TokenKind::Identifier)?;
 	cursor.expect(TokenKind::Arrow)?;
-	let sequence = production_sequence(cursor)?;
+	let sequence = production_pipe(cursor)?;
 	cursor.expect(TokenKind::SemiColon)?;
 
 	Ok(Syntax::Rule(Grammar {
@@ -91,7 +91,6 @@ fn production_sequence(cursor: &mut Tokens) -> Result<Production, ParseError> {
 			TokenKind::Identifier => production_identifier(cursor)?,
 			TokenKind::Plus | TokenKind::Star => production_operator(cursor, sequence.pop())?,
 			TokenKind::LeftParenthesis => production_grouping(cursor)?,
-			TokenKind::Pipe => production_pipe(cursor, sequence.pop())?,
 			TokenKind::Quoted => {
 				/* Not much to do for this right now */
 				cursor.consume();
@@ -139,18 +138,26 @@ fn production_operator(cursor: &mut Tokens, lhs: Option<Production>) -> Result<P
 
 fn production_grouping(cursor: &mut Tokens) -> Result<Production, ParseError> {
 	cursor.expect(TokenKind::LeftParenthesis)?;
-	let sequence = production_sequence(cursor)?;
+	let sequence = production_pipe(cursor)?;
 	cursor.expect(TokenKind::RightParenthesis)?;
 
 	Ok(Production::Grouping(Box::new(sequence)))
 }
 
-fn production_pipe(cursor: &mut Tokens, lhs: Option<Production>) -> Result<Production, ParseError> {
-	let lhs = lhs.ok_or(ParseError::missing("No production sequence found"))?;
-	cursor.expect(TokenKind::Pipe)?;
-	let sequence = production_sequence(cursor)?;
+fn production_pipe(cursor: &mut Tokens) -> Result<Production, ParseError> {
+	let lhs = production_sequence(cursor)?;
+	let mut chain = vec![lhs];
 
-	Ok(Production::Pipe(Box::new(lhs), Box::new(sequence)))
+	while cursor.peek().kind == TokenKind::Pipe {
+		cursor.consume();
+		chain.push(production_sequence(cursor)?);
+	}
+
+	if chain.len() != 1 {
+		Ok(Production::Pipe(chain.into_boxed_slice()))
+	} else {
+		Ok(chain.pop().unwrap())
+	}
 }
 
 #[derive(Debug)]
@@ -193,7 +200,7 @@ pub enum Production {
 	Star(Box<Production>),
 	Sequence(Box<[Production]>),
 	Grouping(Box<Production>),
-	Pipe(Box<Production>, Box<Production>),
+	Pipe(Box<[Production]>),
 	Identifier(GrammarIdentifier)
 }
 
