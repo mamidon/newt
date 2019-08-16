@@ -3,6 +3,7 @@ pub enum TokenKind {
 	Error,
 	EndOfFile,
 	Trivia,
+	SemiColon,
 	Identifier,
 	Arrow,
 	LeftParenthesis,
@@ -108,6 +109,7 @@ fn next_token(cursor: &mut Characters) -> Token {
 		'|' => Token::new(TokenKind::Pipe, offset, 1),
 		'*' => Token::new(TokenKind::Star, offset, 1),
 		'+' => Token::new(TokenKind::Plus, offset, 1),
+		';' => Token::new(TokenKind::SemiColon, offset, 1),
 		'\'' => next_token_quoted(cursor),
 		c if c.is_alphabetic() => next_token_identifier(cursor, offset),
 		c if c.is_whitespace() => next_token_trivia(cursor, offset),
@@ -154,7 +156,7 @@ fn next_token_trivia(cursor: &mut Characters, start_offset: usize) -> Token {
 		cursor.consume();
 	}
 
-	Token::new(TokenKind::Quoted, start_offset, cursor.chars_consumed - start_offset)
+	Token::new(TokenKind::Trivia, start_offset, cursor.chars_consumed - start_offset)
 }
 
 fn next_token_error(cursor: &mut Characters, start_offset: usize) -> Token {

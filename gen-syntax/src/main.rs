@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 
 mod tokens;
+mod parse;
 
 use tokens::{tokenize};
+use parse::parse;
+
 use std::io::{self, Read, Write};
 
 
@@ -17,51 +20,15 @@ fn main() -> io::Result<()> {
 	let tokens = tokenize(&buffer);
 
 	let mut lock = stdout.lock();
-	for token in tokens {
-		writeln!(lock, "{:?}", token)?;
-	}
+
+	writeln!(lock, "{:#?}", tokens)?;
+
+	let parsing = parse(tokens);
+
+	writeln!(lock, "{:#?}", parsing)?;
 
 	Ok(())
 }
 
-
-
-
-struct ParseError;
-struct GrammarRule {
-	name: String,
-	production: GrammarProduction
-}
-struct RuleIdentifier {
-	rule_name: String,
-	member_name: Option<String>
-}
-
-enum OperatorKind {
-	Plus,
-	Star,
-	Grouping
-}
-
-enum Syntax {
-	Error(ParseError),
-
-	Rule(GrammarRule),
-	Production(GrammarProduction)
-}
-
-enum GrammarProduction {
-	Plus(RuleIdentifier),
-	Star(RuleIdentifier),
-	Grouping(Box<GrammarProduction>),
-	Pipe(Box<GrammarProduction>, Box<GrammarProduction>),
-	RuleIdentifier(RuleIdentifier)
-}
-
-/*
-
-Expr => UnaryExpr+ | BinaryExpr*
-BinaryExpr => Expr[lhs] Token[op] Expr[rhs]
-*/
 
 
