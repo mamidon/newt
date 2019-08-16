@@ -1,4 +1,4 @@
-Expr => UnaryExpr | BinaryExpr
-UnaryExpr => Expr[lhs] Op[op]
-BinaryExpr => Expr[lhs] Op[op] Expr[rhs]
-foo = bar 
+Expr => UnaryExpr | BinaryExpr* | Foo;
+UnaryExpr => Expr[lhs] Op[op];
+BinaryExpr => Expr[lhs] Op[op] Expr[rhs];
+Foo => '(' '*' Foo;

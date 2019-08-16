@@ -36,22 +36,19 @@ impl<'a> Tokens<'a> {
 		}
 	}
 
-	pub fn expect(&mut self, expected: TokenKind) -> Result<Token, GrammarParseError> {
-		let current = self.peek();
+	pub fn expect(&mut self, expected: TokenKind) -> Result<Token, ParseError> {
+		let actual = self.peek();
 		self.consume();
 
-		if current.kind == expected {
-			Ok(current)
+		if actual.kind == expected {
+			Ok(actual)
 		} else {
-			Err(GrammarParseError {
-				expected,
-				actual: current
-			})
+			Err(ParseError::unexpected(expected, actual))
 		}
 	}
 }
 
-pub fn parse(tokens: Vec<Token>) -> Vec<GrammarSyntax> {
+pub fn parse(tokens: Vec<Token>) -> Vec<Syntax> {
 	let non_trivia: Vec<Token> = tokens.iter()
 		.filter(|t| !t.is_trivia())
 		.map(|t| *t)
@@ -62,35 +59,31 @@ pub fn parse(tokens: Vec<Token>) -> Vec<GrammarSyntax> {
 	root(&mut cursor)
 }
 
-fn root(cursor: &mut Tokens) -> Vec<GrammarSyntax> {
-	println!("root");
-
-	let mut rules: Vec<GrammarSyntax> = vec![];
+fn root(cursor: &mut Tokens) -> Vec<Syntax> {
+	let mut rules: Vec<Syntax> = vec![];
 
 	while cursor.peek().kind != TokenKind::EndOfFile {
 
-		rules.push(rule(cursor).unwrap_or_else(|e| GrammarSyntax::Error(e)));
+		rules.push(rule(cursor).unwrap_or_else(|e| Syntax::Error(e)));
 	}
 
 	rules
 }
 
-fn rule(cursor: &mut Tokens) -> Result<GrammarSyntax, GrammarParseError> {
-	println!("rule");
+fn rule(cursor: &mut Tokens) -> Result<Syntax, ParseError> {
 	let name = cursor.expect(TokenKind::Identifier)?;
 	cursor.expect(TokenKind::Arrow)?;
 	let sequence = production_sequence(cursor)?;
 	cursor.expect(TokenKind::SemiColon)?;
 
-	Ok(GrammarSyntax::Rule(GrammarRule {
+	Ok(Syntax::Rule(Grammar {
 		name,
 		production: sequence
 	}))
 }
 
-fn production_sequence(cursor: &mut Tokens) -> Result<GrammarProduction, GrammarParseError> {
-	println!("sequence");
-	let mut sequence: Vec<GrammarProduction> = vec![];
+fn production_sequence(cursor: &mut Tokens) -> Result<Production, ParseError> {
+	let mut sequence: Vec<Production> = vec![];
 
 	loop {
 		let token = cursor.peek();
@@ -99,17 +92,25 @@ fn production_sequence(cursor: &mut Tokens) -> Result<GrammarProduction, Grammar
 			TokenKind::Plus | TokenKind::Star => production_operator(cursor, sequence.pop())?,
 			TokenKind::LeftParenthesis => production_grouping(cursor)?,
 			TokenKind::Pipe => production_pipe(cursor, sequence.pop())?,
+			TokenKind::Quoted => {
+				/* Not much to do for this right now */
+				cursor.consume();
+				continue;
+			},
 			_ => break
 		};
 
 		sequence.push(next);
 	}
 
-	Ok(GrammarProduction::Sequence(sequence.into_boxed_slice()))
+	if sequence.len() != 1 {
+		Ok(Production::Sequence(sequence.into_boxed_slice()))
+	} else {
+		Ok(sequence.pop().unwrap())
+	}
 }
 
-fn production_identifier(cursor: &mut Tokens) -> Result<GrammarProduction, GrammarParseError> {
-	println!("identifier");
+fn production_identifier(cursor: &mut Tokens) -> Result<Production, ParseError> {
 	let rule_name = cursor.expect(TokenKind::Identifier)?;
 	let member_name = if cursor.peek().kind == TokenKind::LeftBracket {
 		cursor.expect(TokenKind::LeftBracket)?;
@@ -120,51 +121,58 @@ fn production_identifier(cursor: &mut Tokens) -> Result<GrammarProduction, Gramm
 		None
 	};
 
-	Ok(GrammarProduction::Identifier(GrammarIdentifier { rule_name, member_name }))
+	Ok(Production::Identifier(GrammarIdentifier { rule_name, member_name }))
 }
 
-fn production_operator(cursor: &mut Tokens, lhs: Option<GrammarProduction>) -> Result<GrammarProduction, GrammarParseError> {
-	println!("operator");
-	let lhs = lhs.ok_or(GrammarParseError { expected: TokenKind::Identifier, actual: Token::new(TokenKind::Error, 0, 0)})?;
+fn production_operator(cursor: &mut Tokens, lhs: Option<Production>) -> Result<Production, ParseError> {
+	let lhs = lhs.ok_or(ParseError::missing("No production sequence for operator"))?;
 	let lhs = Box::new(lhs);
 	let token = cursor.peek().kind;
 	cursor.consume();
 
 	match token {
-		TokenKind::Plus => Ok(GrammarProduction::Plus(lhs)),
-		TokenKind::Star => Ok(GrammarProduction::Star(lhs)),
+		TokenKind::Plus => Ok(Production::Plus(lhs)),
+		TokenKind::Star => Ok(Production::Star(lhs)),
 		_ => panic!("production_sequence should've only sent production_operator a + or *")
 	}
 }
 
-fn production_grouping(cursor: &mut Tokens) -> Result<GrammarProduction, GrammarParseError> {
-	println!("grouping");
+fn production_grouping(cursor: &mut Tokens) -> Result<Production, ParseError> {
 	cursor.expect(TokenKind::LeftParenthesis)?;
 	let sequence = production_sequence(cursor)?;
 	cursor.expect(TokenKind::RightParenthesis)?;
 
-	Ok(GrammarProduction::Grouping(Box::new(sequence)))
+	Ok(Production::Grouping(Box::new(sequence)))
 }
 
-fn production_pipe(cursor: &mut Tokens, lhs: Option<GrammarProduction>) -> Result<GrammarProduction, GrammarParseError> {
-	println!("pipe");
-	let lhs = lhs.ok_or(GrammarParseError { expected: TokenKind::Identifier, actual: Token::new(TokenKind::Error, 0, 0)})?;
+fn production_pipe(cursor: &mut Tokens, lhs: Option<Production>) -> Result<Production, ParseError> {
+	let lhs = lhs.ok_or(ParseError::missing("No production sequence found"))?;
 	cursor.expect(TokenKind::Pipe)?;
 	let sequence = production_sequence(cursor)?;
 
-	Ok(GrammarProduction::Pipe(Box::new(lhs), Box::new(sequence)))
+	Ok(Production::Pipe(Box::new(lhs), Box::new(sequence)))
 }
 
 #[derive(Debug)]
-pub struct GrammarParseError {
-	expected: TokenKind,
-	actual: Token
+pub enum ParseError {
+	UnexpectedToken { expected: TokenKind, actual: Token },
+	MissingSyntax { message: &'static str }
+}
+
+impl ParseError {
+	pub fn unexpected(expected: TokenKind, actual: Token) -> ParseError {
+		ParseError::UnexpectedToken { expected, actual }
+	}
+
+	pub fn missing(message: &'static str) -> ParseError {
+		ParseError::MissingSyntax { message }
+	}
 }
 
 #[derive(Debug)]
-pub struct GrammarRule {
+pub struct Grammar {
 	name: Token,
-	production: GrammarProduction
+	production: Production
 }
 
 #[derive(Debug)]
@@ -174,20 +182,18 @@ pub struct GrammarIdentifier {
 }
 
 #[derive(Debug)]
-pub enum GrammarSyntax {
-	Error(GrammarParseError),
-
-	Rule(GrammarRule),
-	Production(GrammarProduction)
+pub enum Syntax {
+	Error(ParseError),
+	Rule(Grammar),
 }
 
 #[derive(Debug)]
-pub enum GrammarProduction {
-	Plus(Box<GrammarProduction>),
-	Star(Box<GrammarProduction>),
-	Sequence(Box<[GrammarProduction]>),
-	Grouping(Box<GrammarProduction>),
-	Pipe(Box<GrammarProduction>, Box<GrammarProduction>),
+pub enum Production {
+	Plus(Box<Production>),
+	Star(Box<Production>),
+	Sequence(Box<[Production]>),
+	Grouping(Box<Production>),
+	Pipe(Box<Production>, Box<Production>),
 	Identifier(GrammarIdentifier)
 }
 

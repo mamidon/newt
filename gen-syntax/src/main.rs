@@ -21,7 +21,7 @@ fn main() -> io::Result<()> {
 
 	let mut lock = stdout.lock();
 
-	writeln!(lock, "{:#?}", tokens)?;
+	writeln!(lock, "{:?}", tokens.iter().map(|t| t.kind).collect::<Vec<_>>())?;
 
 	let parsing = parse(tokens);
 
