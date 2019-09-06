@@ -43,12 +43,109 @@ impl<'a> Tokens<'a> {
 		if actual.kind == expected {
 			Ok(actual)
 		} else {
-			Err(ParseError::unexpected(expected, actual))
+			Err(ParseError::new(actual, ParseErrorKind::UnexpectedToken {
+				expected,
+				actual: actual.kind
+			}))
 		}
 	}
 }
 
-pub fn parse(tokens: Vec<Token>) -> Vec<Syntax> {
+
+#[derive(Debug)]
+pub struct ParseError {
+	pub(crate) location: Token,
+	pub(crate) kind: ParseErrorKind
+}
+
+#[derive(Debug)]
+pub enum ParseErrorKind {
+	UnexpectedToken { expected: TokenKind, actual: TokenKind },
+	MissingSyntax { message: &'static str }
+}
+
+impl ParseError {
+	pub fn new(location: Token, kind: ParseErrorKind) -> ParseError {
+		ParseError {
+			kind,
+			location
+		}
+	}
+}
+
+#[derive(Debug)]
+pub enum Production {
+	Error(ParseError),
+	Root(Box<[Production]>),
+	Rule { name: Token, production: Box<Production> },
+	Plus(Box<Production>),
+	Star(Box<Production>),
+	Grouping(Box<Production>),
+	Sequence(Box<[Production]>),
+	Pipe(Box<[Production]>),
+	Identifier { rule_name: Token, member_name: Option<Token> }
+}
+
+pub struct ProductionIterator<'a> {
+	frontier: Vec<&'a Production>
+}
+
+impl Production {
+	pub fn iter(&self) -> ProductionIterator {
+		ProductionIterator::from(self)
+	}
+}
+
+impl<'a> From<&'a Production> for ProductionIterator<'a> {
+	fn from(root: &'a Production) -> Self {
+		ProductionIterator {
+			frontier: vec![root]
+		}
+	}
+}
+
+impl<'a> Iterator for ProductionIterator<'a> {
+	type Item = &'a Production;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		let next = self.frontier.pop()?;
+
+		match next {
+			Production::Pipe(chain) => {
+				self.frontier.extend(chain.iter().rev());
+			},
+			Production::Sequence(sequence) => {
+				self.frontier.extend(sequence.iter().rev())
+			},
+			Production::Grouping(child)
+			| Production::Plus(child)
+			| Production::Star(child) => {
+				self.frontier.push(child)
+			},
+			Production::Rule { name: _, production } => {
+				self.frontier.push(&production)
+			},
+			Production::Error(_) => {},
+			Production::Root(items) => {
+				self.frontier.extend(items.iter().rev())
+			},
+			Production::Identifier { rule_name: _, member_name: _ } => {},
+		};
+
+		Some(next)
+	}
+}
+
+impl<'a> IntoIterator for &'a Production {
+	type Item = &'a Production;
+	type IntoIter = ProductionIterator<'a>;
+
+	fn into_iter(self) -> Self::IntoIter {
+		ProductionIterator::from(self)
+	}
+}
+
+pub fn parse(tokens: Vec<Token>) -> Result<Production, Vec<ParseError>> {
 	let non_trivia: Vec<Token> = tokens.iter()
 		.filter(|t| !t.is_trivia())
 		.map(|t| *t)
@@ -59,27 +156,42 @@ pub fn parse(tokens: Vec<Token>) -> Vec<Syntax> {
 	root(&mut cursor)
 }
 
-fn root(cursor: &mut Tokens) -> Vec<Syntax> {
-	let mut rules: Vec<Syntax> = vec![];
+fn root(cursor: &mut Tokens) -> Result<Production, Vec<ParseError>> {
+	let mut rules: Vec<Production> = vec![];
+	let mut errors: Vec<ParseError> = vec![];
 
 	while cursor.peek().kind != TokenKind::EndOfFile {
-
-		rules.push(rule(cursor).unwrap_or_else(|e| Syntax::Error(e)));
+		match rule(cursor) {
+			Ok(p) => rules.push(p),
+			Err(e) => {
+				errors.push(e);
+				while cursor.peek().kind != TokenKind::SemiColon && cursor.peek().kind != TokenKind::EndOfFile {
+					cursor.consume();
+				}
+				if cursor.peek().kind == TokenKind::SemiColon {
+					cursor.expect(TokenKind::SemiColon).unwrap();
+				}
+			}
+		};
 	}
 
-	rules
+	if errors.len() == 0 {
+		Ok(Production::Root(rules.into_boxed_slice()))
+	} else {
+		Err(errors)
+	}
 }
 
-fn rule(cursor: &mut Tokens) -> Result<Syntax, ParseError> {
+fn rule(cursor: &mut Tokens) -> Result<Production, ParseError> {
 	let name = cursor.expect(TokenKind::Identifier)?;
 	cursor.expect(TokenKind::Arrow)?;
 	let sequence = production_pipe(cursor)?;
 	cursor.expect(TokenKind::SemiColon)?;
 
-	Ok(Syntax::Rule(Grammar {
+	Ok(Production::Rule {
 		name,
-		production: sequence
-	}))
+		production: Box::new(sequence)
+	})
 }
 
 fn production_sequence(cursor: &mut Tokens) -> Result<Production, ParseError> {
@@ -120,11 +232,11 @@ fn production_identifier(cursor: &mut Tokens) -> Result<Production, ParseError> 
 		None
 	};
 
-	Ok(Production::Identifier(GrammarIdentifier { rule_name, member_name }))
+	Ok(Production::Identifier { rule_name, member_name })
 }
 
 fn production_operator(cursor: &mut Tokens, lhs: Option<Production>) -> Result<Production, ParseError> {
-	let lhs = lhs.ok_or(ParseError::missing("No production sequence for operator"))?;
+	let lhs = lhs.ok_or(ParseError::new(cursor.peek(), ParseErrorKind::MissingSyntax { message: "No production sequence for operator" }))?;
 	let lhs = Box::new(lhs);
 	let token = cursor.peek().kind;
 	cursor.consume();
@@ -159,53 +271,3 @@ fn production_pipe(cursor: &mut Tokens) -> Result<Production, ParseError> {
 		Ok(chain.pop().unwrap())
 	}
 }
-
-#[derive(Debug)]
-pub enum ParseError {
-	UnexpectedToken { expected: TokenKind, actual: Token },
-	MissingSyntax { message: &'static str }
-}
-
-impl ParseError {
-	pub fn unexpected(expected: TokenKind, actual: Token) -> ParseError {
-		ParseError::UnexpectedToken { expected, actual }
-	}
-
-	pub fn missing(message: &'static str) -> ParseError {
-		ParseError::MissingSyntax { message }
-	}
-}
-
-#[derive(Debug)]
-pub struct Grammar {
-	name: Token,
-	production: Production
-}
-
-#[derive(Debug)]
-pub struct GrammarIdentifier {
-	rule_name: Token,
-	member_name: Option<Token>
-}
-
-#[derive(Debug)]
-pub enum Syntax {
-	Error(ParseError),
-	Rule(Grammar),
-}
-
-#[derive(Debug)]
-pub enum Production {
-	Plus(Box<Production>),
-	Star(Box<Production>),
-	Sequence(Box<[Production]>),
-	Grouping(Box<Production>),
-	Pipe(Box<[Production]>),
-	Identifier(GrammarIdentifier)
-}
-
-/*
-
-Expr => UnaryExpr+ | BinaryExpr*
-BinaryExpr => Expr[lhs] Token[op] Expr[rhs]
-*/

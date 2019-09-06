@@ -1,4 +1,5 @@
 Expr => UnaryExpr | (BinaryExpr '+' Foo)* | Foo;
 UnaryExpr => Expr[lhs] Op[op];
-BinaryExpr => Expr[lhs] Op[op] Expr[rhs];
+BinaryExpr => * Expr[lhs] Op[op] Expr[rhs];
 Foo => '(' '*' Foo;
+Something is very wrong here!

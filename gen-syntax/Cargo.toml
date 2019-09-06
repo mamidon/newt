@@ -5,3 +5,4 @@ authors = ["mamidon <mamidon@outlook.com>"]
 edition = "2018"
 
 [dependencies]
+ansi_term = "0.12"
