@@ -1,4 +1,7 @@
 use crate::tokens::{Token, TokenKind};
+use std::fmt::{Display, Formatter, Error};
+use ansi_term::Color::Red;
+use std::net::ToSocketAddrs;
 
 struct Tokens<'a> {
 	source: &'a [Token],
@@ -70,6 +73,96 @@ impl ParseError {
 			kind,
 			location
 		}
+	}
+}
+
+
+pub struct ErrorReport {
+	pub message: String,
+	pub line_number: usize,
+	pub leading_lines: Vec<String>,
+	pub failing_line: String,
+	pub failing_span_start: usize,
+	pub failing_span_end: usize,
+	pub trailing_lines: Vec<String>
+}
+
+impl ErrorReport {
+	pub fn from_parse_error(error: &ParseError, source: &str) -> ErrorReport {
+		let message: String = match error.kind {
+			ParseErrorKind::UnexpectedToken { expected, actual } => {
+				format!("Expected {:?}, but found {:?}.", expected, actual)
+			},
+			ParseErrorKind::MissingSyntax { message } => message.to_string(),
+		};
+		let context_lines = 2;
+
+		let from = error.location.offset;
+		let to = error.location.length + from;
+		let failing_line_number = source[..from]
+			.chars()
+			.filter(|c| *c == '\n')
+			.count() + 1;
+		let leading_lines: Vec<String> = source.lines()
+			.skip(failing_line_number - context_lines - 1)
+			.take(context_lines)
+			.map(|l| l.to_string())
+			.collect();
+		let failing_line = source.lines()
+			.skip(failing_line_number - 1)
+			.nth(0)
+			.unwrap()
+			.to_string();
+		let failing_span_start = source[..from].chars().rev().take_while(|c| *c != '\n').count();
+		let failing_span_end = to - from + failing_span_start;
+
+		let trailing_lines = source.lines()
+			.skip(failing_line_number + 1)
+			.take(context_lines)
+			.map(|l| l.to_string())
+			.collect();
+
+		ErrorReport {
+			message,
+			line_number: failing_line_number,
+			leading_lines,
+			failing_line,
+			trailing_lines,
+			failing_span_start,
+			failing_span_end
+		}
+	}
+}
+
+impl Display for ErrorReport {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		writeln!(f, "{}: {}\n",
+		         Red.paint(format!("{}", self.line_number)),
+		         Red.paint(&self.message))?;
+
+		let mut line_number = self.line_number - self.leading_lines.len();
+		for line in self.leading_lines.iter() {
+			writeln!(f, "{}:\t{}", line_number, line)?;
+			line_number = line_number + 1;
+		}
+
+		let failing_span_prefix = &self.failing_line[..self.failing_span_start];
+		let failing_span = &self.failing_line[self.failing_span_start..self.failing_span_end];
+		let failing_span_suffix = &self.failing_line[self.failing_span_end..];
+
+		writeln!(f, "{}:\t{}{}{}",
+			line_number,
+            &failing_span_prefix,
+	        Red.underline().paint(failing_span),
+	        &failing_span_suffix)?;
+
+		line_number = line_number + 1;
+		for line in self.trailing_lines.iter() {
+			writeln!(f, "{}:\t{}", line_number, line)?;
+			line_number = line_number + 1;
+		}
+
+		Ok(())
 	}
 }
 
