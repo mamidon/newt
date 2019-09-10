@@ -11,6 +11,7 @@ use parse::{parse, ErrorReport};
 use semantic::validate;
 
 use std::io::{self, Read};
+use crate::parse::{Production, ParseError};
 
 extern crate ansi_term;
 
@@ -29,39 +30,46 @@ TODO -- any tokens referenced not in the set are treated as undefined symbols, b
 TODO -- they have no effect on the output
 TODO -- once that's done, dogfood on this crate
 */
-fn main() -> io::Result<()> {
-	let mut buffer = String::new();
+fn main() -> Result<(), ErrorReport> {
+	let outcome = main_core();
 
-	io::stdin().read_to_string(&mut buffer)?;
-
-	let tokens = tokenize(&buffer);
-	let parsing = parse(tokens);
-
-	match parsing {
-		Ok(root) => {
-			let reports: Vec<ErrorReport> = validate(&root, &buffer)
-				.iter()
-				.map(|e| ErrorReport::from_parse_error(e, &buffer))
-				.collect();
-
-			for report in reports.iter() {
-				println!("{}\n", report);
-			}
-
-			if reports.is_empty() {
-				println!("{:#?}", root);
-			}
-		},
-		Err(errors) => {
-			let reports: Vec<ErrorReport> = errors.iter()
-				.map(|e| ErrorReport::from_parse_error(e, &buffer))
-				.collect();
-
-			for report in reports {
-				println!("{}\n", report);
-			}
-		}
+	match outcome {
+		Ok(output) => println!("{:#?}", output),
+		Err(errors) => errors.iter().for_each(|e| println!("{}", e))
 	}
 
 	Ok(())
+}
+
+fn main_core() -> Result<Production, Vec<ErrorReport>> {
+	let mut buffer = String::new();
+
+	io::stdin()
+		.read_to_string(&mut buffer)
+		.map_err(map_io_error_to_reports)?;
+
+	let tokens = tokenize(&buffer);
+	let parsing = parse(tokens)
+		.map_err(|errors| map_parse_errors_to_reports(errors, &buffer))?;
+
+	let reports: Vec<ErrorReport> = validate(&parsing, &buffer)
+		.iter()
+		.map(|e| ErrorReport::from_parse_error(e, &buffer))
+		.collect();
+
+	if !reports.is_empty() {
+		Err(reports)
+	} else {
+		Ok(parsing)
+	}
+}
+
+fn map_io_error_to_reports(error: std::io::Error) -> Vec<ErrorReport> {
+	vec![ErrorReport::from_io_error(error)]
+}
+
+fn map_parse_errors_to_reports(errors: Vec<ParseError>, source: &str) -> Vec<ErrorReport> {
+	errors.iter()
+		.map(|parse_error| ErrorReport::from_parse_error(parse_error, &source))
+		.collect()
 }

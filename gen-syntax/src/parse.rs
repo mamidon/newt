@@ -1,5 +1,5 @@
 use crate::tokens::{Token, TokenKind};
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Formatter, Error, Debug};
 use ansi_term::Color::Red;
 use std::net::ToSocketAddrs;
 use std::cmp::{max, min};
@@ -140,6 +140,20 @@ impl ErrorReport {
 			lines
 		}
 	}
+
+	pub fn from_io_error(error: std::io::Error) -> ErrorReport {
+		ErrorReport {
+			line_number: 0,
+			lines: vec![],
+			message: format!("{:?}", error.kind())
+		}
+	}
+}
+
+impl From<std::io::Error> for ErrorReport {
+	fn from(error: std::io::Error) -> Self {
+		ErrorReport::from_io_error(error)
+	}
 }
 
 impl Display for ErrorReport {
@@ -162,6 +176,12 @@ impl Display for ErrorReport {
 		}
 
 		Ok(())
+	}
+}
+
+impl Debug for ErrorReport {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		(self as &Display).fmt(f)
 	}
 }
 
