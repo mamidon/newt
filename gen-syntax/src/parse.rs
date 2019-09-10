@@ -65,7 +65,9 @@ pub struct ParseError {
 #[derive(Debug)]
 pub enum ParseErrorKind {
 	UnexpectedToken { expected: TokenKind, actual: TokenKind },
-	MissingSyntax { message: &'static str }
+	MissingSyntax { message: &'static str },
+	UndefinedSymbol { symbol: String },
+	DuplicateSymbol { symbol: String }
 }
 
 impl ParseError {
@@ -92,11 +94,17 @@ struct ErrorReportLine {
 
 impl ErrorReport {
 	pub fn from_parse_error(error: &ParseError, source: &str) -> ErrorReport {
-		let message: String = match error.kind {
+		let message: String = match &error.kind {
 			ParseErrorKind::UnexpectedToken { expected, actual } => {
 				format!("Expected {:?}, but found {:?}.", expected, actual)
 			},
 			ParseErrorKind::MissingSyntax { message } => message.to_string(),
+			ParseErrorKind::DuplicateSymbol { symbol } => {
+				format!("Duplicate symbol '{:?}' detected", &symbol)
+			},
+			ParseErrorKind::UndefinedSymbol { symbol } => {
+				format!("Undefined symbol '{:?}' detected", &symbol)
+			}
 		};
 		let context_lines = 1;
 
