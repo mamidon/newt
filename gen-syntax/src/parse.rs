@@ -2,6 +2,7 @@ use crate::tokens::{Token, TokenKind};
 use std::fmt::{Display, Formatter, Error};
 use ansi_term::Color::Red;
 use std::net::ToSocketAddrs;
+use std::cmp::{max, min};
 
 struct Tokens<'a> {
 	source: &'a [Token],
@@ -80,11 +81,13 @@ impl ParseError {
 pub struct ErrorReport {
 	pub message: String,
 	pub line_number: usize,
-	pub leading_lines: Vec<String>,
-	pub failing_line: String,
-	pub failing_span_start: usize,
-	pub failing_span_end: usize,
-	pub trailing_lines: Vec<String>
+	lines: Vec<ErrorReportLine>
+}
+
+struct ErrorReportLine {
+	line_number: usize,
+	line: String,
+	error_span: Option<(usize, usize)>
 }
 
 impl ErrorReport {
@@ -95,71 +98,59 @@ impl ErrorReport {
 			},
 			ParseErrorKind::MissingSyntax { message } => message.to_string(),
 		};
-		let context_lines = 2;
+		let context_lines = 1;
 
 		let from = error.location.offset;
 		let to = error.location.length + from;
-		let failing_line_number = source[..from]
+		let lines_preceding = source[..from]
 			.chars()
 			.filter(|c| *c == '\n')
-			.count() + 1;
-		let leading_lines: Vec<String> = source.lines()
-			.skip(failing_line_number - context_lines - 1)
-			.take(context_lines)
-			.map(|l| l.to_string())
-			.collect();
-		let failing_line = source.lines()
-			.skip(failing_line_number - 1)
-			.nth(0)
-			.unwrap()
-			.to_string();
-		let failing_span_start = source[..from].chars().rev().take_while(|c| *c != '\n').count();
-		let failing_span_end = to - from + failing_span_start;
+			.count();
+		let lines_to_skip = lines_preceding - min(lines_preceding, context_lines);
+		let lines: Vec<ErrorReportLine> = source
+			.lines()
+			.enumerate()
+			.scan(0, |chars, tuple| {
+				let line_span = (*chars, *chars + tuple.1.len());
+				*chars = *chars + tuple.1.len() + 1;
 
-		let trailing_lines = source.lines()
-			.skip(failing_line_number + 1)
-			.take(context_lines)
-			.map(|l| l.to_string())
-			.collect();
+				Some(ErrorReportLine {
+					line_number: tuple.0 + 1,
+					line: tuple.1.to_string(),
+					error_span: if line_span.1 < from || line_span.0 > to {
+						None
+					} else {
+						Some((max(line_span.0, from) - line_span.0, min(line_span.1, to) - line_span.0))
+					}
+				})
+		}).skip(lines_to_skip).take(context_lines*2 + 1).collect();
+
 
 		ErrorReport {
 			message,
-			line_number: failing_line_number,
-			leading_lines,
-			failing_line,
-			trailing_lines,
-			failing_span_start,
-			failing_span_end
+			line_number: lines_preceding + 1,
+			lines
 		}
 	}
 }
 
 impl Display for ErrorReport {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-		writeln!(f, "{}: {}\n",
+
+
+		writeln!(f, "{}: {}",
 		         Red.paint(format!("{}", self.line_number)),
 		         Red.paint(&self.message))?;
 
-		let mut line_number = self.line_number - self.leading_lines.len();
-		for line in self.leading_lines.iter() {
-			writeln!(f, "{}:\t{}", line_number, line)?;
-			line_number = line_number + 1;
-		}
-
-		let failing_span_prefix = &self.failing_line[..self.failing_span_start];
-		let failing_span = &self.failing_line[self.failing_span_start..self.failing_span_end];
-		let failing_span_suffix = &self.failing_line[self.failing_span_end..];
-
-		writeln!(f, "{}:\t{}{}{}",
-			line_number,
-            &failing_span_prefix,
-	        Red.underline().paint(failing_span),
-	        &failing_span_suffix)?;
-
-		line_number = line_number + 1;
-		for line in self.trailing_lines.iter() {
-			writeln!(f, "{}:\t{}", line_number, line)?;
-			line_number = line_number + 1;
+		for line in self.lines.iter() {
+			match line.error_span {
+				None => writeln!(f, "\t{}: {}", line.line_number, &line.line)?,
+				Some(span) => {
+					write!(f, "\t{}: {}", line.line_number, &line.line[..span.0])?;
+					write!(f, "{}", Red.underline().paint(&line.line[span.0..span.1]))?;
+					writeln!(f, "{}", &line.line[span.1..])?;
+				}
+			}
 		}
 
 		Ok(())
