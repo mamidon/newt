@@ -90,17 +90,22 @@ fn check_ambiguous_pipes(context: &SemanticsContext, root: &Production) -> Vec<P
 	for production in root.iter() {
 		if let Production::Pipe(options) = production {
 			for option in options.iter() {
-				let sub_options: HashSet<String> = option.iter()
+				let identifier_tokens: Vec<Token> = option.iter()
 					.filter_map(|p|
 						match p {
-							Production::Identifier { rule_name, member_name} => Some(context.lexeme(*rule_name).to_string()),
+							Production::Identifier { rule_name, member_name} => Some(*rule_name),
 							_ => None
 					})
 					.collect();
-				if sub_options.len() > 1 {
+
+				let unique_identifiers: HashSet<String> = identifier_tokens.iter()
+					.map(|t| context.lexeme(*t).to_string())
+					.collect();
+
+				if unique_identifiers.len() > 1 {
 					let error_kind = ParseErrorKind::AmbiguousPipe;
 
-					errors.push(ParseError::new(Token::new(TokenKind::Pipe, 0, 0), error_kind))
+					errors.push(ParseError::new(*identifier_tokens.first().unwrap(), error_kind))
 				}
 			}
 		}
