@@ -1,5 +1,5 @@
 use crate::tokens::{Token, TokenKind};
-use crate::parse::{Production, ParseError, ParseErrorKind};
+use crate::parse::{SyntaxNode, ParseError, ParseErrorKind};
 use std::collections::{HashSet, HashMap};
 
 struct SemanticsContext<'a> {
@@ -42,7 +42,7 @@ impl Symbol {
 	fn new() -> Symbol { Symbol {} }
 }
 
-pub fn validate_semantics(root: &Production, source: &str) -> Vec<ParseError> {
+pub fn validate_semantics(root: &SyntaxNode, source: &str) -> Vec<ParseError> {
 	let mut context = SemanticsContext::new(source);
 	let mut errors: Vec<ParseError> = vec![];
 
@@ -53,11 +53,11 @@ pub fn validate_semantics(root: &Production, source: &str) -> Vec<ParseError> {
 	errors
 }
 
-fn define_symbols(context: &mut SemanticsContext, root: &Production) -> Vec<ParseError> {
+fn define_symbols(context: &mut SemanticsContext, root: &SyntaxNode) -> Vec<ParseError> {
 	let mut errors: Vec<ParseError> = vec![];
 
 	for rule in root.iter() {
-		if let Production::Rule { name: token, production: _ } = rule {
+		if let SyntaxNode::Rule { name: token, production: _ } = rule {
 			match context.define_symbol(*token) {
 				Ok(symbol) => {},
 				Err(error) => errors.push(error)
@@ -68,11 +68,11 @@ fn define_symbols(context: &mut SemanticsContext, root: &Production) -> Vec<Pars
 	errors
 }
 
-fn check_undefined_symbols(context: &SemanticsContext, root: &Production) -> Vec<ParseError> {
+fn check_undefined_symbols(context: &SemanticsContext, root: &SyntaxNode) -> Vec<ParseError> {
 	let mut errors: Vec<ParseError> = vec![];
 
 	for production in root.iter() {
-		if let Production::Identifier { rule_name, member_name: _ } = production {
+		if let SyntaxNode::Identifier { rule_name, member_name: _ } = production {
 			if context.get_symbol(*rule_name).is_none() {
 				errors.push(ParseError::new(*rule_name, ParseErrorKind::UndefinedSymbol {
 					symbol: context.lexeme(*rule_name).to_string()
@@ -84,16 +84,16 @@ fn check_undefined_symbols(context: &SemanticsContext, root: &Production) -> Vec
 	errors
 }
 
-fn check_ambiguous_pipes(context: &SemanticsContext, root: &Production) -> Vec<ParseError> {
+fn check_ambiguous_pipes(context: &SemanticsContext, root: &SyntaxNode) -> Vec<ParseError> {
 	let mut errors: Vec<ParseError> = vec![];
 
 	for production in root.iter() {
-		if let Production::Pipe(options) = production {
+		if let SyntaxNode::Pipe(options) = production {
 			for option in options.iter() {
 				let identifier_tokens: Vec<Token> = option.iter()
 					.filter_map(|p|
 						match p {
-							Production::Identifier { rule_name, member_name} => Some(*rule_name),
+							SyntaxNode::Identifier { rule_name, member_name} => Some(*rule_name),
 							_ => None
 					})
 					.collect();

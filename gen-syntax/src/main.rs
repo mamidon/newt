@@ -7,7 +7,7 @@ mod parse;
 mod semantic;
 
 use tokens::{tokenize};
-use parse::{parse, ErrorReport, Production, ParseError};
+use parse::{parse, ErrorReport, SyntaxNode, ParseError};
 use semantic::validate_semantics;
 
 use std::io::{self, Read};
@@ -40,7 +40,7 @@ fn main() -> Result<(), ErrorReport> {
 	Ok(())
 }
 
-fn main_core() -> Result<Production, Vec<ErrorReport>> {
+fn main_core() -> Result<SyntaxNode, Vec<ErrorReport>> {
 	let mut buffer = String::new();
 
 	io::stdin()
