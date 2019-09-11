@@ -185,7 +185,7 @@ impl Display for ErrorReport {
 
 impl Debug for ErrorReport {
 	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-		(self as &Display).fmt(f)
+		(self as &dyn Display).fmt(f)
 	}
 }
 
