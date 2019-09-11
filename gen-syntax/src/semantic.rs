@@ -42,7 +42,7 @@ impl Symbol {
 	fn new() -> Symbol { Symbol {} }
 }
 
-pub fn validate_semantics(root: &SyntaxNode, source: &str) -> Vec<ParseError> {
+pub fn validate_semantics(root: &SyntaxNode, source: &str) -> Result<(), Vec<ParseError>> {
 	let mut context = SemanticsContext::new(source);
 	let mut errors: Vec<ParseError> = vec![];
 
@@ -50,7 +50,11 @@ pub fn validate_semantics(root: &SyntaxNode, source: &str) -> Vec<ParseError> {
 	errors.extend(check_undefined_symbols(&context, root));
 	errors.extend(check_ambiguous_pipes(&context, root));
 
-	errors
+	if errors.is_empty() {
+		Ok(())
+	} else {
+		Err(errors)
+	}
 }
 
 fn define_symbols(context: &mut SemanticsContext, root: &SyntaxNode) -> Vec<ParseError> {

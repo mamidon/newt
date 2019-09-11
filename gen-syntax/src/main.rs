@@ -51,15 +51,15 @@ fn main_core() -> Result<SyntaxNode, Vec<ErrorReport>> {
 	let parsing = parse(tokens)
 		.map_err(|errors| map_parse_errors_to_reports(errors, &buffer))?;
 
-	let reports: Vec<ErrorReport> = validate_semantics(&parsing, &buffer)
-		.iter()
-		.map(|e| ErrorReport::from_parse_error(e, &buffer))
-		.collect();
+	let outcome = validate_semantics(&parsing, &buffer)
+		.map_err(|errors| errors
+			.iter()
+			.map(|e| ErrorReport::from_parse_error(e, &buffer))
+			.collect::<Vec<ErrorReport>>());
 
-	if !reports.is_empty() {
-		Err(reports)
-	} else {
-		Ok(parsing)
+	match outcome {
+		Ok(_) => Ok(parsing),
+		Err(reports) => Err(reports)
 	}
 }
 
