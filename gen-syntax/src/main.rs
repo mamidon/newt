@@ -7,11 +7,10 @@ mod parse;
 mod semantic;
 
 use tokens::{tokenize};
-use parse::{parse, ErrorReport};
-use semantic::validate;
+use parse::{parse, ErrorReport, Production, ParseError};
+use semantic::validate_semantics;
 
 use std::io::{self, Read};
-use crate::parse::{Production, ParseError};
 
 extern crate ansi_term;
 
@@ -52,7 +51,7 @@ fn main_core() -> Result<Production, Vec<ErrorReport>> {
 	let parsing = parse(tokens)
 		.map_err(|errors| map_parse_errors_to_reports(errors, &buffer))?;
 
-	let reports: Vec<ErrorReport> = validate(&parsing, &buffer)
+	let reports: Vec<ErrorReport> = validate_semantics(&parsing, &buffer)
 		.iter()
 		.map(|e| ErrorReport::from_parse_error(e, &buffer))
 		.collect();

@@ -67,7 +67,8 @@ pub enum ParseErrorKind {
 	UnexpectedToken { expected: TokenKind, actual: TokenKind },
 	MissingSyntax { message: &'static str },
 	UndefinedSymbol { symbol: String },
-	DuplicateSymbol { symbol: String }
+	DuplicateSymbol { symbol: String },
+	AmbiguousPipe
 }
 
 impl ParseError {
@@ -104,6 +105,9 @@ impl ErrorReport {
 			},
 			ParseErrorKind::UndefinedSymbol { symbol } => {
 				format!("Undefined symbol '{:?}' detected", &symbol)
+			},
+			ParseErrorKind::AmbiguousPipe => {
+				format!("Ambiguous pipe statement are not allowed")
 			}
 		};
 		let context_lines = 1;

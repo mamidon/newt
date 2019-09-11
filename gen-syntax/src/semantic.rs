@@ -1,42 +1,108 @@
 use crate::tokens::{Token, TokenKind};
 use crate::parse::{Production, ParseError, ParseErrorKind};
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
+struct SemanticsContext<'a> {
+	source: &'a str,
+	symbols: HashMap<&'a str, Symbol>
+}
 
-pub fn validate(root: &Production, source: &str) -> Vec<ParseError> {
+impl<'a> SemanticsContext<'a> {
+	fn new(source: &'a str) -> SemanticsContext<'a> {
+		SemanticsContext {
+			source,
+			symbols: HashMap::new()
+		}
+	}
 
+	fn define_symbol(&mut self, token: Token) -> Result<Symbol, ParseError> {
+		let lexeme = self.lexeme(token);
+		if !self.symbols.contains_key(lexeme) {
+			let symbol = Symbol::new();
+			self.symbols.insert(lexeme, symbol);
+			Ok(symbol)
+		} else {
+			Err(ParseError::new(token, ParseErrorKind::DuplicateSymbol { symbol: lexeme.to_string() }))
+		}
+	}
+
+	fn get_symbol(&self, token: Token) -> Option<&Symbol> {
+		self.symbols.get(self.lexeme(token))
+	}
+
+	fn lexeme(&self, token: Token) -> &'a str {
+		&self.source[token.offset..token.offset + token.length]
+	}
+}
+
+#[derive(Copy, Clone)]
+struct Symbol;
+
+impl Symbol {
+	fn new() -> Symbol { Symbol {} }
+}
+
+pub fn validate_semantics(root: &Production, source: &str) -> Vec<ParseError> {
+	let mut context = SemanticsContext::new(source);
 	let mut errors: Vec<ParseError> = vec![];
 
-	errors.extend(check_undefined_symbols(root, source));
+	errors.extend(define_symbols(&mut context, root));
+	errors.extend(check_undefined_symbols(&context, root));
+	errors.extend(check_ambiguous_pipes(&context, root));
 
 	errors
 }
 
-fn check_undefined_symbols(root: &Production, source: &str) -> Vec<ParseError> {
+fn define_symbols(context: &mut SemanticsContext, root: &Production) -> Vec<ParseError> {
 	let mut errors: Vec<ParseError> = vec![];
-	let mut defined_symbols: HashSet<String> = HashSet::new();
 
 	for rule in root.iter() {
 		if let Production::Rule { name: token, production: _ } = rule {
-			let symbol = source[token.offset..token.offset + token.length].to_string();
-			if !defined_symbols.contains(&symbol) {
-				defined_symbols.insert(symbol);
-			} else {
-				errors.push(ParseError::new(*token, ParseErrorKind::DuplicateSymbol { symbol }));
+			match context.define_symbol(*token) {
+				Ok(symbol) => {},
+				Err(error) => errors.push(error)
 			}
 		}
 	}
 
-	for production in root.iter() {
-		match production {
-			Production::Identifier { rule_name, member_name } => {
-				let symbol = source[rule_name.offset..rule_name.offset + rule_name.length].to_string();
+	errors
+}
 
-				if !defined_symbols.contains(&symbol) {
-					errors.push(ParseError::new(*rule_name, ParseErrorKind::UndefinedSymbol { symbol }));
+fn check_undefined_symbols(context: &SemanticsContext, root: &Production) -> Vec<ParseError> {
+	let mut errors: Vec<ParseError> = vec![];
+
+	for production in root.iter() {
+		if let Production::Identifier { rule_name, member_name: _ } = production {
+			if context.get_symbol(*rule_name).is_none() {
+				errors.push(ParseError::new(*rule_name, ParseErrorKind::UndefinedSymbol {
+					symbol: context.lexeme(*rule_name).to_string()
+				}));
+			}
+		}
+	}
+
+	errors
+}
+
+fn check_ambiguous_pipes(context: &SemanticsContext, root: &Production) -> Vec<ParseError> {
+	let mut errors: Vec<ParseError> = vec![];
+
+	for production in root.iter() {
+		if let Production::Pipe(options) = production {
+			for option in options.iter() {
+				let sub_options: HashSet<String> = option.iter()
+					.filter_map(|p|
+						match p {
+							Production::Identifier { rule_name, member_name} => Some(context.lexeme(*rule_name).to_string()),
+							_ => None
+					})
+					.collect();
+				if sub_options.len() > 1 {
+					let error_kind = ParseErrorKind::AmbiguousPipe;
+
+					errors.push(ParseError::new(Token::new(TokenKind::Pipe, 0, 0), error_kind))
 				}
-			},
-			_ => {}
+			}
 		}
 	}
 
