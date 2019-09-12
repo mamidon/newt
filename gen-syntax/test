@@ -1,5 +1,5 @@
-Expr => UnaryExpr | (BinaryExpr '+' Foo)* | Foo;
+Expr => UnaryExpr | (BinaryExpr '+')* | Foo;
 UnaryExpr => Expr[lhs] Op[op];
 BinaryExpr => Expr[lhs] Op[op] Expr[rhs];
-Foo => '(' '*' Foo;
-Foo => Op[op];
+Op => '+' | '-';
+Foo => Op;

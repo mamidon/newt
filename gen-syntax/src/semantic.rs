@@ -1,6 +1,8 @@
 use crate::tokens::{Token, TokenKind};
 use crate::parse::{SyntaxNode, ParseError, ParseErrorKind};
 use std::collections::{HashSet, HashMap};
+use std::rc::Rc;
+use std::cell::RefCell;
 
 struct SemanticsContext<'a> {
 	source: &'a str,
@@ -15,14 +17,14 @@ impl<'a> SemanticsContext<'a> {
 		}
 	}
 
-	fn define_symbol(&mut self, token: Token) -> Result<Symbol, ParseError> {
+	fn define_symbol(&mut self, token: Token) -> Option<ParseError> {
 		let lexeme = self.lexeme(token);
 		if !self.symbols.contains_key(lexeme) {
-			let symbol = Symbol::new();
+			let symbol = Symbol::new(lexeme);
 			self.symbols.insert(lexeme, symbol);
-			Ok(symbol)
+			None
 		} else {
-			Err(ParseError::new(token, ParseErrorKind::DuplicateSymbol { symbol: lexeme.to_string() }))
+			Some(ParseError::new(token, ParseErrorKind::DuplicateSymbol { symbol: lexeme.to_string() }))
 		}
 	}
 
@@ -35,14 +37,25 @@ impl<'a> SemanticsContext<'a> {
 	}
 }
 
-#[derive(Copy, Clone)]
-struct Symbol;
-
-impl Symbol {
-	fn new() -> Symbol { Symbol {} }
+#[derive(Clone, Debug)]
+pub struct Symbol {
+	name: String,
 }
 
-pub fn validate_semantics(root: &SyntaxNode, source: &str) -> Result<(), Vec<ParseError>> {
+impl Symbol {
+	fn new(name: &str) -> Symbol {
+		Symbol {
+			name: name.to_string()
+		}
+	}
+}
+
+#[derive(Debug)]
+pub struct CodeGenContext {
+	symbols: Vec<Symbol>
+}
+
+pub fn validate_semantics(root: &SyntaxNode, source: &str) -> Result<CodeGenContext, Vec<ParseError>> {
 	let mut context = SemanticsContext::new(source);
 	let mut errors: Vec<ParseError> = vec![];
 
@@ -51,9 +64,20 @@ pub fn validate_semantics(root: &SyntaxNode, source: &str) -> Result<(), Vec<Par
 	errors.extend(check_ambiguous_pipes(&context, root));
 
 	if errors.is_empty() {
-		Ok(())
+		Ok(build_code_gen_context(&mut context))
 	} else {
 		Err(errors)
+	}
+}
+
+fn build_code_gen_context(context: &mut SemanticsContext) -> CodeGenContext {
+	let symbols: Vec<Symbol> = context.symbols.drain()
+		.into_iter()
+		.map(|tuple| tuple.1)
+		.collect();
+
+	CodeGenContext {
+		symbols
 	}
 }
 
@@ -63,8 +87,8 @@ fn define_symbols(context: &mut SemanticsContext, root: &SyntaxNode) -> Vec<Pars
 	for rule in root.iter() {
 		if let SyntaxNode::Rule { name: token, production: _ } = rule {
 			match context.define_symbol(*token) {
-				Ok(symbol) => {},
-				Err(error) => errors.push(error)
+				None => {},
+				Some(error) => errors.push(error)
 			}
 		}
 	}

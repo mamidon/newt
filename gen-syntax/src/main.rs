@@ -11,6 +11,7 @@ use parse::{parse, ErrorReport, SyntaxNode, ParseError};
 use semantic::validate_semantics;
 
 use std::io::{self, Read};
+use crate::semantic::CodeGenContext;
 
 extern crate ansi_term;
 
@@ -40,7 +41,7 @@ fn main() -> Result<(), ErrorReport> {
 	Ok(())
 }
 
-fn main_core() -> Result<SyntaxNode, Vec<ErrorReport>> {
+fn main_core() -> Result<CodeGenContext, Vec<ErrorReport>> {
 	let mut buffer = String::new();
 
 	io::stdin()
@@ -58,7 +59,7 @@ fn main_core() -> Result<SyntaxNode, Vec<ErrorReport>> {
 			.collect::<Vec<ErrorReport>>());
 
 	match outcome {
-		Ok(_) => Ok(parsing),
+		Ok(codegen) => Ok(codegen),
 		Err(reports) => Err(reports)
 	}
 }
