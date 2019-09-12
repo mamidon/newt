@@ -1,6 +1,6 @@
 use crate::featurez::syntax::{SyntaxTree, SyntaxElement, StmtNode, StmtVisitor};
 use crate::featurez::tokens::{tokenize, StrTokenSource, Token, TokenKind};
-use crate::featurez::runtime::ExprVirtualMachine;
+use crate::featurez::runtime::VirtualMachine;
 use crate::featurez::syntax::{
 	ExprNode, 
 	AstNode,
@@ -47,7 +47,7 @@ pub fn build(session: InterpretingSession) -> SyntaxTree {
 	SyntaxTree::from_parser(parser, session.source)
 }
 
-pub fn interpret(machine: &mut ExprVirtualMachine, tree: &SyntaxTree) -> Option<NewtValue> {
+pub fn interpret(machine: &mut VirtualMachine, tree: &SyntaxTree) -> Option<NewtValue> {
 	let node = match tree.root().as_node() {
 		Some(n) => n,
 		None => return None

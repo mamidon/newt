@@ -3,14 +3,14 @@ use crate::featurez::syntax::*;
 use super::scope::Scope;
 
 #[derive(Debug)]
-pub struct ExprVirtualMachine {
+pub struct VirtualMachine {
 	scope: Scope,
 	halting_error: Option<NewtRuntimeError>
 }
 
-impl ExprVirtualMachine {
-	pub fn new() -> ExprVirtualMachine { 
-		ExprVirtualMachine {
+impl VirtualMachine {
+	pub fn new() -> VirtualMachine {
+		VirtualMachine {
 			scope: Scope::new(),
 			halting_error: None
 		}
@@ -27,7 +27,7 @@ impl ExprVirtualMachine {
 	}
 }
 
-impl ExprVisitor for ExprVirtualMachine {
+impl ExprVisitor for VirtualMachine {
 	fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtResult {
 		let lhs = self.visit_expr(node.lhs())?;
 		let rhs = self.visit_expr(node.rhs())?;
@@ -72,7 +72,7 @@ impl ExprVisitor for ExprVirtualMachine {
 	}
 }
 
-impl StmtVisitor for ExprVirtualMachine {
+impl StmtVisitor for VirtualMachine {
 	fn visit_variable_declaration_stmt(&mut self, node: &VariableDeclarationStmtNode) {
 		let result = self.visit_expr(node.expr());
 		let identifier = node.identifier().lexeme();

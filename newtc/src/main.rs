@@ -53,7 +53,7 @@ fn main() {
 fn batch(file: String, output_mode: OutputMode) {
     match output_mode {
         OutputMode::Tokens => token_batch(file),
-        OutputMode::ParseTree => parse_batch(&file, &mut ExprVirtualMachine::new()),
+        OutputMode::ParseTree => parse_batch(&file, &mut VirtualMachine::new()),
         _ => unimplemented!(
             "Have not yet implemented batch processing for {:?}",
             output_mode
@@ -97,7 +97,7 @@ fn token_repl() {
 
 fn parse_repl() {
     let mut input_buffer = String::new();
-    let mut machine = ExprVirtualMachine::new();
+    let mut machine = VirtualMachine::new();
 
     loop {
         input_buffer.clear();
@@ -115,7 +115,7 @@ fn parse_repl() {
     }
 }
 
-fn parse_batch(file: &str, machine: &mut ExprVirtualMachine) {
+fn parse_batch(file: &str, machine: &mut VirtualMachine) {
 	let session = InterpretingSession {
         kind: InterpretingSessionKind::Stmt,
         source: file
