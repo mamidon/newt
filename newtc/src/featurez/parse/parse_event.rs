@@ -12,7 +12,7 @@ when:
 	irrelevant trivia
 */
 
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum ParseEvent {
 	Token { kind: TokenKind, length: usize },
 	Trivia { kind: TokenKind, length: usize },

@@ -104,14 +104,6 @@ token_sequence_tests! {
     identifiers_can_not_start_with_numbers: "123foo", 
     identifiers_can_not_be_just_underscores: "_",
     tombstones_do_not_stop_tokenizing: "foo`bar`fizz",
-
-/*	tombstones_which_are_adjacent_are_merged: ("foo``fizz", [
-        TokenKind::Identifier,
-        TokenKind::TombStone,
-        TokenKind::Identifier,
-        TokenKind::EndOfFile
-    ]),
-*/
     comment_lines_consume_whole_line: "foo//not identifier`token\n123",
     equals_equals_equals: "===", 
     greater_equals_equals: ">==",
@@ -151,6 +143,8 @@ let c=4<=2;
 let c=4>=2;
 // Assignment operator, used throughout
 let d=2;",
+    starting_whitespace: r#"
+    let x=1+2;"#,
 }
 
 fn assert_single_token(value: &str, expected_type: TokenKind) {

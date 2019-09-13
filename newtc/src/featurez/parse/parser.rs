@@ -6,6 +6,7 @@ use crate::featurez::parse::marker::{Marker, CompletedMarker};
 
 use std::mem::replace;
 
+#[derive(Clone)]
 pub struct Parser {
 	source: StrTokenSource,
 	consumed_tokens: usize,

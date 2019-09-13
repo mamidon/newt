@@ -1,6 +1,7 @@
 use crate::featurez::syntax::TokenSource;
 use crate::featurez::tokens::{Token, TokenKind};
 
+#[derive(Clone)]
 pub struct StrTokenSource {
     tokens: Vec<Token>,
     offsets: Vec<usize>,
