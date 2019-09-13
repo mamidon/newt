@@ -1,0 +1,21 @@
+---
+created: "2019-09-13T23:44:32.740481Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/tokens/tests.rs
+expression: document
+---
+
+    let x=1+2;
+
+===
+
+WhiteSpace[5]
+Let[3]
+WhiteSpace[1]
+Identifier[1]
+Equals[1]
+IntegerLiteral[1]
+Plus[1]
+IntegerLiteral[1]
+SemiColon[1]
+EndOfFile[0]

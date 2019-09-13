@@ -1,5 +1,5 @@
 ---
-created: "2019-09-13T23:44:32.642532Z"
+created: "2019-09-13T23:58:08.834101Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -18,7 +18,8 @@ expression: approval_document
     Star[1],
     IntegerLiteral[1],
     EndOfFile[0]
-]====events====
+]
+====events====
 ============
 [
     BeginNode {
@@ -89,7 +90,8 @@ expression: approval_document
     },
     EndNode,
     EndNode
-]====tree====
+]
+====tree====
 ============
 ┗ BinaryExpr
   ┠ GroupingExpr

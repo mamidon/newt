@@ -1,20 +1,20 @@
 ---
-created: "2019-09-13T23:58:08.879910Z"
+created: "2019-09-13T23:58:08.834789Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
 ---
 ====text====
 ============
-1*--2.12
+
+	1*2
 ====tokens====
 ============
 [
+    WhiteSpace[2],
     IntegerLiteral[1],
     Star[1],
-    Minus[1],
-    Minus[1],
-    FloatLiteral[4],
+    IntegerLiteral[1],
     EndOfFile[0]
 ]
 ====events====
@@ -24,8 +24,12 @@ expression: approval_document
         kind: LiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: Some(
-            3
+            4
         )
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 2
     },
     Token {
         kind: IntegerLiteral,
@@ -42,34 +46,14 @@ expression: approval_document
         length: 1
     },
     BeginNode {
-        kind: UnaryExpr,
-        is_forward_parent: false,
-        forward_parent_offset: None
-    },
-    Token {
-        kind: Minus,
-        length: 1
-    },
-    BeginNode {
-        kind: UnaryExpr,
-        is_forward_parent: false,
-        forward_parent_offset: None
-    },
-    Token {
-        kind: Minus,
-        length: 1
-    },
-    BeginNode {
         kind: LiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: None
     },
     Token {
-        kind: FloatLiteral,
-        length: 4
+        kind: IntegerLiteral,
+        length: 1
     },
-    EndNode,
-    EndNode,
     EndNode,
     EndNode
 ]
@@ -77,12 +61,9 @@ expression: approval_document
 ============
 ┗ BinaryExpr
   ┠ LiteralExpr
+  ┃ ┠ WhiteSpace "\n\t"
   ┃ ┗ IntegerLiteral "1"
   ┠ Star "*"
-  ┗ UnaryExpr
-    ┠ Minus "-"
-    ┗ UnaryExpr
-      ┠ Minus "-"
-      ┗ LiteralExpr
-        ┗ FloatLiteral "2.12"
+  ┗ LiteralExpr
+    ┗ IntegerLiteral "2"
 

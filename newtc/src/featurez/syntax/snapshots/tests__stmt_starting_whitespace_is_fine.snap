@@ -1,0 +1,264 @@
+---
+created: "2019-09-13T23:58:08.882454Z"
+creator: insta@0.8.1
+source: newtc/src/featurez/syntax/tests.rs
+expression: approval_document
+---
+====text====
+============
+
+	let x = 1;
+	let y = 2;
+	let c = x * 2 + y;
+	
+====tokens====
+============
+[
+    WhiteSpace[2],
+    Let[3],
+    WhiteSpace[1],
+    Identifier[1],
+    WhiteSpace[1],
+    Equals[1],
+    WhiteSpace[1],
+    IntegerLiteral[1],
+    SemiColon[1],
+    WhiteSpace[2],
+    Let[3],
+    WhiteSpace[1],
+    Identifier[1],
+    WhiteSpace[1],
+    Equals[1],
+    WhiteSpace[1],
+    IntegerLiteral[1],
+    SemiColon[1],
+    WhiteSpace[2],
+    Let[3],
+    WhiteSpace[1],
+    Identifier[1],
+    WhiteSpace[1],
+    Equals[1],
+    WhiteSpace[1],
+    Identifier[1],
+    WhiteSpace[1],
+    Star[1],
+    WhiteSpace[1],
+    IntegerLiteral[1],
+    WhiteSpace[1],
+    Plus[1],
+    WhiteSpace[1],
+    Identifier[1],
+    SemiColon[1],
+    WhiteSpace[2],
+    EndOfFile[0]
+]
+====events====
+============
+[
+    BeginNode {
+        kind: VariableDeclarationStmt,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 2
+    },
+    Token {
+        kind: Let,
+        length: 3
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Token {
+        kind: Identifier,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Token {
+        kind: Equals,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    BeginNode {
+        kind: LiteralExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: IntegerLiteral,
+        length: 1
+    },
+    EndNode,
+    Token {
+        kind: SemiColon,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 2
+    },
+    BeginNode {
+        kind: Error(
+            "Unexpected text"
+        ),
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Trivia {
+        kind: Let,
+        length: 3
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: Identifier,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: Equals,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: IntegerLiteral,
+        length: 1
+    },
+    Trivia {
+        kind: SemiColon,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 2
+    },
+    Trivia {
+        kind: Let,
+        length: 3
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: Identifier,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: Equals,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: Identifier,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: Star,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: IntegerLiteral,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: Plus,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Trivia {
+        kind: Identifier,
+        length: 1
+    },
+    Trivia {
+        kind: SemiColon,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 2
+    },
+    EndNode,
+    EndNode
+]
+====tree====
+============
+┗ VariableDeclarationStmt
+  ┠ WhiteSpace "\n\t"
+  ┠ Let "let"
+  ┠ WhiteSpace " "
+  ┠ Identifier "x"
+  ┠ WhiteSpace " "
+  ┠ Equals "="
+  ┠ WhiteSpace " "
+  ┠ LiteralExpr
+  ┃ ┗ IntegerLiteral "1"
+  ┠ SemiColon ";"
+  ┠ WhiteSpace "\n\t"
+  ┗ Error("Unexpected text")
+    ┠ Let "let"
+    ┠ WhiteSpace " "
+    ┠ Identifier "y"
+    ┠ WhiteSpace " "
+    ┠ Equals "="
+    ┠ WhiteSpace " "
+    ┠ IntegerLiteral "2"
+    ┠ SemiColon ";"
+    ┠ WhiteSpace "\n\t"
+    ┠ Let "let"
+    ┠ WhiteSpace " "
+    ┠ Identifier "c"
+    ┠ WhiteSpace " "
+    ┠ Equals "="
+    ┠ WhiteSpace " "
+    ┠ Identifier "x"
+    ┠ WhiteSpace " "
+    ┠ Star "*"
+    ┠ WhiteSpace " "
+    ┠ IntegerLiteral "2"
+    ┠ WhiteSpace " "
+    ┠ Plus "+"
+    ┠ WhiteSpace " "
+    ┠ Identifier "y"
+    ┠ SemiColon ";"
+    ┗ WhiteSpace "\n\t"
+
