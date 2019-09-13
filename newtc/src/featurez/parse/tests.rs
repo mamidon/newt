@@ -67,7 +67,7 @@ fn parser_token_if_produces_token_event_on_token_match() {
 
 	parser.token_if(TokenKind::Plus);
 	
-	let events = parser.end_parsing();
+	let events = parser.end_parsing().events;
 	let event = &events[0];
 	
 	assert_eq!(event, &ParseEvent::Token { kind: TokenKind::Plus, length: 1 });
@@ -80,13 +80,13 @@ fn parser_token_if_produces_no_token_event_on_token_mismatch() {
 
 	parser.token_if(TokenKind::Minus);
 
-	let events = parser.end_parsing();
-	let token_events: Vec<ParseEvent> = events.into_iter().filter(|e| match e {
+	let events = parser.end_parsing().events;
+	let token_event_count = events.into_iter().filter(|e| match e {
 		ParseEvent::Token { kind, length } => true,
 		_ => false
-	}).collect();
+	}).count();
 
-	assert_eq!(token_events.len(), 0);
+	assert_eq!(token_event_count, 0);
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn parser_expect_token_kind_produces_token_event_on_token_match() {
 
 	parser.expect_token_kind(TokenKind::Plus, "Shouldn't see this");
 
-	let events = parser.end_parsing();
+	let events = parser.end_parsing().events;
 	let event = &events[0];
 
 	assert_eq!(event, &ParseEvent::Token { kind: TokenKind::Plus, length: 1 });
@@ -109,7 +109,7 @@ fn parser_expect_token_kind_produces_error_syntax_node_on_mismatch() {
 
 	parser.expect_token_kind(TokenKind::Minus, "Expected '-'");
 
-	let events = parser.end_parsing();
+	let events = parser.end_parsing().events;
 	
 	let expected_error_node_start = &events[0];
 	let expected_plus_token = &events[1];
@@ -129,7 +129,7 @@ fn parser_expect_token_kind_produces_tombstone_tokens_while_panicking() {
 	parser.expect_token_kind(TokenKind::Plus, "This shouldn't error, but rather should be a tombstone token");
 	parser.expect_token_kind(TokenKind::Slash, "This should actually succeed");
 	
-	let events = parser.end_parsing();
+	let events = parser.end_parsing().events;
 	/*
 		(error (Plus '+'))
 		(TombStone '-')
@@ -151,7 +151,7 @@ fn parser_expect_token_kind_recovers_from_panicking_if_expectation_is_met() {
 	parser.expect_token_kind(TokenKind::Slash, "This should actually succeed");
 	parser.expect_token_kind(TokenKind::Minus, "Second error");
 	
-	let events = parser.end_parsing();
+	let events = parser.end_parsing().events;
 	/*
 		(error (Plus '+'))
 		(TombStone '-')
@@ -170,7 +170,7 @@ fn parser_expect_token_kind_recovers_from_panicking_if_expectation_is_met() {
 fn parser_produces_error_node_if_tokens_remain_at_parsing_end() {
 	let token_source = StrTokenSource::new(tokenize("+"));
 	let mut parser = Parser::new(token_source);
-	let events = parser.end_parsing();
+	let events = parser.end_parsing().events;
 
 	let expected_error_node_start = &events[0];
 	let expected_plus_token = &events[1];
@@ -196,7 +196,7 @@ fn parser_begin_node_can_nest_nodes() {
 	parser.token_if(TokenKind::Slash);
 	parser.end_node(outer, SyntaxKind::LiteralExpr);
 	
-	let events = parser.end_parsing();
+	let events = parser.end_parsing().events;
 
 	let expected_outer_node_start= &events[0];
 	let expected_plus_token = &events[1];
@@ -239,11 +239,7 @@ fn parser_precede_node_can_precede_nodes() {
 	parser.token_if(TokenKind::IntegerLiteral);
 	parser.end_node(three_plus_three, SyntaxKind::BinaryExpr);
 	
-	let tree = SyntaxTree::from_parser(parser, "1+2+3");
-	
-	/*for event in events.iter() {
-		println!("event: {:?}", event);
-	}*/
+	let tree = SyntaxTree::from_parser(&parser.end_parsing(), "1+2+3");
 	
 	println!("tree:\n{}", tree);
 }

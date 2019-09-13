@@ -1,15 +1,19 @@
-use self::expr::expr;
-use self::stmt::stmt;
+use self::expr::{expr};
+use self::stmt::{stmt};
 
-use crate::featurez::parse::Parser;
+use crate::featurez::parse::{Parser, CompletedParsing};
 
 mod expr;
 mod stmt;
 
-pub fn root(p: &mut Parser) {
-    stmt(p);
+pub fn root_stmt(mut p: Parser) -> CompletedParsing {
+    stmt(&mut p);
+
+    p.end_parsing()
 }
 
-pub fn root_expr(p: &mut Parser) {
-    expr(p);
+pub fn root_expr(mut p: Parser) -> CompletedParsing {
+    expr(&mut p);
+
+    p.end_parsing()
 }

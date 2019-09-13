@@ -1,4 +1,4 @@
-use crate::featurez::parse::{Parser, Marker};
+use crate::featurez::parse::{Parser, Marker, CompletedParsing};
 use crate::featurez::parse::CompletedMarker;
 use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
 use crate::featurez::{Token, TokenKind};
@@ -15,7 +15,7 @@ pub fn stmt(p: &mut Parser) {
 		TokenKind::While,
 		TokenKind::LeftBrace
 	];
-	
+
 	let node = p.begin_node();
 
 	match p.current() {

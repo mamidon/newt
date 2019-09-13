@@ -1,11 +1,78 @@
 ---
-created: "2019-07-30T15:17:29.368981Z"
+created: "2019-09-13T23:44:32.675520Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
 ---
+====text====
+============
 1*--2.12
-===>
+====tokens====
+============
+[
+    IntegerLiteral[1],
+    Star[1],
+    Minus[1],
+    Minus[1],
+    FloatLiteral[4],
+    EndOfFile[0]
+]====events====
+============
+[
+    BeginNode {
+        kind: LiteralExpr,
+        is_forward_parent: false,
+        forward_parent_offset: Some(
+            3
+        )
+    },
+    Token {
+        kind: IntegerLiteral,
+        length: 1
+    },
+    EndNode,
+    BeginNode {
+        kind: BinaryExpr,
+        is_forward_parent: true,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: Star,
+        length: 1
+    },
+    BeginNode {
+        kind: UnaryExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: Minus,
+        length: 1
+    },
+    BeginNode {
+        kind: UnaryExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: Minus,
+        length: 1
+    },
+    BeginNode {
+        kind: LiteralExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: FloatLiteral,
+        length: 4
+    },
+    EndNode,
+    EndNode,
+    EndNode,
+    EndNode
+]====tree====
+============
 ┗ BinaryExpr
   ┠ LiteralExpr
   ┃ ┗ IntegerLiteral "1"

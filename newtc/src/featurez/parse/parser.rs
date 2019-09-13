@@ -12,6 +12,13 @@ pub struct Parser {
 	consumed_tokens: usize,
 	events: Vec<ParseEvent>,
 	panicking: bool,
+	root_marker: Option<Marker>
+}
+
+#[derive(Debug)]
+pub struct CompletedParsing {
+	pub events: Box<[ParseEvent]>,
+	pub consumed_tokens: usize,
 }
 
 impl Parser {
@@ -21,9 +28,13 @@ impl Parser {
 			consumed_tokens: 0,
 			events: vec![],
 			panicking: false,
+			root_marker: None
 		};
+
+		// begin implicit root node
+		p.root_marker = Some(p.begin_node());
 		p.eat_trivia();
-		
+
 		p
 	}
 
@@ -100,10 +111,19 @@ impl Parser {
 	}
 
 	pub fn begin_node(&mut self) -> Marker {
-		let index = self.events.len();
-		self.events.push(ParseEvent::tombstone());
+		match self.get_implicit_root_node() {
+			Some(marker) => marker,
+			None => {
+				let index = self.events.len();
+				self.events.push(ParseEvent::tombstone());
 
-		Marker::new(index)
+				Marker::new(index)
+			}
+		}
+	}
+
+	fn get_implicit_root_node(&mut self) -> Option<Marker> {
+		self.root_marker.take()
 	}
 
 	pub fn end_node(&mut self, marker: Marker, kind: SyntaxKind) -> CompletedMarker {
@@ -140,11 +160,15 @@ impl Parser {
 		});
 	}
 	
-	pub fn end_parsing(mut self) -> Vec<ParseEvent> {
+	pub fn end_parsing(mut self) -> CompletedParsing {
 		self.eat_remaining_tokens();
-		
-		self.events
+
+		CompletedParsing {
+			events: self.events.into_boxed_slice(),
+			consumed_tokens: self.consumed_tokens
+		}
 	}
+
 	
 	fn remap_token(&mut self, kind: TokenKind) {
 		let token = self.source.token(self.consumed_tokens);

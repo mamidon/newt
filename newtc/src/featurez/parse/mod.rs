@@ -21,6 +21,7 @@ pub use self::parse_event::ParseEvent;
 pub use self::marker::Marker;
 pub use self::marker::CompletedMarker;
 pub use self::parser::Parser;
+pub use self::parser::CompletedParsing;
 
 pub enum InterpretingSessionKind {
 	Stmt,
@@ -33,18 +34,18 @@ pub struct InterpretingSession<'sess> {
 }
 
 pub fn build(session: InterpretingSession) -> SyntaxTree {
-	use super::grammar::{root, root_expr};
+	use super::grammar::{root_stmt, root_expr};
 
 	let tokens = tokenize(session.source);
 	let source = StrTokenSource::new(tokens);
 	let mut parser = Parser::new(source);
 
-	match session.kind {
-		InterpretingSessionKind::Stmt => root(&mut parser),
-		InterpretingSessionKind::Expr => root_expr(&mut parser)
-	}
+	let completed_parsing = match session.kind {
+		InterpretingSessionKind::Stmt => root_stmt(parser),
+		InterpretingSessionKind::Expr => root_expr(parser)
+	};
 
-	SyntaxTree::from_parser(parser, session.source)
+	SyntaxTree::from_parser(&completed_parsing, session.source)
 }
 
 pub fn interpret(machine: &mut VirtualMachine, tree: &SyntaxTree) -> Option<NewtValue> {

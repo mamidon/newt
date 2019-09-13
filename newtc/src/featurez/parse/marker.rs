@@ -1,5 +1,6 @@
 use crate::featurez::syntax::SyntaxKind;
 
+#[derive(Clone)]
 pub struct Marker {
 	index: usize,
 	disabled: bool,

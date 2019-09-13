@@ -1,11 +1,96 @@
 ---
-created: "2019-07-29T15:38:38.653649Z"
+created: "2019-09-13T23:44:32.642532Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
 ---
+====text====
+============
 (1+2)*3
-===>
+====tokens====
+============
+[
+    LeftParenthesis[1],
+    IntegerLiteral[1],
+    Plus[1],
+    IntegerLiteral[1],
+    RightParenthesis[1],
+    Star[1],
+    IntegerLiteral[1],
+    EndOfFile[0]
+]====events====
+============
+[
+    BeginNode {
+        kind: GroupingExpr,
+        is_forward_parent: false,
+        forward_parent_offset: Some(
+            13
+        )
+    },
+    Token {
+        kind: LeftParenthesis,
+        length: 1
+    },
+    BeginNode {
+        kind: LiteralExpr,
+        is_forward_parent: false,
+        forward_parent_offset: Some(
+            3
+        )
+    },
+    Token {
+        kind: IntegerLiteral,
+        length: 1
+    },
+    EndNode,
+    BeginNode {
+        kind: BinaryExpr,
+        is_forward_parent: true,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: Plus,
+        length: 1
+    },
+    BeginNode {
+        kind: LiteralExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: IntegerLiteral,
+        length: 1
+    },
+    EndNode,
+    EndNode,
+    Token {
+        kind: RightParenthesis,
+        length: 1
+    },
+    EndNode,
+    BeginNode {
+        kind: BinaryExpr,
+        is_forward_parent: true,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: Star,
+        length: 1
+    },
+    BeginNode {
+        kind: LiteralExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: IntegerLiteral,
+        length: 1
+    },
+    EndNode,
+    EndNode
+]====tree====
+============
 ┗ BinaryExpr
   ┠ GroupingExpr
   ┃ ┠ LeftParenthesis "("

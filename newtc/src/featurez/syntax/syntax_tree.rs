@@ -2,7 +2,7 @@ use crate::featurez::syntax::SyntaxElement;
 use crate::featurez::syntax::TextTreeSink;
 use crate::featurez::syntax::tree_sink::TreeSink;
 use crate::featurez::syntax::SyntaxToken;
-use crate::featurez::parse::Parser;
+use crate::featurez::parse::CompletedParsing;
 use crate::featurez::parse::ParseEvent;
 
 use std::fmt::Debug;
@@ -23,8 +23,8 @@ impl<'a> SyntaxTree<'a> {
 	
 	pub fn root(&self) -> &SyntaxElement { &self.root }
 	
-	pub fn from_parser(parser: Parser, text: &'a str) -> Self {
-		let events = parser.end_parsing();
+	pub fn from_parser(parser: &CompletedParsing, text: &'a str) -> Self {
+		let events = &parser.events;
 		let mut sink = TextTreeSink::new();
 		let mut offset = 0;
 		for (index, event) in events.iter().enumerate() {
@@ -42,7 +42,7 @@ impl<'a> SyntaxTree<'a> {
 								} => {
 									sink.begin_node(*parent_kind, 0);
 									if let Some(next_offset) = next_offset {
-										offset += next_offset
+										offset += *next_offset
 									} else {
 										break
 									}
@@ -66,7 +66,7 @@ impl<'a> SyntaxTree<'a> {
 				},
 				ParseEvent::Trivia { kind: k, length: l } => {
 					sink.attach_token(SyntaxToken::new(*k, *l, &text[offset..offset + l]));
-					offset += l;
+					offset += *l;
 				}
 			}
 		}
