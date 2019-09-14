@@ -68,7 +68,7 @@ fn parser_token_if_produces_token_event_on_token_match() {
 	parser.token_if(TokenKind::Plus);
 	
 	let events = parser.end_parsing().events;
-	let event = &events[0];
+	let event = &events[1];
 	
 	assert_eq!(event, &ParseEvent::Token { kind: TokenKind::Plus, length: 1 });
 }
@@ -97,7 +97,7 @@ fn parser_expect_token_kind_produces_token_event_on_token_match() {
 	parser.expect_token_kind(TokenKind::Plus, "Shouldn't see this");
 
 	let events = parser.end_parsing().events;
-	let event = &events[0];
+	let event = &events[1];
 
 	assert_eq!(event, &ParseEvent::Token { kind: TokenKind::Plus, length: 1 });
 }

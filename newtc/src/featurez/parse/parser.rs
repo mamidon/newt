@@ -200,8 +200,10 @@ impl Parser {
 			return;
 		}
 
-		self.events.pop(); // crack open the root element
-		
+		if self.events.len() > 1 {
+			self.events.pop(); // crack open the root element
+		}
+
 		let mut remaining = self.begin_node();
 
 		loop {
