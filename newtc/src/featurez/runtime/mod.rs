@@ -1,7 +1,7 @@
 mod scope;
-mod expr_virtual_machine;
+mod virtual_machine;
 
-pub use self::expr_virtual_machine::VirtualMachine;
+pub use self::virtual_machine::VirtualMachine;
 
 
 

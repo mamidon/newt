@@ -29,6 +29,8 @@ impl AstNode for StmtNode {
 		match node.kind() {
 			SyntaxKind::VariableDeclarationStmt
 			| SyntaxKind::VariableAssignmentStmt
+			| SyntaxKind::ExprStmt
+			| SyntaxKind::IfStmt
 			=> Some(StmtNode::from_inner(node)),
 			_ => None
 		}
@@ -47,8 +49,31 @@ impl StmtNode {
 			SyntaxKind::VariableAssignmentStmt =>
 				StmtKind::VariableAssignmentStmt(VariableAssignmentStmtNode::from_inner(self.syntax())),
             SyntaxKind::ExprStmt => StmtKind::ExprStmt(ExprStmtNode::from_inner(self.syntax())),
+			SyntaxKind::IfStmt => StmtKind::IfStmt(IfStmtNode::from_inner(self.syntax())),
 			_ => unreachable!("StmtNode cannot be constructed from invalid SyntaxKind")
 		}
+	}
+}
+
+#[repr(transparent)]
+pub struct IfStmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for IfStmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl IfStmtNode {
+	pub fn condition(&self) -> &ExprNode {
+		ExprNode::cast(self.0.nth_node(0))
+			.expect("Expected an expression node for an if statement's condition")
+	}
+
+	pub fn when_true(&self) -> &StmtListStmtNode {
+		StmtListStmtNode::from_inner(self.0.nth_node(1))
+	}
+
+	pub fn when_false(&self) -> Option<&StmtListStmtNode> {
+		self.0.try_nth_node(2).map(|c| StmtListStmtNode::from_inner(c))
 	}
 }
 

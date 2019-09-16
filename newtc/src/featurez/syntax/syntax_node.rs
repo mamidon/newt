@@ -17,15 +17,18 @@ impl SyntaxNode {
     }
 
     pub fn nth_node(&self, n: usize) -> &SyntaxNode {
-        let node = self
-            .children
-            .iter()
+        self.try_nth_node(n).unwrap()
+    }
+
+	pub fn try_nth_node(&self, n: usize) -> Option<&SyntaxNode> {
+		let node = self
+			.children
+			.iter()
 			.filter_map(|e| e.as_node())
-            .nth(n)
-            .unwrap();
+			.nth(n);
 
 		node
-    }
+	}
 
 	pub fn nth_token(&self, n: usize) -> &SyntaxToken {
 		let token = self

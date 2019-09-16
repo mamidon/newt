@@ -94,6 +94,14 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
 			
 			p.end_node(node, SyntaxKind::LiteralExpr)
 		},
+		TokenKind::True => {
+			p.token_if(TokenKind::True);
+			p.end_node(node, SyntaxKind::LiteralExpr)
+		},
+		TokenKind::False => {
+			p.token_if(TokenKind::False);
+			p.end_node(node, SyntaxKind::LiteralExpr)
+		},
 		TokenKind::LeftParenthesis => {
 			p.token_if(TokenKind::LeftParenthesis);
 			expr(p);

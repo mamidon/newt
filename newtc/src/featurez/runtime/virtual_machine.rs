@@ -109,4 +109,22 @@ impl StmtVisitor for VirtualMachine {
 	fn visit_expr_stmt(&mut self, node: &ExprStmtNode) {
 		self.visit_expr(node.expr());
 	}
+
+	fn visit_if_stmt(&mut self, node: &IfStmtNode) {
+		let result = self.visit_expr(node.condition());
+
+		match result {
+			Ok(NewtValue::Bool(conditional)) => {
+				if conditional {
+					self.visit_stmt_list_stmt(node.when_true());
+				} else {
+					if let Some(else_path) = node.when_false() {
+						self.visit_stmt_list_stmt(else_path)
+					}
+				}
+			},
+			Ok(_) => self.halt(NewtRuntimeError::TypeError),
+			Err(error) => self.halt(error)
+		}
+	}
 }

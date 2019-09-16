@@ -21,8 +21,27 @@ pub fn stmt(p: &mut Parser) {
 	match p.current() {
 		TokenKind::Let => stmt_let(p, node),
 		TokenKind::LeftBrace => stmt_list(p, node),
+		TokenKind::If => stmt_if(p, node),
 		_ => stmt_expr(p, node)
 	}
+}
+
+fn stmt_if(p: &mut Parser, node: Marker) {
+	p.expect_token_kind(TokenKind::If, "Expected 'if' keyword");
+
+	expr(p);
+
+	let truth_list = p.begin_node();
+	stmt_list(p, truth_list);
+
+	if p.current() == TokenKind::Else {
+		p.expect_token_kind(TokenKind::Else, "Expected 'else' keyword");
+
+		let false_list = p.begin_node();
+		stmt_list(p, false_list);
+	}
+
+	p.end_node(node, SyntaxKind::IfStmt);
 }
 
 fn stmt_expr(p: &mut Parser, node: Marker) {
