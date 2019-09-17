@@ -11,6 +11,7 @@ pub enum SyntaxKind {
 	VariableAssignmentStmt,
 	StmtListStmt,
 	ExprStmt,
-	IfStmt
+	IfStmt,
+	WhileStmt
 }
 

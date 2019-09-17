@@ -127,4 +127,38 @@ impl StmtVisitor for VirtualMachine {
 			Err(error) => self.halt(error)
 		}
 	}
+
+	fn visit_while_stmt(&mut self, node: &WhileStmtNode) {
+		loop {
+			let result = self.visit_expr(node.condition());
+
+			match result {
+				Ok(NewtValue::Bool(conditional)) => {
+					if !conditional {
+						break;
+					}
+
+					self.visit_stmt_list_stmt(node.stmts());
+				},
+				Ok(NewtValue::Int(value)) => {
+					if value == 0 {
+						break;
+					}
+
+					self.visit_stmt_list_stmt(node.stmts());
+
+				},
+				Ok(value) => {
+					self.halt(NewtRuntimeError::TypeError);
+					break;
+				},
+				Err(error) => {
+					self.halt(error);
+					break;
+				}
+			}
+		}
+
+
+	}
 }

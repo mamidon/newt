@@ -31,6 +31,7 @@ impl AstNode for StmtNode {
 			| SyntaxKind::VariableAssignmentStmt
 			| SyntaxKind::ExprStmt
 			| SyntaxKind::IfStmt
+			| SyntaxKind::WhileStmt
 			=> Some(StmtNode::from_inner(node)),
 			_ => None
 		}
@@ -50,8 +51,27 @@ impl StmtNode {
 				StmtKind::VariableAssignmentStmt(VariableAssignmentStmtNode::from_inner(self.syntax())),
             SyntaxKind::ExprStmt => StmtKind::ExprStmt(ExprStmtNode::from_inner(self.syntax())),
 			SyntaxKind::IfStmt => StmtKind::IfStmt(IfStmtNode::from_inner(self.syntax())),
+			SyntaxKind::WhileStmt => StmtKind::WhileStmt(WhileStmtNode::from_inner(self.syntax())),
 			_ => unreachable!("StmtNode cannot be constructed from invalid SyntaxKind")
 		}
+	}
+}
+
+#[repr(transparent)]
+pub struct WhileStmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for WhileStmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl WhileStmtNode {
+	pub fn condition(&self) -> &ExprNode {
+		ExprNode::cast(self.0.nth_node(0))
+			.expect("Expected an expression node for the while statement's condition")
+	}
+
+	pub fn stmts(&self) -> &StmtListStmtNode {
+		StmtListStmtNode::from_inner(self.0.nth_node(1))
 	}
 }
 

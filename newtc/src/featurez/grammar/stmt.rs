@@ -4,6 +4,7 @@ use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken
 use crate::featurez::{Token, TokenKind};
 
 use super::expr;
+use crate::featurez::tokens::TokenKind::Else;
 
 pub fn stmt(p: &mut Parser) {
 	let starting_stmt_tokens = &[
@@ -22,26 +23,57 @@ pub fn stmt(p: &mut Parser) {
 		TokenKind::Let => stmt_let(p, node),
 		TokenKind::LeftBrace => stmt_list(p, node),
 		TokenKind::If => stmt_if(p, node),
-		_ => stmt_expr(p, node)
+		TokenKind::While => stmt_while(p, node),
+		_ => variable_stmt(p, node)
 	}
 }
 
+fn stmt_while(p: &mut Parser, node: Marker) {
+	p.token(TokenKind::While);
+
+	expr(p);
+
+	let stmts = p.begin_node();
+	stmt_list(p, stmts);
+
+	p.end_node(node, SyntaxKind::WhileStmt);
+}
+
 fn stmt_if(p: &mut Parser, node: Marker) {
-	p.expect_token_kind(TokenKind::If, "Expected 'if' keyword");
+	p.token(TokenKind::If);
 
 	expr(p);
 
 	let truth_list = p.begin_node();
 	stmt_list(p, truth_list);
 
-	if p.current() == TokenKind::Else {
-		p.expect_token_kind(TokenKind::Else, "Expected 'else' keyword");
-
+	if p.token_if(TokenKind::Else) {
 		let false_list = p.begin_node();
 		stmt_list(p, false_list);
 	}
 
 	p.end_node(node, SyntaxKind::IfStmt);
+}
+
+fn variable_stmt(p: &mut Parser, node: Marker) {
+	println!("TOKENS: {:?}", p.current2());
+
+	if p.current() == TokenKind::Let {
+		stmt_let(p, node);
+	} else if p.current2() == Some((TokenKind::Identifier, TokenKind::Equals)) {
+		stmt_assignment(p, node);
+	} else {
+		stmt_expr(p, node);
+	}
+}
+
+fn stmt_assignment(p: &mut Parser, node: Marker) {
+	p.token(TokenKind::Identifier);
+	p.token(TokenKind::Equals);
+
+	expr(p);
+	p.expect_token_kind(TokenKind::SemiColon, "Expected ';'");
+	p.end_node(node, SyntaxKind::VariableAssignmentStmt);
 }
 
 fn stmt_expr(p: &mut Parser, node: Marker) {

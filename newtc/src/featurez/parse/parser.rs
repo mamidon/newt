@@ -51,6 +51,12 @@ impl Parser {
 		self.source.token(self.consumed_tokens + n).token_kind()
 	}
 
+	pub fn token(&mut self, kind: TokenKind) {
+		if !self.token_if(kind) {
+			panic!("We assumed a token kind of {:?} but found {:?} instead", kind, self.current())
+		}
+	}
+
 	pub fn token_if(&mut self, kind: TokenKind) -> bool {
 		if self.current() != kind {
 			return false;

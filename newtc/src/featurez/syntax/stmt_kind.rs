@@ -5,5 +5,6 @@ pub enum StmtKind<'a> {
 	VariableAssignmentStmt(&'a VariableAssignmentStmtNode),
 	StmtListStmt(&'a StmtListStmtNode),
 	ExprStmt(&'a ExprStmtNode),
-	IfStmt(&'a IfStmtNode)
+	IfStmt(&'a IfStmtNode),
+	WhileStmt(&'a WhileStmtNode)
 }
