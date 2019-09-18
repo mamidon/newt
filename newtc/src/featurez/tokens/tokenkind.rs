@@ -79,6 +79,13 @@ impl TokenKind {
 			| TokenKind::Minus
 			| TokenKind::Star
 			| TokenKind::Slash
+			| TokenKind::Greater
+			| TokenKind::GreaterEquals
+			| TokenKind::Less
+			| TokenKind::LessEquals
+			| TokenKind::EqualsEquals
+			| TokenKind::AmpersandAmpersand
+			| TokenKind::PipePipe
 			=> true,
 			_ => false
 		}

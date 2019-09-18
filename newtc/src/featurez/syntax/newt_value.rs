@@ -1,4 +1,5 @@
 use std::ops::{Add, Sub, Mul, Div, Not, Neg};
+use std::cmp::{PartialOrd, PartialEq, Ordering};
 use std::str::FromStr;
 
 use super::NewtResult;
@@ -125,6 +126,45 @@ impl Neg for NewtValue {
 			NewtValue::Int(l) => Ok(NewtValue::Int(-l)),
 			NewtValue::Float(l) => Ok(NewtValue::Float(-l)),
 			_ => Err(NewtRuntimeError::TypeError)
+		}
+	}
+}
+
+impl PartialOrd for NewtValue {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		match (self, other) {
+			(NewtValue::Int(a), NewtValue::Int(b)) => {
+				if a < b {
+					Some(Ordering::Less)
+				} else if a == b {
+					Some(Ordering::Equal)
+				} else {
+					Some(Ordering::Greater)
+				}
+			},
+			(NewtValue::Float(a), NewtValue::Float(b)) => {
+				if a < b {
+					Some(Ordering::Less)
+				} else if a == b {
+					Some(Ordering::Equal)
+				} else {
+					Some(Ordering::Greater)
+				}
+			},
+			_ => None
+		}
+	}
+}
+
+impl PartialEq for NewtValue {
+	fn eq(&self, other: &Self) -> bool {
+		match (self, other) {
+			(NewtValue::Int(a), NewtValue::Int(b)) => a == b,
+			(NewtValue::Float(a), NewtValue::Float(b)) => a == b,
+			(NewtValue::Bool(a), NewtValue::Bool(b)) => a == b,
+			(NewtValue::String(a), NewtValue::String(b)) => a == b,
+			(NewtValue::Glyph(a), NewtValue::Glyph(b)) => a == b,
+			_ => false
 		}
 	}
 }

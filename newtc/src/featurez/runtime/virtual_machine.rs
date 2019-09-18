@@ -37,6 +37,11 @@ impl ExprVisitor for VirtualMachine {
 			TokenKind::Minus => lhs - rhs,
 			TokenKind::Star => lhs * rhs,
 			TokenKind::Slash => lhs / rhs,
+			TokenKind::Greater => Ok(NewtValue::Bool(lhs > rhs)),
+			TokenKind::GreaterEquals => Ok(NewtValue::Bool(lhs >= rhs)),
+			TokenKind::Less => Ok(NewtValue::Bool(lhs < rhs)),
+			TokenKind::LessEquals => Ok(NewtValue::Bool(lhs <= rhs)),
+			TokenKind::EqualsEquals => Ok(NewtValue::Bool(lhs == rhs)),
 			_ => unreachable!("not a binary")
 		}
 	}
