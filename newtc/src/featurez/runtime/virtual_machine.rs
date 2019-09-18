@@ -132,23 +132,15 @@ impl StmtVisitor for VirtualMachine {
 		loop {
 			let result = self.visit_expr(node.condition());
 
-			match result {
-				Ok(NewtValue::Bool(conditional)) => {
+			match result.map(|nv| nv.as_truthy()) {
+				Ok(Some(conditional)) => {
 					if !conditional {
 						break;
 					}
 
 					self.visit_stmt_list_stmt(node.stmts());
 				},
-				Ok(NewtValue::Int(value)) => {
-					if value == 0 {
-						break;
-					}
-
-					self.visit_stmt_list_stmt(node.stmts());
-
-				},
-				Ok(value) => {
+				Ok(None) => {
 					self.halt(NewtRuntimeError::TypeError);
 					break;
 				},

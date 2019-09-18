@@ -45,6 +45,14 @@ impl NewtValue {
 			_ => panic!("Literal node has non-literal token")
 		}
 	}
+
+	pub fn as_truthy(&self) -> Option<bool> {
+		match self {
+			NewtValue::Bool(b) => Some(*b),
+			NewtValue::Int(i) => Some(*i != 0),
+			_ => None
+		}
+	}
 }
 
 impl Add for NewtValue {
