@@ -43,8 +43,16 @@ impl Parser {
 	}
 
 	pub fn current2(&self) -> Option<(TokenKind, TokenKind)> {
-		self.source.token2(self.consumed_tokens)
-			.map(|(t1,t2)| (t1.token_kind(), t2.token_kind()))
+		let current0 = self.source.token(self.consumed_tokens).token_kind();
+		let mut offset = 1;
+		let mut current1 = self.source.token(self.consumed_tokens + offset);
+
+		while current1.token_kind().is_trivia() && current1.token_kind() != TokenKind::EndOfFile {
+			offset = offset + 1;
+			current1 = self.source.token(self.consumed_tokens + offset);
+		}
+
+		Some((current0, current1.token_kind()))
 	}
 
 	pub fn nth(&self, n: usize) -> TokenKind {

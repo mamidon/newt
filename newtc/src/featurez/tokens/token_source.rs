@@ -1,5 +1,7 @@
 use crate::featurez::syntax::TokenSource;
 use crate::featurez::tokens::{Token, TokenKind};
+use std::iter::Skip;
+use std::slice::Iter;
 
 #[derive(Clone)]
 pub struct StrTokenSource {
@@ -37,23 +39,6 @@ impl TokenSource for StrTokenSource {
             TokenKind::EndOfFile
         } else {
             self.tokens[index].token_kind()
-        }
-    }
-
-    fn token2(&self, pos: usize) -> Option<(Token, Token)> {
-        if pos + 1 < self.tokens.len() {
-            Some((self.tokens[pos], self.tokens[pos + 1]))
-        } else {
-            None
-        }
-    }
-
-    fn token3(&self, pos: usize) -> Option<(Token, Token, Token)> {
-        let remaining = self.tokens.len() - pos;
-        if remaining < 3 {
-            None
-        } else {
-            Some((self.tokens[pos], self.tokens[pos + 1], self.tokens[pos + 2]))
         }
     }
 }
