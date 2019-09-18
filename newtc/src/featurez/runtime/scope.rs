@@ -1,5 +1,7 @@
 use std::collections::HashMap;
-use crate::featurez::syntax::NewtValue;
+use crate::featurez::syntax::{NewtValue, NewtRuntimeError};
+use crate::featurez::syntax::NewtResult;
+use std::process::id;
 
 #[derive(Debug)]
 pub struct Scope {
@@ -29,18 +31,40 @@ impl Scope {
 		}
 	}
 	
-	pub fn bind(&mut self, identifier: &str, value: NewtValue) {
-		self.values.insert(identifier.to_string(), value);
+	pub fn declare(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+		if self.values.contains_key(identifier) {
+			Err(NewtRuntimeError::DuplicateDeclaration)
+		} else {
+			self.values.insert(identifier.to_owned(), value);
+			Ok(())
+		}
+	}
+
+	pub fn assign(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+		if self.values.contains_key(identifier) {
+			self.values.insert(identifier.to_owned(), value);
+
+			return Ok(());
+		}
+
+		for scope in self.stack.iter_mut().rev() {
+			if scope.contains_key(identifier) {
+				scope.insert(identifier.to_owned(), value);
+				return Ok(());
+			}
+		}
+
+		return Err(NewtRuntimeError::UndefinedVariable);
 	}
 	
 	pub fn resolve(&self, identifier: &str) -> Option<&NewtValue> {
 		if self.values.contains_key(identifier) {
-			return Some(&self.values[identifier]);
+			return self.values.get(identifier);
 		}
-		
+
 		for scope in self.stack.iter().rev() {
 			if scope.contains_key(identifier) {
-				return Some(&scope[identifier]);
+				return scope.get(identifier);
 			}
 		}
 				

@@ -20,7 +20,7 @@ pub enum NewtValue {
 	Int(i64),
 	Float(f64),
 	Glyph(char),
-	String(String),
+	String(Rc<String>),
 	Bool(bool)
 }
 
@@ -39,7 +39,7 @@ impl NewtValue {
 		match literal.token_kind() {
 			TokenKind::IntegerLiteral => NewtValue::Int(lexeme.parse().expect("unparsable literal token")),
 			TokenKind::FloatLiteral => NewtValue::Float(lexeme.parse().expect("unparsable literal token")),
-			TokenKind::StringLiteral => NewtValue::String(lexeme.to_string()),
+			TokenKind::StringLiteral => NewtValue::String(Rc::new(lexeme.to_string())),
 			TokenKind::GlyphLiteral => NewtValue::Glyph(lexeme[1..2].parse().expect("unparsable literal token")),
 			TokenKind::True => NewtValue::Bool(true),
 			TokenKind::False => NewtValue::Bool(false),

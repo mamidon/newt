@@ -83,9 +83,12 @@ impl StmtVisitor for VirtualMachine {
 		let identifier = node.identifier().lexeme();
 		
 		match result {
-			Ok(value) => self.scope.bind(&identifier, value),
+			Ok(value) => match self.scope.declare(&identifier, value) {
+				Err(error) => self.halt(error),
+				_ => {}
+			},
 			Err(error) => self.halt(error)
-		}
+		};
 	}
 
 	fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) {
@@ -96,19 +99,25 @@ impl StmtVisitor for VirtualMachine {
 			.and_then(|_| self.visit_expr(node.expr()));
 		
 		match result {
-			Ok(value) => self.scope.bind(&identifier, value),
+			Ok(value) => match self.scope.assign(identifier, value) {
+				Err(error) => self.halt(error),
+				_ => {}
+			},
 			Err(error) => self.halt(error)
 		};
 	}
 
 	fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) {
+		self.scope.push_scope();
+
 		for stmt in node.stmts() {
 			if self.halted() {
 				return;
 			}
-			
 			self.visit_stmt(stmt)
 		}
+
+		self.scope.pop_scope();
 	}
 
 	fn visit_expr_stmt(&mut self, node: &ExprStmtNode) {
