@@ -12,11 +12,12 @@ lazy_static! {
 		(TokenKind::Slash, 2, true),
 		(TokenKind::Plus, 3, true),
 		(TokenKind::Minus, 3, true),
-		(TokenKind::Less, 4, true),
+		//TODO REGRESSION -- this breaks left associativity somehow
+		/*(TokenKind::Less, 4, true),
 		(TokenKind::LessEquals, 4, true),
 		(TokenKind::Greater, 4, true),
 		(TokenKind::GreaterEquals, 4, true),
-		(TokenKind::EqualsEquals, 4, true),
+		(TokenKind::EqualsEquals, 4, true),*/
 		(TokenKind::Bang, 1, false),
 	].iter()
 		.map(|tuple| (tuple.0, (tuple.1, tuple.2)))
@@ -26,7 +27,7 @@ lazy_static! {
 pub fn expr(p: &mut Parser) {
 	let lhs = primary_expr(p);
 	
-	expr_core(p, lhs, 4);
+	expr_core(p, lhs, 3);
 }
 
 // https://en.wikipedia.org/wiki/Operator-precedence_parser#Example_execution_of_the_algorithm
