@@ -16,10 +16,24 @@ impl VirtualMachine {
 		}
 	}
 	
-	fn halt(&mut self, error: NewtRuntimeError) {
+	fn halt(&mut self, error: NewtRuntimeError) -> Result<(), NewtRuntimeError> {
 		if !self.halted() {
 			self.halting_error = Some(error)
 		}
+
+		Err(self.halting_error.unwrap())
+	}
+
+	fn halt_on_error<T>(&mut self, result: Result<T, NewtRuntimeError>) -> Result<T, NewtRuntimeError> {
+		if let Some(error) = self.halting_error {
+			return Err(error);
+		}
+
+		if let Err(error) = result {
+			self.halt(error);
+		}
+
+		result
 	}
 	
 	fn halted(&self) -> bool {
@@ -28,6 +42,13 @@ impl VirtualMachine {
 }
 
 impl ExprVisitor for VirtualMachine {
+	fn visit_expr(&self, node: &ExprNode) -> NewtResult {
+		match self.halting_error {
+			Some(error) => Err(error),
+			None => ExprVisitor::visit_expr(self, node)
+		}
+	}
+
 	fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtResult {
 		let lhs = self.visit_expr(node.lhs())?;
 		let rhs = self.visit_expr(node.rhs())?;
@@ -78,93 +99,86 @@ impl ExprVisitor for VirtualMachine {
 }
 
 impl StmtVisitor for VirtualMachine {
-	fn visit_variable_declaration_stmt(&mut self, node: &VariableDeclarationStmtNode) {
-		let result = self.visit_expr(node.expr());
-		let identifier = node.identifier().lexeme();
-		
-		match result {
-			Ok(value) => match self.scope.declare(&identifier, value) {
-				Err(error) => self.halt(error),
-				_ => {}
-			},
-			Err(error) => self.halt(error)
+	fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
+		let outcome = match self.halting_error {
+			Some(error) => Err(error),
+			None => StmtVisitor::visit_stmt(self, node)
 		};
+
+		self.halt_on_error(outcome)?;
+
+		outcome
 	}
 
-	fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) {
+	fn visit_variable_declaration_stmt(&mut self, node: &VariableDeclarationStmtNode) -> Result<(), NewtRuntimeError> {
+		let result = self.visit_expr(node.expr())?;
 		let identifier = node.identifier().lexeme();
-		
-		let result = self.scope.resolve(&identifier)
-			.ok_or(NewtRuntimeError::UndefinedVariable)
-			.and_then(|_| self.visit_expr(node.expr()));
-		
-		match result {
-			Ok(value) => match self.scope.assign(identifier, value) {
-				Err(error) => self.halt(error),
-				_ => {}
-			},
-			Err(error) => self.halt(error)
+		let value = self.visit_expr(node.expr())?;
+
+	    match self.scope.declare(&identifier, value) {
+			Some(error) => self.halt(error)?,
+			None => {}
 		};
+
+		Ok(())
 	}
 
-	fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) {
+	fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) -> Result<(), NewtRuntimeError> {
+		let identifier = node.identifier().lexeme();
+		let value = self.visit_expr(node.expr())?;
+
+		self.scope.assign(identifier, value)
+	}
+
+	fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError> {
 		self.scope.push_scope();
 
 		for stmt in node.stmts() {
-			if self.halted() {
-				return;
-			}
-			self.visit_stmt(stmt)
+			self.visit_stmt(stmt)?;
 		}
 
 		self.scope.pop_scope();
+
+		Ok(())
 	}
 
-	fn visit_expr_stmt(&mut self, node: &ExprStmtNode) {
-		self.visit_expr(node.expr());
+	fn visit_expr_stmt(&mut self, node: &ExprStmtNode) -> Result<(), NewtRuntimeError> {
+		self.visit_expr(node.expr())?;
+		Ok(())
 	}
 
-	fn visit_if_stmt(&mut self, node: &IfStmtNode) {
-		let result = self.visit_expr(node.condition());
+	fn visit_if_stmt(&mut self, node: &IfStmtNode) -> Result<(), NewtRuntimeError> {
+		let result = self.visit_expr(node.condition())?;
 
 		match result {
-			Ok(NewtValue::Bool(conditional)) => {
+			NewtValue::Bool(conditional) => {
 				if conditional {
 					self.visit_stmt_list_stmt(node.when_true());
 				} else {
 					if let Some(else_path) = node.when_false() {
-						self.visit_stmt_list_stmt(else_path)
+						self.visit_stmt_list_stmt(else_path);
 					}
 				}
 			},
-			Ok(_) => self.halt(NewtRuntimeError::TypeError),
-			Err(error) => self.halt(error)
+			_ => self.halt(NewtRuntimeError::TypeError)?,
 		}
+
+		Ok(())
 	}
 
-	fn visit_while_stmt(&mut self, node: &WhileStmtNode) {
+	fn visit_while_stmt(&mut self, node: &WhileStmtNode) -> Result<(), NewtRuntimeError> {
 		loop {
-			let result = self.visit_expr(node.condition());
+			let conditional = self.visit_expr(node.condition())?;
+			let truthy_conditional = conditional.as_truthy()
+				.ok_or(NewtRuntimeError::TypeError)?;
 
-			match result.map(|nv| nv.as_truthy()) {
-				Ok(Some(conditional)) => {
-					if !conditional {
-						break;
-					}
-
-					self.visit_stmt_list_stmt(node.stmts());
-				},
-				Ok(None) => {
-					self.halt(NewtRuntimeError::TypeError);
-					break;
-				},
-				Err(error) => {
-					self.halt(error);
-					break;
-				}
+			if !truthy_conditional {
+				break;
+			} else {
+				self.visit_stmt_list_stmt(node.stmts())?;
 			}
 		}
 
-
+		Ok(())
 	}
 }

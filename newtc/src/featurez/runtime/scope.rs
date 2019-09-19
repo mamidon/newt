@@ -31,12 +31,12 @@ impl Scope {
 		}
 	}
 	
-	pub fn declare(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+	pub fn declare(&mut self, identifier: &str, value: NewtValue) -> Option<NewtRuntimeError> {
 		if self.values.contains_key(identifier) {
-			Err(NewtRuntimeError::DuplicateDeclaration)
+			Some(NewtRuntimeError::DuplicateDeclaration)
 		} else {
 			self.values.insert(identifier.to_owned(), value);
-			Ok(())
+			None
 		}
 	}
 
