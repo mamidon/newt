@@ -43,10 +43,19 @@ impl VirtualMachine {
 
 impl ExprVisitor for VirtualMachine {
 	fn visit_expr(&self, node: &ExprNode) -> NewtResult {
-		match self.halting_error {
-			Some(error) => Err(error),
-			None => ExprVisitor::visit_expr(self, node)
+		if let Some(error) = self.halting_error {
+			return Err(error);
 		}
+
+		let outcome = match node.kind() {
+			ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
+			ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
+			ExprKind::LiteralExpr(node) => self.visit_literal_expr(node),
+			ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
+			ExprKind::VariableExpr(node) => self.visit_variable_expr(node),
+		};
+
+		outcome
 	}
 
 	fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtResult {
@@ -100,9 +109,17 @@ impl ExprVisitor for VirtualMachine {
 
 impl StmtVisitor for VirtualMachine {
 	fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
-		let outcome = match self.halting_error {
-			Some(error) => Err(error),
-			None => StmtVisitor::visit_stmt(self, node)
+		if let Some(error) = self.halting_error {
+			return Err(error);
+		}
+
+		let outcome = match node.kind() {
+			StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node),
+			StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node),
+			StmtKind::StmtListStmt(node) => self.visit_stmt_list_stmt(node),
+			StmtKind::ExprStmt(node) => self.visit_expr_stmt(node),
+			StmtKind::IfStmt(node) => self.visit_if_stmt(node),
+			StmtKind::WhileStmt(node) => self.visit_while_stmt(node),
 		};
 
 		self.halt_on_error(outcome)?;
