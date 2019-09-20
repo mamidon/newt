@@ -39,23 +39,6 @@ impl Scope {
 			None
 		}
 	}
-
-	pub fn assign(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
-		if self.values.contains_key(identifier) {
-			self.values.insert(identifier.to_owned(), value);
-
-			return Ok(());
-		}
-
-		for scope in self.stack.iter_mut().rev() {
-			if scope.contains_key(identifier) {
-				scope.insert(identifier.to_owned(), value);
-				return Ok(());
-			}
-		}
-
-		return Err(NewtRuntimeError::UndefinedVariable);
-	}
 	
 	pub fn resolve(&self, identifier: &str) -> Option<&NewtValue> {
 		if self.values.contains_key(identifier) {
@@ -67,7 +50,21 @@ impl Scope {
 				return scope.get(identifier);
 			}
 		}
-				
+
+		return None;
+	}
+
+	pub fn resolve_mut(&mut self, identifier: &str) -> Option<&mut NewtValue> {
+		if self.values.contains_key(identifier) {
+			return self.values.get_mut(identifier);
+		}
+
+		for scope in self.stack.iter_mut().rev() {
+			if scope.contains_key(identifier) {
+				return scope.get_mut(identifier);
+			}
+		}
+
 		return None;
 	}
 }

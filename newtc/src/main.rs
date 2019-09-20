@@ -100,8 +100,12 @@ fn parse_repl() {
     let mut machine = VirtualMachine::new();
 
     loop {
-        input_buffer.clear();
-        print!("newt> ");
+        if input_buffer.is_empty() {
+            print!("newt> ");
+        } else {
+            print!("> ");
+        }
+
         stdout().flush().ok().expect("failed to write to stdout");
 
         stdin().read_line(&mut input_buffer);
@@ -111,8 +115,32 @@ fn parse_repl() {
             break;
         }
 
-        parse_batch(&input_buffer, &mut machine);
+        if balanced_braces(&input_buffer) {
+            parse_batch(&input_buffer, &mut machine);
+            input_buffer.clear();
+        }
     }
+}
+
+fn balanced_braces(input_buffer: &str) -> bool {
+    let mut braces_counted = 0;
+    let mut parenthesis_counted = 0;
+
+    for c in input_buffer.chars() {
+        match c {
+            '{' => braces_counted = braces_counted + 1,
+            '}' => braces_counted = braces_counted - 1,
+            '(' => parenthesis_counted = parenthesis_counted + 1,
+            ')' => parenthesis_counted = parenthesis_counted - 1,
+            _ => {}
+        };
+
+        if braces_counted < 0 || parenthesis_counted < 0 {
+            break;
+        }
+    }
+
+    return braces_counted == 0 && parenthesis_counted == 0;
 }
 
 fn parse_batch(file: &str, machine: &mut VirtualMachine) {

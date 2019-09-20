@@ -144,7 +144,13 @@ impl StmtVisitor for VirtualMachine {
 		let identifier = node.identifier().lexeme();
 		let value = self.visit_expr(node.expr())?;
 
-		self.scope.assign(identifier, value)
+		match self.scope.resolve_mut(identifier) {
+			Some(assignee) => {
+				*assignee = value;
+				Ok(())
+			},
+			None => Err(NewtRuntimeError::UndefinedVariable)
+		}
 	}
 
 	fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError> {

@@ -70,6 +70,7 @@ fn stmt_assignment(p: &mut Parser, node: Marker) {
 	p.token(TokenKind::Equals);
 
 	expr(p);
+
 	p.expect_token_kind(TokenKind::SemiColon, "Expected ';'");
 	p.end_node(node, SyntaxKind::VariableAssignmentStmt);
 }
@@ -84,7 +85,16 @@ fn stmt_expr(p: &mut Parser, node: Marker) {
 fn stmt_list(p: &mut Parser, node: Marker) {
 	p.expect_token_kind(TokenKind::LeftBrace, "Expected '{'");
 
-	while !p.token_if(TokenKind::RightBrace) {
+	loop {
+		if p.token_if(TokenKind::RightBrace) {
+			break;
+		}
+
+		if p.current() == TokenKind::EndOfFile {
+			p.expect_token_kind(TokenKind::RightBrace, "Expected '}'");
+			break;
+		}
+
 		stmt(p);
 	}
 

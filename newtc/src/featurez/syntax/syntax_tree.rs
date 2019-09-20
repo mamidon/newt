@@ -9,7 +9,6 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-use std::iter::{Iterator, IntoIterator};
 
 pub struct SyntaxTree<'a> {
     text: &'a str,
