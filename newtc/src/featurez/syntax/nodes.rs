@@ -7,6 +7,7 @@ use crate::featurez::syntax::{
 	SyntaxNode,
 	SyntaxKind,
 	SyntaxToken,
+	SyntaxElement,
 	AstNode,
 	ExprKind,
 	StmtKind
@@ -52,8 +53,36 @@ impl StmtNode {
             SyntaxKind::ExprStmt => StmtKind::ExprStmt(ExprStmtNode::from_inner(self.syntax())),
 			SyntaxKind::IfStmt => StmtKind::IfStmt(IfStmtNode::from_inner(self.syntax())),
 			SyntaxKind::WhileStmt => StmtKind::WhileStmt(WhileStmtNode::from_inner(self.syntax())),
+			SyntaxKind::FunctionDeclarationStmt =>
+				StmtKind::FunctionDeclarationStmt(FunctionDeclarationStmtNode::from_inner(self.syntax())),
 			_ => unreachable!("StmtNode cannot be constructed from invalid SyntaxKind")
 		}
+	}
+}
+
+#[repr(transparent)]
+pub struct FunctionDeclarationStmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for FunctionDeclarationStmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl FunctionDeclarationStmtNode {
+	pub fn identifier(&self) -> &SyntaxToken {
+		self.0.nth_token(1)
+	}
+
+	pub fn arguments(&self) -> impl IntoIterator<Item=&ExprNode> {
+		self.0.children().iter()
+			.filter_map(|e| match e.as_node() {
+				Some(node) => ExprNode::cast(node),
+				_ => None
+			})
+	}
+
+	pub fn stmts(&self) -> &StmtListStmtNode {
+		let node = self.0.nodes().last().expect("Expecting StmtListStmtNode");
+		StmtListStmtNode::from_inner(node)
 	}
 }
 

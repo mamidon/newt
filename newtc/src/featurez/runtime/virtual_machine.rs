@@ -120,6 +120,7 @@ impl StmtVisitor for VirtualMachine {
 			StmtKind::ExprStmt(node) => self.visit_expr_stmt(node),
 			StmtKind::IfStmt(node) => self.visit_if_stmt(node),
 			StmtKind::WhileStmt(node) => self.visit_while_stmt(node),
+			StmtKind::FunctionDeclarationStmt(node) => self.visit_function_declaration_stmt(node),
 		};
 
 		self.halt_on_error(outcome)?;
@@ -203,5 +204,9 @@ impl StmtVisitor for VirtualMachine {
 		}
 
 		Ok(())
+	}
+
+	fn visit_function_declaration_stmt(&mut self, node: &FunctionDeclarationStmtNode) -> Result<(), NewtRuntimeError> {
+		unimplemented!()
 	}
 }

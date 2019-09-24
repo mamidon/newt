@@ -9,4 +9,5 @@ pub trait StmtVisitor
 	fn visit_expr_stmt(&mut self, node: &ExprStmtNode) -> Result<(), NewtRuntimeError>;
 	fn visit_if_stmt(&mut self, node: &IfStmtNode) -> Result<(), NewtRuntimeError>;
 	fn visit_while_stmt(&mut self, node: &WhileStmtNode) -> Result<(), NewtRuntimeError>;
+	fn visit_function_declaration_stmt(&mut self, node: &FunctionDeclarationStmtNode) -> Result<(), NewtRuntimeError>;
 }

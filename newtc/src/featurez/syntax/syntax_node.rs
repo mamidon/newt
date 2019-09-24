@@ -30,6 +30,12 @@ impl SyntaxNode {
 		node
 	}
 
+	pub fn nodes(&self) -> impl Iterator<Item=&SyntaxNode> {
+		self.children
+			.iter()
+			.filter_map(|e| e.as_node())
+	}
+
 	pub fn nth_token(&self, n: usize) -> &SyntaxToken {
 		let token = self
 			.children
