@@ -24,8 +24,28 @@ pub fn stmt(p: &mut Parser) {
 		TokenKind::LeftBrace => stmt_list(p, node),
 		TokenKind::If => stmt_if(p, node),
 		TokenKind::While => stmt_while(p, node),
+		TokenKind::Fn => stmt_fn(p, node),
 		_ => variable_stmt(p, node)
 	}
+}
+
+fn stmt_fn(p: &mut Parser, node: Marker) {
+	p.token(TokenKind::Fn);
+	p.token(TokenKind::Identifier);
+	p.token(TokenKind::LeftParenthesis);
+
+	if !p.token_if(TokenKind::RightParenthesis) {
+		expr(p);
+
+		while !p.token_if(TokenKind::RightParenthesis) {
+			p.token(TokenKind::Comma);
+			expr(p);
+		}
+	}
+
+	let mut stmt_list_node = p.begin_node();
+	stmt_list(p, stmt_list_node);
+	p.end_node(node, SyntaxKind::FunctionDeclarationStmt);
 }
 
 fn stmt_while(p: &mut Parser, node: Marker) {
