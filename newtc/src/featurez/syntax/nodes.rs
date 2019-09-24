@@ -55,8 +55,23 @@ impl StmtNode {
 			SyntaxKind::WhileStmt => StmtKind::WhileStmt(WhileStmtNode::from_inner(self.syntax())),
 			SyntaxKind::FunctionDeclarationStmt =>
 				StmtKind::FunctionDeclarationStmt(FunctionDeclarationStmtNode::from_inner(self.syntax())),
+			SyntaxKind::ReturnStmt =>
+				StmtKind::ReturnStmt(ReturnStmtNode::from_inner(self.syntax())),
 			_ => unreachable!("StmtNode cannot be constructed from invalid SyntaxKind")
 		}
+	}
+}
+
+#[repr(transparent)]
+pub struct ReturnStmtNode(SyntaxNode);
+
+unsafe impl TransparentNewType for ReturnStmtNode {
+	type Inner = SyntaxNode;
+}
+
+impl ReturnStmtNode {
+	pub fn result(&self) -> &ExprNode {
+		ExprNode::from_inner(self.0.nth_node(0))
 	}
 }
 

@@ -7,5 +7,6 @@ pub enum StmtKind<'a> {
 	ExprStmt(&'a ExprStmtNode),
 	IfStmt(&'a IfStmtNode),
 	WhileStmt(&'a WhileStmtNode),
-	FunctionDeclarationStmt(&'a FunctionDeclarationStmtNode)
+	FunctionDeclarationStmt(&'a FunctionDeclarationStmtNode),
+	ReturnStmt(&'a ReturnStmtNode),
 }

@@ -13,6 +13,7 @@ pub enum SyntaxKind {
 	ExprStmt,
 	IfStmt,
 	WhileStmt,
-	FunctionDeclarationStmt
+	FunctionDeclarationStmt,
+	ReturnStmt
 }
 
