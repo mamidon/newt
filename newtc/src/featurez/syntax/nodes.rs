@@ -70,8 +70,8 @@ unsafe impl TransparentNewType for ReturnStmtNode {
 }
 
 impl ReturnStmtNode {
-	pub fn result(&self) -> &ExprNode {
-		ExprNode::from_inner(self.0.nth_node(0))
+	pub fn result(&self) -> Option<&ExprNode> {
+		self.0.try_nth_node(0).map(|n| ExprNode::from_inner(n))
 	}
 }
 
