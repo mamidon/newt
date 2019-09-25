@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use crate::featurez::syntax::{NewtValue, NewtRuntimeError};
 use crate::featurez::syntax::NewtResult;
-use std::process::id;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct Scope {
@@ -68,3 +69,31 @@ impl Scope {
 		return None;
 	}
 }
+
+
+type ScopeMap = Rc<RefCell<HashMap<String, NewtValue>>>;
+
+struct OwningScope
+{
+	parent: Option<ScopeMap>,
+	scope: ScopeMap
+}
+
+#[derive(Debug)]
+pub struct LexicalScope {
+	stack: OwningScope,
+}
+
+
+pub struct ClosedScope {
+	scope: OwningScope, // I've got to Rc<> something.. perhaps the scope not the hashmap?
+	sequence_number: usize
+}
+pub struct ClosedValue;
+
+impl LexicalScope {
+	fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> { unimplemented!() }
+	fn push(&mut self) {}
+	fn pop(&mut self) {}
+}
+
