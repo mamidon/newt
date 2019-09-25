@@ -4,7 +4,6 @@ use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken
 use crate::featurez::{Token, TokenKind};
 
 use super::expr;
-use crate::featurez::tokens::TokenKind::Else;
 
 pub fn stmt(p: &mut Parser) {
 	let starting_stmt_tokens = &[
@@ -18,6 +17,7 @@ pub fn stmt(p: &mut Parser) {
 	];
 
 	let node = p.begin_node();
+	//println!("{:?}", p.current());
 
 	match p.current() {
 		TokenKind::Let => stmt_let(p, node),
@@ -25,8 +25,20 @@ pub fn stmt(p: &mut Parser) {
 		TokenKind::If => stmt_if(p, node),
 		TokenKind::While => stmt_while(p, node),
 		TokenKind::Fn => stmt_fn(p, node),
+		TokenKind::Return => stmt_return(p, node),
 		_ => variable_stmt(p, node)
 	}
+}
+
+fn stmt_return(p: &mut Parser, node: Marker) {
+	p.token(TokenKind::Return);
+
+	if p.current() != TokenKind::SemiColon {
+		expr(p);
+	}
+
+	p.token(TokenKind::SemiColon);
+	p.end_node(node, SyntaxKind::ReturnStmt);
 }
 
 fn stmt_fn(p: &mut Parser, node: Marker) {
