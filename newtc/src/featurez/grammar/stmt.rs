@@ -17,7 +17,6 @@ pub fn stmt(p: &mut Parser) {
 	];
 
 	let node = p.begin_node();
-	//println!("{:?}", p.current());
 
 	match p.current() {
 		TokenKind::Let => stmt_let(p, node),
