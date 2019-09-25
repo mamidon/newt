@@ -1,7 +1,7 @@
-use self::expr::{expr};
-use self::stmt::{stmt};
+use self::expr::expr;
+use self::stmt::stmt;
 
-use crate::featurez::parse::{Parser, CompletedParsing};
+use crate::featurez::parse::{CompletedParsing, Parser};
 
 mod expr;
 mod stmt;

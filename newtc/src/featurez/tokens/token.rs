@@ -9,10 +9,7 @@ pub struct Token {
 
 impl Token {
     pub fn new(token_kind: TokenKind, length: usize) -> Token {
-        Token {
-            token_kind,
-            length,
-        }
+        Token { token_kind, length }
     }
 
     fn merge_as(token_kind: TokenKind, left: &Token, right: &Token) -> Token {

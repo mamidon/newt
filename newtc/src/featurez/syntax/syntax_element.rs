@@ -13,17 +13,17 @@ impl SyntaxElement {
             SyntaxElement::Token(_) => false,
         }
     }
-	
-	pub fn is_token(&self) -> bool {
-		!self.is_node()
-	}
-	
-	pub fn is_trivia_token(&self, kind: TokenKind) -> bool {
-		match self {
-			SyntaxElement::Token(t) => t.token_kind().is_trivia(),
-			_ => false
-		}
-	}
+
+    pub fn is_token(&self) -> bool {
+        !self.is_node()
+    }
+
+    pub fn is_trivia_token(&self, kind: TokenKind) -> bool {
+        match self {
+            SyntaxElement::Token(t) => t.token_kind().is_trivia(),
+            _ => false,
+        }
+    }
 
     pub fn as_node(&self) -> Option<&SyntaxNode> {
         match self {
@@ -31,11 +31,11 @@ impl SyntaxElement {
             SyntaxElement::Token(_) => None,
         }
     }
-	
-	pub fn as_token(&self) -> Option<&SyntaxToken> {
-		match self {
-			SyntaxElement::Token(t) => Some(t),
-			_ => None
-		}
-	}
+
+    pub fn as_token(&self) -> Option<&SyntaxToken> {
+        match self {
+            SyntaxElement::Token(t) => Some(t),
+            _ => None,
+        }
+    }
 }

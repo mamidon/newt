@@ -2,8 +2,8 @@
 
 use super::*;
 
-use std::string::ToString;
 use insta::assert_snapshot_matches;
+use std::string::ToString;
 
 use crate::featurez::syntax::TokenSource;
 
@@ -89,9 +89,9 @@ macro_rules! token_sequence_tests {
 				.iter()
 				.map(|t| t.to_string())
 				.collect::<Vec<String>>();
-				
+
 			let document = format!("{}\n\n===\n\n{}", input_text, tokens.join("\n"));
-			
+
 			assert_snapshot_matches!(stringify!($name), document);
 		}
 	)*
@@ -101,26 +101,26 @@ macro_rules! token_sequence_tests {
 token_sequence_tests! {
     identifiers_can_start_with_underscore: "_foo123",
     identifiers_can_have_underscores_in_middle: "foo_123",
-    identifiers_can_not_start_with_numbers: "123foo", 
+    identifiers_can_not_start_with_numbers: "123foo",
     identifiers_can_not_be_just_underscores: "_",
     tombstones_do_not_stop_tokenizing: "foo`bar`fizz",
     comment_lines_consume_whole_line: "foo//not identifier`token\n123",
-    equals_equals_equals: "===", 
+    equals_equals_equals: "===",
     greater_equals_equals: ">==",
     less_equals_equals: "<==",
-    ampersand_ampersand_ampersand: "&&&", 
-    pipe_pipe_pipe: "|||", 
+    ampersand_ampersand_ampersand: "&&&",
+    pipe_pipe_pipe: "|||",
     literals:
 "1234
 3.14
 'c'
 \"foo\"",
-	identifiers:
+    identifiers:
 "_validIdentifier123
 _456validIdentifier
 456badIdentifier
 seperate identifiers",
-	keywords:
+    keywords:
 "if else 
 let 
 fn
@@ -130,7 +130,7 @@ return
 module
 true
 false",
-	operators:
+    operators:
 "// Math operators
 let x=1+2-3/4*5+(6);
 // Logic operators
@@ -149,7 +149,7 @@ let d=2;",
 
 fn assert_single_token(value: &str, expected_type: TokenKind) {
     let tokens = tokenize(value);
-	
+
     assert_eq!(tokens.len(), 2);
     assert_eq!(tokens[0].token_kind(), expected_type);
     assert_eq!(tokens[1].token_kind(), TokenKind::EndOfFile);

@@ -62,41 +62,37 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-	pub fn is_trivia(&self) -> bool {
-		match self {
-			TokenKind::TombStone
-			| TokenKind::CommentLine
-			| TokenKind::CommentLine
-			| TokenKind::WhiteSpace
-			=> true,
-			_ => false
-		}
-	}
-	
-	pub fn is_binary_operator(&self) -> bool {
-		match self {
-			TokenKind::Plus
-			| TokenKind::Minus
-			| TokenKind::Star
-			| TokenKind::Slash
-			| TokenKind::Greater
-			| TokenKind::GreaterEquals
-			| TokenKind::Less
-			| TokenKind::LessEquals
-			| TokenKind::EqualsEquals
-			| TokenKind::AmpersandAmpersand
-			| TokenKind::PipePipe
-			=> true,
-			_ => false
-		}
-	}
-	
-	pub fn is_unary_operator(&self) -> bool {
-		match self {
-			TokenKind::Bang
-			| TokenKind::Minus
-			=> true,
-			_ => false
-		}
-	}
+    pub fn is_trivia(&self) -> bool {
+        match self {
+            TokenKind::TombStone
+            | TokenKind::CommentLine
+            | TokenKind::CommentLine
+            | TokenKind::WhiteSpace => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_binary_operator(&self) -> bool {
+        match self {
+            TokenKind::Plus
+            | TokenKind::Minus
+            | TokenKind::Star
+            | TokenKind::Slash
+            | TokenKind::Greater
+            | TokenKind::GreaterEquals
+            | TokenKind::Less
+            | TokenKind::LessEquals
+            | TokenKind::EqualsEquals
+            | TokenKind::AmpersandAmpersand
+            | TokenKind::PipePipe => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_unary_operator(&self) -> bool {
+        match self {
+            TokenKind::Bang | TokenKind::Minus => true,
+            _ => false,
+        }
+    }
 }

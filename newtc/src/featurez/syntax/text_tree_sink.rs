@@ -1,10 +1,10 @@
+use crate::featurez::parse::ParseEvent;
+use crate::featurez::parse::Parser;
 use crate::featurez::syntax::SyntaxElement;
 use crate::featurez::syntax::SyntaxKind;
 use crate::featurez::syntax::SyntaxNode;
 use crate::featurez::syntax::SyntaxToken;
 use crate::featurez::syntax::TreeSink;
-use crate::featurez::parse::Parser;
-use crate::featurez::parse::ParseEvent;
 
 pub struct TextTreeSink {
     stack: Vec<(SyntaxKind, usize, usize)>,

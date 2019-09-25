@@ -1,6 +1,5 @@
 #![allow(unused)]
 
-
 #[macro_use]
 extern crate lazy_static;
 
@@ -144,12 +143,12 @@ fn balanced_braces(input_buffer: &str) -> bool {
 }
 
 fn parse_batch(file: &str, machine: &mut VirtualMachine) {
-	let session = InterpretingSession {
+    let session = InterpretingSession {
         kind: InterpretingSessionKind::Stmt,
-        source: file
+        source: file,
     };
 
-	let tree = build(session);
+    let tree = build(session);
 
     println!("{}", tree);
 
