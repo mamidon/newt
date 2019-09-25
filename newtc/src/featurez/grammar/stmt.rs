@@ -46,11 +46,11 @@ fn stmt_fn(p: &mut Parser, node: Marker) {
 	p.token(TokenKind::LeftParenthesis);
 
 	if !p.token_if(TokenKind::RightParenthesis) {
-		expr(p);
+		p.token(TokenKind::Identifier);
 
 		while !p.token_if(TokenKind::RightParenthesis) {
 			p.token(TokenKind::Comma);
-			expr(p);
+			p.token(TokenKind::Identifier);
 		}
 	}
 

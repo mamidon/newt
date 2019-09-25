@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use super::NewtResult;
 use super::NewtRuntimeError;
+use crate::featurez::runtime::Callable;
 
 use crate::featurez::TokenKind;
 use crate::featurez::syntax::{
@@ -21,7 +22,8 @@ pub enum NewtValue {
 	Float(f64),
 	Glyph(char),
 	String(Rc<String>),
-	Bool(bool)
+	Bool(bool),
+	Callable(Rc<dyn Callable>),
 }
 
 impl NewtValue {

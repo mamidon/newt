@@ -87,12 +87,9 @@ impl FunctionDeclarationStmtNode {
 		self.0.nth_token(1)
 	}
 
-	pub fn arguments(&self) -> impl IntoIterator<Item=&ExprNode> {
+	pub fn arguments(&self) -> impl Iterator<Item=&SyntaxToken> {
 		self.0.children().iter()
-			.filter_map(|e| match e.as_node() {
-				Some(node) => ExprNode::cast(node),
-				_ => None
-			})
+			.filter_map(|e| e.as_token())
 	}
 
 	pub fn stmts(&self) -> &StmtListStmtNode {
