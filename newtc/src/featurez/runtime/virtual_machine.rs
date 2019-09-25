@@ -53,6 +53,7 @@ impl ExprVisitor for VirtualMachine {
 			ExprKind::LiteralExpr(node) => self.visit_literal_expr(node),
 			ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
 			ExprKind::VariableExpr(node) => self.visit_variable_expr(node),
+			ExprKind::FunctionCallExpr(node) => self.visit_function_call_expr(node),
 		};
 
 		outcome
@@ -104,6 +105,10 @@ impl ExprVisitor for VirtualMachine {
 		self.scope.resolve(node.identifier().lexeme())
 			.map(|value| value.clone())
 			.ok_or(NewtRuntimeError::UndefinedVariable)
+	}
+
+	fn visit_function_call_expr(&self, node: &FunctionCallExprNode) -> NewtResult {
+		unimplemented!()
 	}
 }
 

@@ -247,8 +247,29 @@ impl ExprNode {
 			SyntaxKind::LiteralExpr => ExprKind::LiteralExpr(LiteralExprNode::from_inner(self.to_inner())),
 			SyntaxKind::GroupingExpr => ExprKind::GroupingExpr(GroupingExprNode::from_inner(self.to_inner())),
             SyntaxKind::VariableExpr => ExprKind::VariableExpr(VariableExprNode::from_inner(self.to_inner())),
+			SyntaxKind::FunctionCallExpr => ExprKind::FunctionCallExpr(FunctionCallExprNode::from_inner(self.to_inner())),
 			_ => unreachable!("ExprNode cannot be constructed from invalid SyntaxKind")
 		}
+	}
+}
+
+#[repr(transparent)]
+pub struct FunctionCallExprNode(SyntaxNode);
+
+unsafe impl TransparentNewType for FunctionCallExprNode {
+	type Inner = SyntaxNode;
+}
+
+impl FunctionCallExprNode {
+	pub fn callee(&self) -> &ExprNode {
+		ExprNode::from_inner(self.0.nth_node(0))
+	}
+
+	pub fn arguments(&self) -> impl Iterator<Item=&ExprNode> {
+		self.0.children()
+			.iter()
+			.filter_map(|c| c.as_node())
+			.filter_map(|n| ExprNode::cast(n))
 	}
 }
 
