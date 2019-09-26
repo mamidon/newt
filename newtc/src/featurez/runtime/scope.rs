@@ -3,6 +3,8 @@ use crate::featurez::syntax::{NewtRuntimeError, NewtValue};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::borrow::{Borrow, BorrowMut};
+use std::process::id;
 
 #[derive(Debug)]
 pub struct Scope {
@@ -70,28 +72,111 @@ impl Scope {
     }
 }
 
-type ScopeMap = Rc<RefCell<HashMap<String, NewtValue>>>;
 
-struct OwningScope {
-    parent: Option<ScopeMap>,
-    scope: ScopeMap,
+type ScopeMap = Rc<RefCell<HashMap<String, StoredValue>>>;
+
+struct StoredValue {
+    sequence_number: usize,
+    value: NewtValue
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
+struct ScopeNode {
+    next: Option<Rc<ScopeNode>>,
+    scope: ScopeMap
+}
+
+struct ScopeStack {
+    scopes: Vec<ScopeNode>
+}
+
 pub struct LexicalScope {
-    stack: OwningScope,
+    scope: ScopeStack,
 }
 
 pub struct ClosedScope {
-    scope: OwningScope, // I've got to Rc<> something.. perhaps the scope not the hashmap?
+    scope: ScopeNode,
     sequence_number: usize,
 }
 pub struct ClosedValue;
 
 impl LexicalScope {
     fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
-        unimplemented!()
+        self.scope.bind(identifier, value)
     }
-    fn push(&mut self) {}
-    fn pop(&mut self) {}
+
+    fn push(&mut self) {
+        self.scope.push()
+    }
+
+    fn pop(&mut self) {
+        self.scope.pop()
+    }
+
+    fn close(&self) -> ClosedScope {
+        ClosedScope::from(&self.scope)
+    }
+}
+
+impl From<&ScopeStack> for ClosedScope {
+    fn from(scope_stack: &ScopeStack) -> Self {
+        ClosedScope {
+            scope: scope_stack.peek().clone(),
+            sequence_number: (*scope_stack.peek().scope).borrow().len()
+        }
+    }
+}
+
+impl ScopeNode {
+    fn new() -> ScopeNode {
+        ScopeNode {
+            scope: Rc::new(RefCell::new(HashMap::new())),
+            next: None
+        }
+    }
+}
+
+impl ScopeStack {
+    fn new() -> ScopeStack {
+        ScopeStack {
+            scopes: vec![ScopeNode::new()]
+        }
+    }
+
+    fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+        let mut hash_map = (*self.peek().scope).borrow_mut();
+
+        if hash_map.contains_key(identifier) {
+            return Err(NewtRuntimeError::DuplicateDeclaration);
+        }
+
+        let stored_value = StoredValue::new(hash_map.len(), value);
+        hash_map.insert(identifier.to_string(), stored_value);
+
+        Ok(())
+    }
+
+    fn push(&mut self) {
+        self.scopes.push(ScopeNode::new())
+    }
+
+    fn pop(&mut self) {
+        match self.scopes.pop() {
+            Some(_) => {},
+            None => panic!("Ran out of scopes to pop!")
+        }
+    }
+
+    fn peek(&self) -> &ScopeNode {
+        &self.scopes[self.scopes.len() - 1]
+    }
+}
+
+impl StoredValue {
+    fn new(sequence_number: usize, value: NewtValue) -> StoredValue {
+        StoredValue {
+            sequence_number,
+            value
+        }
+    }
 }
