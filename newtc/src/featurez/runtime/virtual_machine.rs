@@ -1,17 +1,17 @@
-use super::scope::Scope;
+use super::scope::LexicalScope;
 use crate::featurez::syntax::*;
 use crate::featurez::TokenKind;
 
 #[derive(Debug)]
 pub struct VirtualMachine {
-    scope: Scope,
+    scope: LexicalScope,
     halting_error: Option<NewtRuntimeError>,
 }
 
 impl VirtualMachine {
     pub fn new() -> VirtualMachine {
         VirtualMachine {
-            scope: Scope::new(),
+            scope: LexicalScope::new(),
             halting_error: None,
         }
     }
@@ -108,7 +108,6 @@ impl ExprVisitor for VirtualMachine {
         self.scope
             .resolve(node.identifier().lexeme())
             .map(|value| value.clone())
-            .ok_or(NewtRuntimeError::UndefinedVariable)
     }
 
     fn visit_function_call_expr(&self, node: &FunctionCallExprNode) -> NewtResult {
@@ -146,9 +145,9 @@ impl StmtVisitor for VirtualMachine {
         let identifier = node.identifier().lexeme();
         let value = self.visit_expr(node.expr())?;
 
-        match self.scope.declare(&identifier, value) {
-            Some(error) => self.halt(error)?,
-            None => {}
+        match self.scope.bind(&identifier, value) {
+            Err(error) => self.halt(error)?,
+            Ok(_) => {}
         };
 
         Ok(())
@@ -161,23 +160,17 @@ impl StmtVisitor for VirtualMachine {
         let identifier = node.identifier().lexeme();
         let value = self.visit_expr(node.expr())?;
 
-        match self.scope.resolve_mut(identifier) {
-            Some(assignee) => {
-                *assignee = value;
-                Ok(())
-            }
-            None => Err(NewtRuntimeError::UndefinedVariable),
-        }
+        self.scope.assign(identifier, value)
     }
 
     fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError> {
-        self.scope.push_scope();
+        self.scope.push();
 
         for stmt in node.stmts() {
             self.visit_stmt(stmt)?;
         }
 
-        self.scope.pop_scope();
+        self.scope.pop();
 
         Ok(())
     }
