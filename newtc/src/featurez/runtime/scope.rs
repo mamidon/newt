@@ -3,8 +3,6 @@ use crate::featurez::syntax::{NewtRuntimeError, NewtValue};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::borrow::{Borrow, BorrowMut};
-use std::process::id;
 
 #[derive(Debug)]
 pub struct Scope {
@@ -73,7 +71,10 @@ impl Scope {
 }
 
 
-type ScopeMap = Rc<RefCell<HashMap<String, StoredValue>>>;
+type ScopeMap = HashMap<String, StoredValue>;
+
+type ScopeMapLink = Rc<RefCell<ScopeMap>>;
+type ScopeNodeLink = Rc<RefCell<ScopeNode>>;
 
 struct StoredValue {
     sequence_number: usize,
@@ -82,49 +83,14 @@ struct StoredValue {
 
 #[derive(Clone)]
 struct ScopeNode {
-    next: Option<Rc<ScopeNode>>,
-    scope: ScopeMap
+    next: Option<ScopeNodeLink>,
+    scope: ScopeMapLink
 }
 
-struct ScopeStack {
-    scopes: Vec<ScopeNode>
-}
-
-pub struct LexicalScope {
-    scope: ScopeStack,
-}
-
-pub struct ClosedScope {
-    scope: ScopeNode,
-    sequence_number: usize,
-}
-pub struct ClosedValue;
-
-impl LexicalScope {
-    fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
-        self.scope.bind(identifier, value)
-    }
-
-    fn push(&mut self) {
-        self.scope.push()
-    }
-
-    fn pop(&mut self) {
-        self.scope.pop()
-    }
-
-    fn close(&self) -> ClosedScope {
-        ClosedScope::from(&self.scope)
-    }
-}
-
-impl From<&ScopeStack> for ClosedScope {
-    fn from(scope_stack: &ScopeStack) -> Self {
-        ClosedScope {
-            scope: scope_stack.peek().clone(),
-            sequence_number: (*scope_stack.peek().scope).borrow().len()
-        }
-    }
+#[derive(Clone)]
+struct LexicalScope {
+    top: ScopeNodeLink,
+    sequence_number: usize
 }
 
 impl ScopeNode {
@@ -136,15 +102,9 @@ impl ScopeNode {
     }
 }
 
-impl ScopeStack {
-    fn new() -> ScopeStack {
-        ScopeStack {
-            scopes: vec![ScopeNode::new()]
-        }
-    }
-
+impl ScopeNode {
     fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
-        let mut hash_map = (*self.peek().scope).borrow_mut();
+        let mut hash_map = self.scope.borrow_mut();
 
         if hash_map.contains_key(identifier) {
             return Err(NewtRuntimeError::DuplicateDeclaration);
@@ -156,19 +116,50 @@ impl ScopeStack {
         Ok(())
     }
 
-    fn push(&mut self) {
-        self.scopes.push(ScopeNode::new())
-    }
+    fn resolve(&self, identifier: &str, sequence_number: usize) -> Result<NewtValue, NewtRuntimeError> {
+        let scope = self.scope.borrow();
+        if let Some(stored_value) = scope.get(identifier) {
+            if stored_value.sequence_number < sequence_number {
+                return Ok(stored_value.value.clone());
+            }
+        }
 
-    fn pop(&mut self) {
-        match self.scopes.pop() {
-            Some(_) => {},
-            None => panic!("Ran out of scopes to pop!")
+        match &self.next {
+            Some(next) => {
+                next.borrow().resolve(identifier, sequence_number)
+            },
+            None => Err(NewtRuntimeError::UndefinedVariable)
+        }
+    }
+}
+
+impl LexicalScope {
+    fn new() -> LexicalScope {
+        LexicalScope {
+            top: Rc::new(RefCell::new(ScopeNode::new())),
+            sequence_number: 0
         }
     }
 
-    fn peek(&self) -> &ScopeNode {
-        &self.scopes[self.scopes.len() - 1]
+    fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+        self.top.borrow_mut().bind(identifier, value)?;
+        self.sequence_number += 1;
+        Ok(())
+    }
+
+    fn resolve(&self, identifier: &str) -> Result<NewtValue, NewtRuntimeError> {
+        self.top.borrow().resolve(identifier, self.sequence_number)
+    }
+
+    fn push(&mut self) {
+        let mut next_top = Rc::new(RefCell::new(ScopeNode::new()));
+        (*next_top).borrow_mut().next = Some(self.top.clone());
+        self.top = next_top;
+    }
+
+    fn pop(&mut self) {
+        let next = self.top.borrow_mut().next.take().unwrap();
+        self.top = next.clone();
     }
 }
 
@@ -178,5 +169,61 @@ impl StoredValue {
             sequence_number,
             value
         }
+    }
+}
+
+mod tests {
+    use crate::featurez::runtime::scope::LexicalScope;
+    use crate::featurez::syntax::{NewtValue, NewtRuntimeError};
+
+    #[test]
+    pub fn lexical_scope_can_resolve_immediately_after_binding() {
+        let mut scope = LexicalScope::new();
+
+        scope.bind("foo", NewtValue::Int(42)).unwrap();
+        scope.bind("bar", NewtValue::Int(32)).unwrap();
+
+        assert_eq!(Ok(NewtValue::Int(42)), scope.resolve("foo"));
+        assert_eq!(Ok(NewtValue::Int(32)), scope.resolve("bar"));
+    }
+
+    #[test]
+    pub fn lexical_scope_returns_undefined_variable_error_when_resolving_fails() {
+        let mut scope = LexicalScope::new();
+
+        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), scope.resolve("zoo"));
+    }
+
+    #[test]
+    pub fn lexical_scope_can_resolv_top_scope_when_scopes_are_nested() {
+        let mut scope = LexicalScope::new();
+
+        scope.bind("foo", NewtValue::Int(42)).unwrap();
+        scope.push();
+        scope.bind("bar", NewtValue::Int(32)).unwrap();
+        scope.pop();
+        scope.bind("zoo", NewtValue::Int(22)).unwrap();
+
+        assert_eq!(Ok(NewtValue::Int(42)), scope.resolve("foo"));
+        assert_eq!(Ok(NewtValue::Int(32)), scope.resolve("bar"));
+        assert_eq!(Ok(NewtValue::Int(22)), scope.resolve("zoo"));
+    }
+
+    #[test]
+    pub fn closed_lexical_scope_cannot_resolve_younger_variables_in_parent_scope() {
+        let mut scope = LexicalScope::new();
+
+        scope.bind("foo", NewtValue::Int(42)).unwrap();
+        scope.push();
+        let mut closure = scope.clone();
+        closure.bind("bar", NewtValue::Int(32)).unwrap();
+        scope.pop();
+        scope.bind("zoo", NewtValue::Int(22)).unwrap();
+
+        assert_eq!(Ok(NewtValue::Int(42)), closure.resolve("foo"));
+        assert_eq!(Ok(NewtValue::Int(32)), closure.resolve("bar"));
+
+        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), closure.resolve("zoo"));
+        assert_eq!(Ok(NewtValue::Int(22)), scope.resolve("zoo"));
     }
 }
