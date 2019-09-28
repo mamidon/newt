@@ -1,5 +1,5 @@
 ---
-created: "2019-09-13T23:58:08.834789Z"
+created: "2019-09-28T00:13:37.139378Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -7,11 +7,11 @@ expression: approval_document
 ====text====
 ============
 
-	1*2
+    1*2
 ====tokens====
 ============
 [
-    WhiteSpace[2],
+    WhiteSpace[5],
     IntegerLiteral[1],
     Star[1],
     IntegerLiteral[1],
@@ -29,7 +29,7 @@ expression: approval_document
     },
     Trivia {
         kind: WhiteSpace,
-        length: 2
+        length: 5
     },
     Token {
         kind: IntegerLiteral,
@@ -61,7 +61,7 @@ expression: approval_document
 ============
 ┗ BinaryExpr
   ┠ LiteralExpr
-  ┃ ┠ WhiteSpace "\n\t"
+  ┃ ┠ WhiteSpace "\n    "
   ┃ ┗ IntegerLiteral "1"
   ┠ Star "*"
   ┗ LiteralExpr
