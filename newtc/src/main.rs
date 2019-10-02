@@ -148,7 +148,7 @@ fn parse_batch(file: &str, machine: &mut VirtualMachine) {
         source: file,
     };
 
-    let tree = build(session);
+    let tree = session.into();
 
     println!("{}", tree);
 

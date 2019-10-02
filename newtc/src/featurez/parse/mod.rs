@@ -28,19 +28,21 @@ pub struct InterpretingSession<'sess> {
     pub source: &'sess str,
 }
 
-pub fn build(session: InterpretingSession) -> SyntaxTree {
-    use super::grammar::{root_expr, root_stmt};
+impl<'sess> From<InterpretingSession<'sess>> for SyntaxTree<'sess> {
+    fn from(session: InterpretingSession<'sess>) -> Self {
+        use super::grammar::{root_expr, root_stmt};
 
-    let tokens = tokenize(session.source);
-    let source = StrTokenSource::new(tokens);
-    let mut parser = Parser::new(source);
+        let tokens = tokenize(session.source);
+        let source = StrTokenSource::new(tokens);
+        let mut parser = Parser::new(source);
 
-    let completed_parsing = match session.kind {
-        InterpretingSessionKind::Stmt => root_stmt(parser),
-        InterpretingSessionKind::Expr => root_expr(parser),
-    };
+        let completed_parsing = match session.kind {
+            InterpretingSessionKind::Stmt => root_stmt(parser),
+            InterpretingSessionKind::Expr => root_expr(parser),
+        };
 
-    SyntaxTree::from_parser(&completed_parsing, session.source)
+        SyntaxTree::from_parser(&completed_parsing, session.source)
+    }
 }
 
 pub fn interpret(machine: &mut VirtualMachine, tree: &SyntaxTree) -> Option<NewtValue> {
