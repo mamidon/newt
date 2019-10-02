@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::hash::{Hash, Hasher};
+use crate::featurez::newtypes::TransparentNewType;
 
 type ScopeMap = HashMap<String, StoredValue>;
 
@@ -129,51 +130,57 @@ enum DeclarationProgress {
 }
 
 #[derive(Debug)]
-struct RefEquality<'a, T>(&'a T);
+struct RefEquality<'a, T: Eq + Hash>(&'a T);
 
-impl<'a, T> Hash for RefEquality<'a, T> {
+impl<'a, T> Hash for RefEquality<'a, T>
+    where T: Eq + Hash
+{
     fn hash<H: Hasher>(&self, state: &mut H) {
         (self.0 as *const T).hash(state)
     }
 }
 
-impl<'a, 'b, T> PartialEq<RefEquality<'b, T>> for RefEquality<'a, T> {
+impl<'a, 'b, T> PartialEq<RefEquality<'b, T>> for RefEquality<'a, T>
+    where T: Eq + Hash
+{
     fn eq(&self, other: &RefEquality<'b, T>) -> bool {
         (self.0 as *const T) == (other.0 as *const T)
     }
 }
 
-impl<'a, T> Eq for RefEquality<'a, T> {}
-impl<'a, T> From<&'a T> for RefEquality<'a, T> {
+impl<'a, T> Eq for RefEquality<'a, T>
+    where T: Eq + Hash
+{}
+impl<'a, T> From<&'a T> for RefEquality<'a, T>
+    where T: Eq + Hash
+{
     fn from(reference: &'a T) -> Self {
         RefEquality(reference)
     }
 }
 
 #[derive(Debug)]
-struct LexicalScopeAnalyzer {
+struct LexicalScopeAnalyzer<'a> {
     scopes: Vec<HashMap<String, DeclarationProgress>>,
-    resolutions: HashMap<usize, usize>,
+    resolutions: HashMap<RefEquality<'a, SyntaxNode>, usize>,
     errors: Vec<NewtStaticError>
 }
 
-impl LexicalScopeAnalyzer {
-    pub fn new() -> LexicalScopeAnalyzer {
-        LexicalScopeAnalyzer {
+impl<'a> LexicalScopeAnalyzer<'a> {
+    pub fn analyze(root: &'a StmtNode) -> Result<HashMap<RefEquality<'a, SyntaxNode>, usize>, Vec<NewtStaticError>> {
+        let mut state = LexicalScopeAnalyzer {
             scopes: vec![HashMap::new()],
             resolutions: HashMap::new(),
             errors: Vec::new()
+        };
+
+        state.visit_stmt(root);
+
+        if state.errors.is_empty() {
+            Ok(state.resolutions)
+        } else {
+            Err(state.errors)
         }
-    }
-
-    fn ref_to_key<T>(&self, reference: &T) -> usize {
-        (reference as *const T) as usize
-    }
-
-    pub fn analyze(&mut self, root: &StmtNode) {
-        self.visit_stmt(root);
-
-        //self.resolutions
     }
 
     fn begin_binding(&mut self, identifier: &str) {
@@ -223,8 +230,8 @@ impl LexicalScopeAnalyzer {
     }
 }
 
-impl ExprVisitor<()> for LexicalScopeAnalyzer {
-    fn visit_expr(&mut self, expr: &ExprNode) -> () {
+impl<'a> ExprVisitor<'a, ()> for LexicalScopeAnalyzer<'a> {
+    fn visit_expr(&mut self, expr: &'a ExprNode) -> () {
         match expr.kind() {
             ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
             ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
@@ -235,32 +242,32 @@ impl ExprVisitor<()> for LexicalScopeAnalyzer {
         }
     }
 
-    fn visit_binary_expr(&mut self, node: &BinaryExprNode) -> () {
+    fn visit_binary_expr(&mut self, node: &'a BinaryExprNode) -> () {
         self.visit_expr(node.lhs());
         self.visit_expr(node.rhs());
     }
 
-    fn visit_unary_expr(&mut self, node: &UnaryExprNode) -> () {
+    fn visit_unary_expr(&mut self, node: &'a UnaryExprNode) -> () {
         self.visit_expr(node.rhs());
     }
 
-    fn visit_literal_expr(&mut self, node: &LiteralExprNode) -> () {
+    fn visit_literal_expr(&mut self, node: &'a LiteralExprNode) -> () {
         // noop
     }
 
-    fn visit_grouping_expr(&mut self, node: &GroupingExprNode) -> () {
+    fn visit_grouping_expr(&mut self, node: &'a GroupingExprNode) -> () {
         self.visit_expr(node.expr());
     }
 
-    fn visit_variable_expr(&mut self, node: &VariableExprNode) -> () {
+    fn visit_variable_expr(&mut self, node: &'a VariableExprNode) -> () {
         if let Some(offset) = self.resolve_binding(node.identifier().lexeme()) {
-            self.resolutions.insert(self.ref_to_key(node), offset);
+            self.resolutions.insert(RefEquality(node.to_inner()), offset);
         } else {
             self.errors.push(NewtStaticError::UndeclaredVariable);
         }
     }
 
-    fn visit_function_call_expr(&mut self, node: &FunctionCallExprNode) -> () {
+    fn visit_function_call_expr(&mut self, node: &'a FunctionCallExprNode) -> () {
         self.visit_expr(node.callee());
 
         for argument in node.arguments() {
@@ -269,8 +276,8 @@ impl ExprVisitor<()> for LexicalScopeAnalyzer {
     }
 }
 
-impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
-    fn visit_stmt(&mut self, stmt: &StmtNode) -> Result<(), NewtStaticError> {
+impl<'a> StmtVisitor<'a, Result<(), NewtStaticError>> for LexicalScopeAnalyzer<'a> {
+    fn visit_stmt(&mut self, stmt: &'a StmtNode) -> Result<(), NewtStaticError> {
         match stmt.kind() {
             StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node),
             StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node),
@@ -283,7 +290,7 @@ impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
         }
     }
 
-    fn visit_variable_declaration_stmt(&mut self, node: &VariableDeclarationStmtNode) -> Result<(), NewtStaticError> {
+    fn visit_variable_declaration_stmt(&mut self, node: &'a VariableDeclarationStmtNode) -> Result<(), NewtStaticError> {
         self.begin_binding(node.identifier().lexeme());
         self.visit_expr(node.expr());
         self.complete_binding(node.identifier().lexeme());
@@ -291,16 +298,16 @@ impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
         Ok(())
     }
 
-    fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) -> Result<(), NewtStaticError> {
+    fn visit_variable_assignment_stmt(&mut self, node: &'a VariableAssignmentStmtNode) -> Result<(), NewtStaticError> {
         let offset = self.resolve_binding(node.identifier().lexeme())
             .ok_or(NewtStaticError::UndeclaredVariable)?;
-        self.resolutions.insert(self.ref_to_key(node), offset);
+        self.resolutions.insert(node.to_inner().into(), offset);
         self.visit_expr(node.expr());
 
         Ok(())
     }
 
-    fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtStaticError> {
+    fn visit_stmt_list_stmt(&mut self, node: &'a StmtListStmtNode) -> Result<(), NewtStaticError> {
         self.push();
 
         for stmt in node.stmts() {
@@ -312,13 +319,13 @@ impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
         Ok(())
     }
 
-    fn visit_expr_stmt(&mut self, node: &ExprStmtNode) -> Result<(), NewtStaticError> {
+    fn visit_expr_stmt(&mut self, node: &'a ExprStmtNode) -> Result<(), NewtStaticError> {
         self.visit_expr(node.expr());
 
         Ok(())
     }
 
-    fn visit_if_stmt(&mut self, node: &IfStmtNode) -> Result<(), NewtStaticError> {
+    fn visit_if_stmt(&mut self, node: &'a IfStmtNode) -> Result<(), NewtStaticError> {
         self.visit_expr(node.condition());
         self.visit_stmt_list_stmt(node.when_true());
 
@@ -329,21 +336,21 @@ impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
         Ok(())
     }
 
-    fn visit_while_stmt(&mut self, node: &WhileStmtNode) -> Result<(), NewtStaticError> {
+    fn visit_while_stmt(&mut self, node: &'a WhileStmtNode) -> Result<(), NewtStaticError> {
         self.visit_expr(node.condition());
         self.visit_stmt_list_stmt(node.stmts());
 
         Ok(())
     }
 
-    fn visit_function_declaration_stmt(&mut self, node: &FunctionDeclarationStmtNode) -> Result<(), NewtStaticError> {
+    fn visit_function_declaration_stmt(&mut self, node: &'a FunctionDeclarationStmtNode) -> Result<(), NewtStaticError> {
         self.begin_binding(node.identifier().lexeme());
         self.complete_binding(node.identifier().lexeme());
 
         Ok(())
     }
 
-    fn visit_return_stmt(&mut self, node: &ReturnStmtNode) -> Result<(), NewtStaticError> {
+    fn visit_return_stmt(&mut self, node: &'a ReturnStmtNode) -> Result<(), NewtStaticError> {
         if let Some(result) = node.result() {
             self.visit_expr(result);
         }
@@ -354,31 +361,41 @@ impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
 
 mod tests {
     use crate::featurez::runtime::scope::{LexicalScope, LexicalScopeAnalyzer};
-    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode};
+    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode};
     use crate::featurez::grammar::root_stmt;
+    use crate::featurez::{InterpretingSession, InterpretingSessionKind};
+    use crate::featurez::newtypes::TransparentNewType;
 
     #[test]
     pub fn foo()
     {
-        use crate::featurez::{tokenize, StrTokenSource};
-        use crate::featurez::parse::Parser;
+        let session = InterpretingSession {
+            source: "{
+                let x = 42;
+                while x > 0 {
+                    x = x + 1;
+                }
+            }",
+            kind: InterpretingSessionKind::Stmt
+        };
+        let tree: SyntaxTree = session.into();
+        let root = StmtNode::cast(tree.root().as_node().unwrap()).unwrap();
 
-        let source = "{ let x = 42;\
-        while x > 0 {\
-         x = x + 1;\
-        }}";
-
-        let tokens = tokenize(source);
-        let token_source = StrTokenSource::new(tokens);
-        let mut parser = Parser::new(token_source);
-        let tree = SyntaxTree::from_parser(&root_stmt(parser), source);
+        let resolutions = LexicalScopeAnalyzer::analyze(root).unwrap();
+        let while_stmt = traverse_to::<WhileStmtNode>(tree.root().as_node().unwrap(), [1]);
+        assert_eq!(0, while_stmt.condition());
         println!("{:#?}", tree);
-        let mut analyzer = LexicalScopeAnalyzer::new();
-        analyzer.analyze(StmtNode::cast(tree.root().as_node().unwrap()).unwrap());
-
-        println!("{:#?}", analyzer);
     }
 
+    fn traverse_to<T>(node: &SyntaxNode, node_offsets: &[usize]) -> T
+        where T: AstNode
+    {
+        if node_offsets.len() > 0 {
+            return traverse_to(node.as_node().unwrap().nth_node(node_offsets[0]), &node_offsets[1..]);
+        }
+
+        return T::cast(node).unwrap();
+    }
     #[test]
     pub fn lexical_scope_can_resolve_immediately_after_binding() {
         let mut scope = LexicalScope::new();

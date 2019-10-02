@@ -1,6 +1,8 @@
 use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxToken};
 use crate::featurez::TokenKind;
+use std::hash::{Hash, Hasher};
 
+#[derive(Debug)]
 pub struct SyntaxNode {
     kind: SyntaxKind,
     length: usize,
@@ -51,3 +53,17 @@ impl SyntaxNode {
         &self.children
     }
 }
+
+impl PartialEq for SyntaxNode {
+    fn eq(&self, other: &Self) -> bool {
+        (self as *const SyntaxNode) == (other as *const SyntaxNode)
+    }
+}
+
+impl Hash for SyntaxNode {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self as *const SyntaxNode).hash(state)
+    }
+}
+
+impl Eq for SyntaxNode {}

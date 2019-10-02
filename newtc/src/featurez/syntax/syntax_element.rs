@@ -1,6 +1,7 @@
 use crate::featurez::syntax::{SyntaxNode, SyntaxToken};
 use crate::featurez::TokenKind;
 
+#[derive(Debug)]
 pub enum SyntaxElement {
     Node(SyntaxNode),
     Token(SyntaxToken),

@@ -1,5 +1,6 @@
 use crate::featurez::tokens::TokenKind;
 
+#[derive(Debug)]
 pub struct SyntaxToken {
     token_kind: TokenKind,
     length: usize,
