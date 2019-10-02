@@ -1,22 +1,22 @@
 use super::*;
 
-pub trait StmtVisitor {
-    fn visit_stmt(&mut self, stmt: &StmtNode) -> Result<(), NewtRuntimeError>;
+pub trait StmtVisitor<T> {
+    fn visit_stmt(&mut self, stmt: &StmtNode) -> T;
     fn visit_variable_declaration_stmt(
         &mut self,
         node: &VariableDeclarationStmtNode,
-    ) -> Result<(), NewtRuntimeError>;
+    ) -> T;
     fn visit_variable_assignment_stmt(
         &mut self,
         node: &VariableAssignmentStmtNode,
-    ) -> Result<(), NewtRuntimeError>;
-    fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError>;
-    fn visit_expr_stmt(&mut self, node: &ExprStmtNode) -> Result<(), NewtRuntimeError>;
-    fn visit_if_stmt(&mut self, node: &IfStmtNode) -> Result<(), NewtRuntimeError>;
-    fn visit_while_stmt(&mut self, node: &WhileStmtNode) -> Result<(), NewtRuntimeError>;
+    ) -> T;
+    fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> T;
+    fn visit_expr_stmt(&mut self, node: &ExprStmtNode) -> T;
+    fn visit_if_stmt(&mut self, node: &IfStmtNode) -> T;
+    fn visit_while_stmt(&mut self, node: &WhileStmtNode) -> T;
     fn visit_function_declaration_stmt(
         &mut self,
         node: &FunctionDeclarationStmtNode,
-    ) -> Result<(), NewtRuntimeError>;
-    fn visit_return_stmt(&mut self, node: &ReturnStmtNode) -> Result<(), NewtRuntimeError>;
+    ) -> T;
+    fn visit_return_stmt(&mut self, node: &ReturnStmtNode) -> T;
 }

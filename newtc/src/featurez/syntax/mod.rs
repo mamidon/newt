@@ -1,6 +1,7 @@
 mod ast_node;
 mod expr_kind;
 mod expr_visitor;
+mod newt_static_error;
 mod newt_runtime_error;
 mod newt_value;
 mod nodes;
@@ -19,6 +20,7 @@ mod tree_sink;
 pub use self::ast_node::AstNode;
 pub use self::expr_kind::ExprKind;
 pub use self::expr_visitor::ExprVisitor;
+pub use self::newt_static_error::NewtStaticError;
 pub use self::newt_runtime_error::NewtRuntimeError;
 pub use self::newt_value::NewtValue;
 pub use self::nodes::*;

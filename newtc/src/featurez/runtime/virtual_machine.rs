@@ -44,8 +44,8 @@ impl VirtualMachine {
     }
 }
 
-impl ExprVisitor for VirtualMachine {
-    fn visit_expr(&self, node: &ExprNode) -> NewtResult {
+impl ExprVisitor<NewtResult> for VirtualMachine {
+    fn visit_expr(&mut self, node: &ExprNode) -> NewtResult {
         if let Some(error) = self.halting_error {
             return Err(error);
         }
@@ -62,7 +62,7 @@ impl ExprVisitor for VirtualMachine {
         outcome
     }
 
-    fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtResult {
+    fn visit_binary_expr(&mut self, node: &BinaryExprNode) -> NewtResult {
         let lhs = self.visit_expr(node.lhs())?;
         let rhs = self.visit_expr(node.rhs())?;
 
@@ -81,7 +81,7 @@ impl ExprVisitor for VirtualMachine {
     }
 
     //noinspection RsTypeCheck -- faulty on the match statement
-    fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult {
+    fn visit_unary_expr(&mut self, node: &UnaryExprNode) -> NewtResult {
         let rhs = self.visit_expr(node.rhs())?;
 
         match node.operator() {
@@ -91,31 +91,31 @@ impl ExprVisitor for VirtualMachine {
         }
     }
 
-    fn visit_literal_expr(&self, node: &LiteralExprNode) -> NewtResult {
+    fn visit_literal_expr(&mut self, node: &LiteralExprNode) -> NewtResult {
         let literal = node.literal();
         let value = NewtValue::from_literal_node(node);
 
         Ok(value)
     }
 
-    fn visit_grouping_expr(&self, node: &GroupingExprNode) -> NewtResult {
+    fn visit_grouping_expr(&mut self, node: &GroupingExprNode) -> NewtResult {
         let expr = node.expr();
 
         self.visit_expr(expr)
     }
 
-    fn visit_variable_expr(&self, node: &VariableExprNode) -> NewtResult {
+    fn visit_variable_expr(&mut self, node: &VariableExprNode) -> NewtResult {
         self.scope
             .resolve(node.identifier().lexeme())
             .map(|value| value.clone())
     }
 
-    fn visit_function_call_expr(&self, node: &FunctionCallExprNode) -> NewtResult {
+    fn visit_function_call_expr(&mut self, node: &FunctionCallExprNode) -> NewtResult {
         unimplemented!()
     }
 }
 
-impl StmtVisitor for VirtualMachine {
+impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
     fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
         if let Some(error) = self.halting_error {
             return Err(error);

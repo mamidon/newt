@@ -1,8 +1,11 @@
-use crate::featurez::syntax::NewtResult;
+use crate::featurez::syntax::{NewtResult, ExprVisitor};
 use crate::featurez::syntax::{NewtRuntimeError, NewtValue};
+use crate::featurez::syntax::*;
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::hash::{Hash, Hasher};
 
 type ScopeMap = HashMap<String, StoredValue>;
 
@@ -118,9 +121,263 @@ impl StoredValue {
     }
 }
 
+#[derive(Debug)]
+enum DeclarationProgress {
+    Undeclared,
+    BeingDeclared,
+    Declared
+}
+
+#[derive(Debug)]
+struct RefEquality<'a, T>(&'a T);
+
+impl<'a, T> Hash for RefEquality<'a, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self.0 as *const T).hash(state)
+    }
+}
+
+impl<'a, 'b, T> PartialEq<RefEquality<'b, T>> for RefEquality<'a, T> {
+    fn eq(&self, other: &RefEquality<'b, T>) -> bool {
+        (self.0 as *const T) == (other.0 as *const T)
+    }
+}
+
+impl<'a, T> Eq for RefEquality<'a, T> {}
+impl<'a, T> From<&'a T> for RefEquality<'a, T> {
+    fn from(reference: &'a T) -> Self {
+        RefEquality(reference)
+    }
+}
+
+#[derive(Debug)]
+struct LexicalScopeAnalyzer {
+    scopes: Vec<HashMap<String, DeclarationProgress>>,
+    resolutions: HashMap<usize, usize>,
+    errors: Vec<NewtStaticError>
+}
+
+impl LexicalScopeAnalyzer {
+    pub fn new() -> LexicalScopeAnalyzer {
+        LexicalScopeAnalyzer {
+            scopes: vec![HashMap::new()],
+            resolutions: HashMap::new(),
+            errors: Vec::new()
+        }
+    }
+
+    fn ref_to_key<T>(&self, reference: &T) -> usize {
+        (reference as *const T) as usize
+    }
+
+    pub fn analyze(&mut self, root: &StmtNode) {
+        self.visit_stmt(root);
+
+        //self.resolutions
+    }
+
+    fn begin_binding(&mut self, identifier: &str) {
+        if self.peek().contains_key(identifier) {
+            self.errors.push(NewtStaticError::DuplicateVariableDeclaration);
+            return;
+        }
+
+        self.peek_mut().insert(identifier.to_string(), DeclarationProgress::BeingDeclared);
+    }
+
+    fn complete_binding(&mut self, identifier: &str) {
+        if let Some(binding) = self.peek_mut().get_mut(identifier) {
+            *binding = DeclarationProgress::Declared
+        } else {
+            panic!("Attempted to complete a binding we never started?");
+        }
+    }
+
+    fn resolve_binding(&self, identifier: &str) -> Option<usize> {
+        let mut offset = 0;
+        for scope in self.scopes.iter().rev() {
+            if scope.contains_key(identifier) {
+                return Some(offset);
+            }
+
+            offset = offset + 1;
+        }
+
+        return None;
+    }
+
+    fn push(&mut self) {
+        self.scopes.push(HashMap::new());
+    }
+
+    fn pop(&mut self) {
+        self.scopes.pop();
+    }
+
+    fn peek(&self) -> &HashMap<String, DeclarationProgress> {
+        self.scopes.last().unwrap()
+    }
+
+    fn peek_mut(&mut self) -> &mut HashMap<String, DeclarationProgress> {
+        self.scopes.last_mut().unwrap()
+    }
+}
+
+impl ExprVisitor<()> for LexicalScopeAnalyzer {
+    fn visit_expr(&mut self, expr: &ExprNode) -> () {
+        match expr.kind() {
+            ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
+            ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
+            ExprKind::LiteralExpr(node) => self.visit_literal_expr(node),
+            ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
+            ExprKind::VariableExpr(node) => self.visit_variable_expr(node),
+            ExprKind::FunctionCallExpr(node) => self.visit_function_call_expr(node),
+        }
+    }
+
+    fn visit_binary_expr(&mut self, node: &BinaryExprNode) -> () {
+        self.visit_expr(node.lhs());
+        self.visit_expr(node.rhs());
+    }
+
+    fn visit_unary_expr(&mut self, node: &UnaryExprNode) -> () {
+        self.visit_expr(node.rhs());
+    }
+
+    fn visit_literal_expr(&mut self, node: &LiteralExprNode) -> () {
+        // noop
+    }
+
+    fn visit_grouping_expr(&mut self, node: &GroupingExprNode) -> () {
+        self.visit_expr(node.expr());
+    }
+
+    fn visit_variable_expr(&mut self, node: &VariableExprNode) -> () {
+        if let Some(offset) = self.resolve_binding(node.identifier().lexeme()) {
+            self.resolutions.insert(self.ref_to_key(node), offset);
+        } else {
+            self.errors.push(NewtStaticError::UndeclaredVariable);
+        }
+    }
+
+    fn visit_function_call_expr(&mut self, node: &FunctionCallExprNode) -> () {
+        self.visit_expr(node.callee());
+
+        for argument in node.arguments() {
+            self.visit_expr(argument);
+        }
+    }
+}
+
+impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
+    fn visit_stmt(&mut self, stmt: &StmtNode) -> Result<(), NewtStaticError> {
+        match stmt.kind() {
+            StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node),
+            StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node),
+            StmtKind::StmtListStmt(node) => self.visit_stmt_list_stmt(node),
+            StmtKind::ExprStmt(node) => self.visit_expr_stmt(node),
+            StmtKind::IfStmt(node) => self.visit_if_stmt(node),
+            StmtKind::WhileStmt(node) => self.visit_while_stmt(node),
+            StmtKind::FunctionDeclarationStmt(node) => self.visit_function_declaration_stmt(node),
+            StmtKind::ReturnStmt(node) => self.visit_return_stmt(node),
+        }
+    }
+
+    fn visit_variable_declaration_stmt(&mut self, node: &VariableDeclarationStmtNode) -> Result<(), NewtStaticError> {
+        self.begin_binding(node.identifier().lexeme());
+        self.visit_expr(node.expr());
+        self.complete_binding(node.identifier().lexeme());
+
+        Ok(())
+    }
+
+    fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) -> Result<(), NewtStaticError> {
+        let offset = self.resolve_binding(node.identifier().lexeme())
+            .ok_or(NewtStaticError::UndeclaredVariable)?;
+        self.resolutions.insert(self.ref_to_key(node), offset);
+        self.visit_expr(node.expr());
+
+        Ok(())
+    }
+
+    fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtStaticError> {
+        self.push();
+
+        for stmt in node.stmts() {
+            self.visit_stmt(stmt);
+        }
+
+        self.pop();
+
+        Ok(())
+    }
+
+    fn visit_expr_stmt(&mut self, node: &ExprStmtNode) -> Result<(), NewtStaticError> {
+        self.visit_expr(node.expr());
+
+        Ok(())
+    }
+
+    fn visit_if_stmt(&mut self, node: &IfStmtNode) -> Result<(), NewtStaticError> {
+        self.visit_expr(node.condition());
+        self.visit_stmt_list_stmt(node.when_true());
+
+        if let Some(falsey) = node.when_false() {
+            self.visit_stmt_list_stmt(falsey);
+        }
+
+        Ok(())
+    }
+
+    fn visit_while_stmt(&mut self, node: &WhileStmtNode) -> Result<(), NewtStaticError> {
+        self.visit_expr(node.condition());
+        self.visit_stmt_list_stmt(node.stmts());
+
+        Ok(())
+    }
+
+    fn visit_function_declaration_stmt(&mut self, node: &FunctionDeclarationStmtNode) -> Result<(), NewtStaticError> {
+        self.begin_binding(node.identifier().lexeme());
+        self.complete_binding(node.identifier().lexeme());
+
+        Ok(())
+    }
+
+    fn visit_return_stmt(&mut self, node: &ReturnStmtNode) -> Result<(), NewtStaticError> {
+        if let Some(result) = node.result() {
+            self.visit_expr(result);
+        }
+
+        Ok(())
+    }
+}
+
 mod tests {
-    use crate::featurez::runtime::scope::LexicalScope;
-    use crate::featurez::syntax::{NewtValue, NewtRuntimeError};
+    use crate::featurez::runtime::scope::{LexicalScope, LexicalScopeAnalyzer};
+    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode};
+    use crate::featurez::grammar::root_stmt;
+
+    #[test]
+    pub fn foo()
+    {
+        use crate::featurez::{tokenize, StrTokenSource};
+        use crate::featurez::parse::Parser;
+
+        let source = "{ let x = 42;\
+        while x > 0 {\
+         x = x + 1;\
+        }}";
+
+        let tokens = tokenize(source);
+        let token_source = StrTokenSource::new(tokens);
+        let mut parser = Parser::new(token_source);
+        let tree = SyntaxTree::from_parser(&root_stmt(parser), source);
+        println!("{:#?}", tree);
+        let mut analyzer = LexicalScopeAnalyzer::new();
+        analyzer.analyze(StmtNode::cast(tree.root().as_node().unwrap()).unwrap());
+
+        println!("{:#?}", analyzer);
+    }
 
     #[test]
     pub fn lexical_scope_can_resolve_immediately_after_binding() {

@@ -1,11 +1,11 @@
 use super::*;
 
-pub trait ExprVisitor {
-    fn visit_expr(&self, expr: &ExprNode) -> NewtResult;
-    fn visit_binary_expr(&self, node: &BinaryExprNode) -> NewtResult;
-    fn visit_unary_expr(&self, node: &UnaryExprNode) -> NewtResult;
-    fn visit_literal_expr(&self, node: &LiteralExprNode) -> NewtResult;
-    fn visit_grouping_expr(&self, node: &GroupingExprNode) -> NewtResult;
-    fn visit_variable_expr(&self, node: &VariableExprNode) -> NewtResult;
-    fn visit_function_call_expr(&self, node: &FunctionCallExprNode) -> NewtResult;
+pub trait ExprVisitor<R> {
+    fn visit_expr(&mut self, expr: &ExprNode) -> R;
+    fn visit_binary_expr(&mut self, node: &BinaryExprNode) -> R;
+    fn visit_unary_expr(&mut self, node: &UnaryExprNode) -> R;
+    fn visit_literal_expr(&mut self, node: &LiteralExprNode) -> R;
+    fn visit_grouping_expr(&mut self, node: &GroupingExprNode) -> R;
+    fn visit_variable_expr(&mut self, node: &VariableExprNode) -> R;
+    fn visit_function_call_expr(&mut self, node: &FunctionCallExprNode) -> R;
 }

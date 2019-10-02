@@ -23,6 +23,7 @@ impl AstNode for StmtNode {
             | SyntaxKind::VariableAssignmentStmt
             | SyntaxKind::ExprStmt
             | SyntaxKind::IfStmt
+            | SyntaxKind::StmtListStmt
             | SyntaxKind::WhileStmt => Some(StmtNode::from_inner(node)),
             _ => None,
         }
@@ -50,7 +51,10 @@ impl StmtNode {
             ),
             SyntaxKind::ReturnStmt => {
                 StmtKind::ReturnStmt(ReturnStmtNode::from_inner(self.syntax()))
-            }
+            },
+            SyntaxKind::StmtListStmt => {
+                StmtKind::StmtListStmt(StmtListStmtNode::from_inner(self.syntax()))
+            },
             _ => unreachable!("StmtNode cannot be constructed from invalid SyntaxKind"),
         }
     }
