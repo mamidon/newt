@@ -359,40 +359,107 @@ impl<'a> StmtVisitor<'a, Result<(), NewtStaticError>> for LexicalScopeAnalyzer<'
     }
 }
 
-mod tests {
+mod lexical_scope_analyzer_tests {
     use crate::featurez::runtime::scope::{LexicalScope, LexicalScopeAnalyzer, RefEquality};
-    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode, SyntaxKind};
+    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode, SyntaxKind, NewtStaticError, VariableExprNode, VariableAssignmentStmtNode};
     use crate::featurez::grammar::root_stmt;
     use crate::featurez::{InterpretingSession, InterpretingSessionKind};
     use crate::featurez::newtypes::TransparentNewType;
+    use std::collections::HashMap;
 
     #[test]
-    pub fn foo()
+    pub fn variable_in_condition_resolves_to_same_scope()
     {
-        let session = InterpretingSession {
-            source: "{
+        let tree = source_to_tree("{
                 let x = 42;
                 while x > 0 {
                     x = x + 1;
                 }
-            }",
-            kind: InterpretingSessionKind::Stmt
-        };
-        let tree: SyntaxTree = session.into();
-        let root = StmtNode::cast(tree.root().as_node().unwrap()).unwrap();
+            }");
+        let resolutions = tree_to_resolutions(&tree)
+            .expect("source is valid");
+        let vars = tree_to_variable_references(&tree, "x");
 
-        let resolutions = LexicalScopeAnalyzer::analyze(root).unwrap();
-        let vars: Vec<&SyntaxNode> = tree.iter()
-            .filter_map(|e| e.as_node().filter(|n| n.kind() == SyntaxKind::VariableExpr))
-            .collect();
-        println!("{:#?}", tree);
-        println!("{:#?}", vars);
-
-        for var in vars {
-            println!("{:?}", resolutions.get(&RefEquality(var)));
-        }
+        assert_eq!(3, resolutions.len());
+        assert_eq!(2, vars.len());
+        assert_eq!(0, resolutions[&RefEquality(vars[0])]);
+        assert_eq!(1, resolutions[&RefEquality(vars[1])]);
     }
 
+    #[test]
+    pub fn variable_declared_in_scope_0_used_in_scope_1_resolves_to_scope_0()
+    {
+        let tree = source_to_tree("{
+                let x = 42;
+                {
+                    x = x + 1;
+                }
+            }");
+        let resolutions = tree_to_resolutions(&tree)
+            .expect("source is valid");
+        let x_references = tree_to_variable_references(&tree, "x");
+
+        assert_eq!(2, resolutions.len());
+        assert_eq!(1, x_references.len());
+        assert_eq!(1, resolutions[&RefEquality(x_references[0])]);
+    }
+
+    #[test]
+    pub fn variable_resolution_resolves_correct_variable()
+    {
+        let tree = source_to_tree("{
+                let x = 42;
+                {
+                    let y = 32;
+                    x = y + 1;
+                }
+            }");
+        let resolutions = tree_to_resolutions(&tree)
+            .expect("source is valid");
+        let x_references = tree_to_variable_assignments(&tree, "x");
+        let y_references = tree_to_variable_references(&tree, "y");
+
+        assert_eq!(2, resolutions.len());
+        assert_eq!(1, x_references.len());
+        assert_eq!(1, y_references.len());
+        assert_eq!(1, resolutions[&RefEquality(x_references[0])]);
+        assert_eq!(0, resolutions[&RefEquality(y_references[0])]);
+    }
+
+    fn source_to_tree(source: &str) -> SyntaxTree {
+        let session = InterpretingSession {
+            source,
+            kind: InterpretingSessionKind::Stmt
+        };
+
+        session.into()
+    }
+
+    fn tree_to_resolutions<'a>(tree: &'a SyntaxTree)
+        -> Result<HashMap<RefEquality<'a, SyntaxNode>, usize>, Vec<NewtStaticError>> {
+        let root = StmtNode::cast(tree.root().as_node().unwrap()).unwrap();
+        LexicalScopeAnalyzer::analyze(root)
+    }
+
+    fn tree_to_variable_references<'a>(tree: &'a SyntaxTree, identifier: &str) -> Vec<&'a SyntaxNode> {
+        tree.iter()
+            .filter_map(|e|
+                e.as_node().filter(|n| n.kind() == SyntaxKind::VariableExpr))
+            .map(|n| VariableExprNode::from_inner(n))
+            .filter(|v| v.identifier().lexeme() == identifier)
+            .map(|n| n.to_inner())
+            .collect()
+    }
+
+    fn tree_to_variable_assignments<'a>(tree: &'a SyntaxTree, identifier: &str) -> Vec<&'a SyntaxNode> {
+        tree.iter()
+            .filter_map(|e|
+                e.as_node().filter(|n| n.kind() == SyntaxKind::VariableAssignmentStmt))
+            .map(|n| VariableAssignmentStmtNode::from_inner(n))
+            .filter(|v| v.identifier().lexeme() == identifier)
+            .map(|n| n.to_inner())
+            .collect()
+    }
 
     #[test]
     pub fn lexical_scope_can_resolve_immediately_after_binding() {
