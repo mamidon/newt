@@ -9,6 +9,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
+use std::collections::HashSet;
 
 pub struct SyntaxTree<'a> {
     text: &'a str,
@@ -129,6 +130,12 @@ impl<'a> SyntaxTree<'a> {
             }
         }
     }
+
+    pub fn iter(&'a self) -> SyntaxTreeIterator<'a> {
+        SyntaxTreeIterator {
+            frontier: vec![self.root()],
+        }
+    }
 }
 
 impl<'a> Display for SyntaxTree<'a> {
@@ -140,5 +147,23 @@ impl<'a> Display for SyntaxTree<'a> {
 impl<'a> Debug for SyntaxTree<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         SyntaxTree::fmt(self, f)
+    }
+}
+
+pub struct SyntaxTreeIterator<'a> {
+    frontier: Vec<&'a SyntaxElement>
+}
+
+impl<'a> Iterator for SyntaxTreeIterator<'a> {
+    type Item = &'a SyntaxElement;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.frontier.pop();
+
+        if let Some(SyntaxElement::Node(node)) = next {
+            self.frontier.extend(node.children().iter().rev());
+        }
+
+        return next;
     }
 }

@@ -360,8 +360,8 @@ impl<'a> StmtVisitor<'a, Result<(), NewtStaticError>> for LexicalScopeAnalyzer<'
 }
 
 mod tests {
-    use crate::featurez::runtime::scope::{LexicalScope, LexicalScopeAnalyzer};
-    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode};
+    use crate::featurez::runtime::scope::{LexicalScope, LexicalScopeAnalyzer, RefEquality};
+    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode, SyntaxKind};
     use crate::featurez::grammar::root_stmt;
     use crate::featurez::{InterpretingSession, InterpretingSessionKind};
     use crate::featurez::newtypes::TransparentNewType;
@@ -382,20 +382,18 @@ mod tests {
         let root = StmtNode::cast(tree.root().as_node().unwrap()).unwrap();
 
         let resolutions = LexicalScopeAnalyzer::analyze(root).unwrap();
-        let while_stmt = traverse_to::<WhileStmtNode>(tree.root().as_node().unwrap(), [1]);
-        assert_eq!(0, while_stmt.condition());
+        let vars: Vec<&SyntaxNode> = tree.iter()
+            .filter_map(|e| e.as_node().filter(|n| n.kind() == SyntaxKind::VariableExpr))
+            .collect();
         println!("{:#?}", tree);
-    }
+        println!("{:#?}", vars);
 
-    fn traverse_to<T>(node: &SyntaxNode, node_offsets: &[usize]) -> T
-        where T: AstNode
-    {
-        if node_offsets.len() > 0 {
-            return traverse_to(node.as_node().unwrap().nth_node(node_offsets[0]), &node_offsets[1..]);
+        for var in vars {
+            println!("{:?}", resolutions.get(&RefEquality(var)));
         }
-
-        return T::cast(node).unwrap();
     }
+
+
     #[test]
     pub fn lexical_scope_can_resolve_immediately_after_binding() {
         let mut scope = LexicalScope::new();
