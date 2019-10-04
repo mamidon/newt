@@ -184,9 +184,10 @@ impl<'a> LexicalScopeAnalyzer<'a> {
     }
 
     fn begin_binding(&mut self, identifier: &str) {
-        if self.peek().contains_key(identifier) {
-            self.errors.push(NewtStaticError::DuplicateVariableDeclaration);
-            return;
+        match self.resolve_binding(identifier) {
+            Some(0) => self.errors.push(NewtStaticError::DuplicateVariableDeclaration),
+            Some(_) => self.errors.push(NewtStaticError::ShadowedVariableDeclaration),
+            None => {}
         }
 
         self.peek_mut().insert(identifier.to_string(), DeclarationProgress::BeingDeclared);
@@ -424,6 +425,50 @@ mod lexical_scope_analyzer_tests {
         assert_eq!(1, y_references.len());
         assert_eq!(1, resolutions[&RefEquality(x_references[0])]);
         assert_eq!(0, resolutions[&RefEquality(y_references[0])]);
+    }
+
+	#[test]
+	pub fn variable_resolution_reports_undeclared_variables()
+	{
+		let tree = source_to_tree("let y = 32 + x;");
+		let errors = tree_to_resolutions(&tree)
+            .err()
+            .expect("Source is invalid");
+
+		assert_eq!(1, errors.len());
+        assert_eq!(NewtStaticError::UndeclaredVariable, errors[0]);
+	}
+
+    #[test]
+    pub fn variable_resolution_reports_duplicate_variables()
+    {
+        let tree = source_to_tree("{
+            let x = 42;
+            let x = 2;
+        }");
+        let errors = tree_to_resolutions(&tree)
+            .err()
+            .expect("Source is invalid");
+
+        assert_eq!(1, errors.len());
+        assert_eq!(NewtStaticError::DuplicateVariableDeclaration, errors[0]);
+    }
+
+    #[test]
+    pub fn variable_resolution_reports_shadowed_variables()
+    {
+        let tree = source_to_tree("{
+            let x = 42;
+            {
+                let x = 32;
+            }
+        }");
+        let errors = tree_to_resolutions(&tree)
+            .err()
+            .expect("Source is invalid");
+
+        assert_eq!(1, errors.len());
+        assert_eq!(NewtStaticError::ShadowedVariableDeclaration, errors[0]);
     }
 
     fn source_to_tree(source: &str) -> SyntaxTree {
