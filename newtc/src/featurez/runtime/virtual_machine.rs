@@ -16,6 +16,25 @@ impl VirtualMachine {
         }
     }
 
+    pub fn interpret<'sess>(&'sess mut self, tree: &'sess SyntaxTree) -> Option<NewtValue> {
+        let node = match tree.root().as_node() {
+            Some(n) => n,
+            None => return None,
+        };
+
+        if let Some(expr) = ExprNode::cast(node) {
+            return self.visit_expr(expr).ok();
+        }
+
+        if let Some(stmt) = StmtNode::cast(node) {
+            self.visit_stmt(stmt);
+
+            return None;
+        }
+
+        return None;
+    }
+
     fn halt(&mut self, error: NewtRuntimeError) -> Result<(), NewtRuntimeError> {
         if !self.halted() {
             self.halting_error = Some(error)
@@ -44,8 +63,8 @@ impl VirtualMachine {
     }
 }
 
-impl<'a> ExprVisitor<'a, NewtResult> for VirtualMachine {
-    fn visit_expr(&mut self, node: &ExprNode) -> NewtResult {
+impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachine {
+    fn visit_expr(&mut self, node: &'sess ExprNode) -> NewtResult {
         if let Some(error) = self.halting_error {
             return Err(error);
         }
@@ -62,7 +81,7 @@ impl<'a> ExprVisitor<'a, NewtResult> for VirtualMachine {
         outcome
     }
 
-    fn visit_binary_expr(&mut self, node: &BinaryExprNode) -> NewtResult {
+    fn visit_binary_expr(&mut self, node: &'sess BinaryExprNode) -> NewtResult {
         let lhs = self.visit_expr(node.lhs())?;
         let rhs = self.visit_expr(node.rhs())?;
 
@@ -81,7 +100,7 @@ impl<'a> ExprVisitor<'a, NewtResult> for VirtualMachine {
     }
 
     //noinspection RsTypeCheck -- faulty on the match statement
-    fn visit_unary_expr(&mut self, node: &UnaryExprNode) -> NewtResult {
+    fn visit_unary_expr(&mut self, node: &'sess UnaryExprNode) -> NewtResult {
         let rhs = self.visit_expr(node.rhs())?;
 
         match node.operator() {
@@ -91,32 +110,32 @@ impl<'a> ExprVisitor<'a, NewtResult> for VirtualMachine {
         }
     }
 
-    fn visit_literal_expr(&mut self, node: &LiteralExprNode) -> NewtResult {
+    fn visit_literal_expr(&mut self, node: &'sess LiteralExprNode) -> NewtResult {
         let literal = node.literal();
         let value = NewtValue::from_literal_node(node);
 
         Ok(value)
     }
 
-    fn visit_grouping_expr(&mut self, node: &GroupingExprNode) -> NewtResult {
+    fn visit_grouping_expr(&mut self, node: &'sess GroupingExprNode) -> NewtResult {
         let expr = node.expr();
 
         self.visit_expr(expr)
     }
 
-    fn visit_variable_expr(&mut self, node: &VariableExprNode) -> NewtResult {
+    fn visit_variable_expr(&mut self, node: &'sess VariableExprNode) -> NewtResult {
         self.scope
             .resolve(node.identifier().lexeme())
             .map(|value| value.clone())
     }
 
-    fn visit_function_call_expr(&mut self, node: &FunctionCallExprNode) -> NewtResult {
+    fn visit_function_call_expr(&mut self, node: &'sess FunctionCallExprNode) -> NewtResult {
         unimplemented!()
     }
 }
 
-impl<'a> StmtVisitor<'a, Result<(), NewtRuntimeError>> for VirtualMachine {
-    fn visit_stmt(&mut self, node: &'a StmtNode) -> Result<(), NewtRuntimeError> {
+impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachine {
+    fn visit_stmt(&mut self, node: &'sess StmtNode) -> Result<(), NewtRuntimeError> {
         if let Some(error) = self.halting_error {
             return Err(error);
         }
@@ -139,7 +158,7 @@ impl<'a> StmtVisitor<'a, Result<(), NewtRuntimeError>> for VirtualMachine {
 
     fn visit_variable_declaration_stmt(
         &mut self,
-        node: &'a VariableDeclarationStmtNode,
+        node: &'sess VariableDeclarationStmtNode,
     ) -> Result<(), NewtRuntimeError> {
         let result = self.visit_expr(node.expr())?;
         let identifier = node.identifier().lexeme();
@@ -155,7 +174,7 @@ impl<'a> StmtVisitor<'a, Result<(), NewtRuntimeError>> for VirtualMachine {
 
     fn visit_variable_assignment_stmt(
         &mut self,
-        node: &'a VariableAssignmentStmtNode,
+        node: &'sess VariableAssignmentStmtNode,
     ) -> Result<(), NewtRuntimeError> {
         let identifier = node.identifier().lexeme();
         let value = self.visit_expr(node.expr())?;
@@ -163,7 +182,7 @@ impl<'a> StmtVisitor<'a, Result<(), NewtRuntimeError>> for VirtualMachine {
         self.scope.assign(identifier, value)
     }
 
-    fn visit_stmt_list_stmt(&mut self, node: &'a StmtListStmtNode) -> Result<(), NewtRuntimeError> {
+    fn visit_stmt_list_stmt(&mut self, node: &'sess StmtListStmtNode) -> Result<(), NewtRuntimeError> {
         self.scope.push();
 
         for stmt in node.stmts() {
@@ -175,12 +194,12 @@ impl<'a> StmtVisitor<'a, Result<(), NewtRuntimeError>> for VirtualMachine {
         Ok(())
     }
 
-    fn visit_expr_stmt(&mut self, node: &'a ExprStmtNode) -> Result<(), NewtRuntimeError> {
+    fn visit_expr_stmt(&mut self, node: &'sess ExprStmtNode) -> Result<(), NewtRuntimeError> {
         self.visit_expr(node.expr())?;
         Ok(())
     }
 
-    fn visit_if_stmt(&mut self, node: &'a IfStmtNode) -> Result<(), NewtRuntimeError> {
+    fn visit_if_stmt(&mut self, node: &'sess IfStmtNode) -> Result<(), NewtRuntimeError> {
         let result = self.visit_expr(node.condition())?;
 
         match result {
@@ -199,7 +218,7 @@ impl<'a> StmtVisitor<'a, Result<(), NewtRuntimeError>> for VirtualMachine {
         Ok(())
     }
 
-    fn visit_while_stmt(&mut self, node: &'a WhileStmtNode) -> Result<(), NewtRuntimeError> {
+    fn visit_while_stmt(&mut self, node: &'sess WhileStmtNode) -> Result<(), NewtRuntimeError> {
         loop {
             let conditional = self.visit_expr(node.condition())?;
             let truthy_conditional = conditional.as_truthy().ok_or(NewtRuntimeError::TypeError)?;
@@ -216,7 +235,7 @@ impl<'a> StmtVisitor<'a, Result<(), NewtRuntimeError>> for VirtualMachine {
 
     fn visit_function_declaration_stmt(
         &mut self,
-        node: &'a FunctionDeclarationStmtNode,
+        node: &'sess FunctionDeclarationStmtNode,
     ) -> Result<(), NewtRuntimeError> {
         unimplemented!()
     }

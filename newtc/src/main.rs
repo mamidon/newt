@@ -152,7 +152,7 @@ fn parse_batch(file: &str, machine: &mut VirtualMachine) {
 
     println!("{}", tree);
 
-    let result = interpret(machine, &tree);
+    let result = machine.interpret(&tree);
 
     println!("RESULT: {:?}", result);
     println!("STATE: {:#?}", machine);

@@ -45,21 +45,4 @@ impl<'sess> From<InterpretingSession<'sess>> for SyntaxTree<'sess> {
     }
 }
 
-pub fn interpret(machine: &mut VirtualMachine, tree: &SyntaxTree) -> Option<NewtValue> {
-    let node = match tree.root().as_node() {
-        Some(n) => n,
-        None => return None,
-    };
 
-    if let Some(expr) = ExprNode::cast(node) {
-        return machine.visit_expr(expr).ok();
-    }
-
-    if let Some(stmt) = StmtNode::cast(node) {
-        machine.visit_stmt(stmt);
-
-        return None;
-    }
-
-    return None;
-}

@@ -9,5 +9,5 @@ mod tokens;
 pub use self::runtime::VirtualMachine;
 pub use self::tokens::{tokenize, StrTokenSource, Token, TokenKind};
 
-pub use self::parse::{interpret, InterpretingSession, InterpretingSessionKind};
+pub use self::parse::{InterpretingSession, InterpretingSessionKind};
 
