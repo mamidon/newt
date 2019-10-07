@@ -130,7 +130,7 @@ enum DeclarationProgress {
 }
 
 #[derive(Debug)]
-struct RefEquality<'a, T: Eq + Hash>(&'a T);
+pub struct RefEquality<'a, T: Eq + Hash>(&'a T);
 
 impl<'a, T> Hash for RefEquality<'a, T>
     where T: Eq + Hash
@@ -160,7 +160,7 @@ impl<'a, T> From<&'a T> for RefEquality<'a, T>
 }
 
 #[derive(Debug)]
-struct LexicalScopeAnalyzer<'a> {
+pub struct LexicalScopeAnalyzer<'a> {
     scopes: Vec<HashMap<String, DeclarationProgress>>,
     resolutions: HashMap<RefEquality<'a, SyntaxNode>, usize>,
     errors: Vec<NewtStaticError>
@@ -471,13 +471,10 @@ mod lexical_scope_analyzer_tests {
         assert_eq!(NewtStaticError::ShadowedVariableDeclaration, errors[0]);
     }
 
-    fn source_to_tree(source: &str) -> SyntaxTree {
-        let session = InterpretingSession {
-            source,
-            kind: InterpretingSessionKind::Stmt
-        };
+    fn source_to_tree(source: &str) -> &SyntaxTree {
+        let session = InterpretingSession::new(InterpretingSessionKind::Stmt, source);
 
-        session.into()
+        session.syntax_tree()
     }
 
     fn tree_to_resolutions<'a>(tree: &'a SyntaxTree)
