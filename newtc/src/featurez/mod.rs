@@ -3,11 +3,12 @@ mod grammar;
 mod newtypes;
 mod parse;
 mod runtime;
-pub mod syntax;
+mod syntax;
 mod tokens;
+mod driver;
 
 pub use self::runtime::VirtualMachineState;
 pub use self::tokens::{tokenize, StrTokenSource, Token, TokenKind};
 
-pub use self::parse::{InterpretingSession, InterpretingSessionKind};
+pub use self::driver::{InterpretingSession, InterpretingSessionKind};
 
