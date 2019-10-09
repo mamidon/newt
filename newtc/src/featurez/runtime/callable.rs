@@ -1,14 +1,14 @@
 use crate::featurez::syntax::{FunctionDeclarationStmtNode, NewtRuntimeError, NewtValue};
-use crate::featurez::VirtualMachine;
+use crate::featurez::VirtualMachineState;
 use std::fmt::{Debug, Error, Formatter};
 
 pub trait Callable {
     fn symbol(&self) -> &str;
     fn arity(&self) -> usize;
     fn call(
-        &mut self,
-        vm: &mut VirtualMachine,
-        arguments: &[NewtValue],
+	    &mut self,
+	    vm: &mut VirtualMachineState,
+	    arguments: &[NewtValue],
     ) -> Result<Option<NewtValue>, NewtRuntimeError>;
 }
 
@@ -28,9 +28,9 @@ impl Callable for FunctionDeclarationStmtNode {
     }
 
     fn call(
-        &mut self,
-        vm: &mut VirtualMachine,
-        arguments: &[NewtValue],
+	    &mut self,
+	    vm: &mut VirtualMachineState,
+	    arguments: &[NewtValue],
     ) -> Result<Option<NewtValue>, NewtRuntimeError> {
         unimplemented!()
     }

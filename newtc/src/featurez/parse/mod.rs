@@ -1,4 +1,4 @@
-use crate::featurez::runtime::VirtualMachine;
+use crate::featurez::runtime::VirtualMachineState;
 use crate::featurez::runtime::RefEquality;
 use crate::featurez::runtime::LexicalScopeAnalyzer;
 use crate::featurez::syntax::{AstNode, ExprNode, ExprVisitor, NewtValue, NewtStaticError, NewtRuntimeError, SyntaxNode};
@@ -51,7 +51,7 @@ impl<'sess> InterpretingSession<'sess> {
         }
     }
 
-    pub fn interpret(&self, vm: &mut VirtualMachine) -> Option<NewtValue> {
+    pub fn interpret(&self, vm: &mut VirtualMachineState) -> Option<NewtValue> {
         vm.interpret(&self.tree)
     }
 

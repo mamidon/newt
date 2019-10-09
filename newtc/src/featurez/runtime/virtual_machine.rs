@@ -3,14 +3,14 @@ use crate::featurez::syntax::*;
 use crate::featurez::TokenKind;
 
 #[derive(Debug)]
-pub struct VirtualMachine {
+pub struct VirtualMachineState {
     scope: LexicalScope,
     halting_error: Option<NewtRuntimeError>,
 }
 
-impl VirtualMachine {
-    pub fn new() -> VirtualMachine {
-        VirtualMachine {
+impl VirtualMachineState {
+    pub fn new() -> VirtualMachineState {
+        VirtualMachineState {
             scope: LexicalScope::new(),
             halting_error: None,
         }
@@ -63,7 +63,7 @@ impl VirtualMachine {
     }
 }
 
-impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachine {
+impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineState {
     fn visit_expr(&mut self, node: &'sess ExprNode) -> NewtResult {
         if let Some(error) = self.halting_error {
             return Err(error);
@@ -134,7 +134,7 @@ impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachine {
     }
 }
 
-impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachine {
+impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachineState {
     fn visit_stmt(&mut self, node: &'sess StmtNode) -> Result<(), NewtRuntimeError> {
         if let Some(error) = self.halting_error {
             return Err(error);
