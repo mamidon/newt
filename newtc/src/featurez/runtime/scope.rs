@@ -367,19 +367,20 @@ mod lexical_scope_analyzer_tests {
     use crate::featurez::{InterpretingSession, InterpretingSessionKind};
     use crate::featurez::newtypes::TransparentNewType;
     use std::collections::HashMap;
+    use std::borrow::Borrow;
 
     #[test]
     pub fn variable_in_condition_resolves_to_same_scope()
     {
-        let tree = source_to_tree("{
+        let session = source_to_tree("{
                 let x = 42;
                 while x > 0 {
                     x = x + 1;
                 }
             }");
-        let resolutions = tree_to_resolutions(&tree)
+        let resolutions = tree_to_resolutions(session.syntax_tree())
             .expect("source is valid");
-        let vars = tree_to_variable_references(&tree, "x");
+        let vars = tree_to_variable_references(session.syntax_tree(), "x");
 
         assert_eq!(3, resolutions.len());
         assert_eq!(2, vars.len());
@@ -390,15 +391,15 @@ mod lexical_scope_analyzer_tests {
     #[test]
     pub fn variable_declared_in_scope_0_used_in_scope_1_resolves_to_scope_0()
     {
-        let tree = source_to_tree("{
+        let session = source_to_tree("{
                 let x = 42;
                 {
                     x = x + 1;
                 }
             }");
-        let resolutions = tree_to_resolutions(&tree)
+        let resolutions = tree_to_resolutions(session.syntax_tree())
             .expect("source is valid");
-        let x_references = tree_to_variable_references(&tree, "x");
+        let x_references = tree_to_variable_references(session.syntax_tree(), "x");
 
         assert_eq!(2, resolutions.len());
         assert_eq!(1, x_references.len());
@@ -408,17 +409,17 @@ mod lexical_scope_analyzer_tests {
     #[test]
     pub fn variable_resolution_resolves_correct_variable()
     {
-        let tree = source_to_tree("{
+        let session = source_to_tree("{
                 let x = 42;
                 {
                     let y = 32;
                     x = y + 1;
                 }
             }");
-        let resolutions = tree_to_resolutions(&tree)
+        let resolutions = tree_to_resolutions(session.syntax_tree())
             .expect("source is valid");
-        let x_references = tree_to_variable_assignments(&tree, "x");
-        let y_references = tree_to_variable_references(&tree, "y");
+        let x_references = tree_to_variable_assignments(session.syntax_tree(), "x");
+        let y_references = tree_to_variable_references(session.syntax_tree(), "y");
 
         assert_eq!(2, resolutions.len());
         assert_eq!(1, x_references.len());
@@ -430,8 +431,8 @@ mod lexical_scope_analyzer_tests {
 	#[test]
 	pub fn variable_resolution_reports_undeclared_variables()
 	{
-		let tree = source_to_tree("let y = 32 + x;");
-		let errors = tree_to_resolutions(&tree)
+		let session = source_to_tree("let y = 32 + x;");
+		let errors = tree_to_resolutions(session.syntax_tree())
             .err()
             .expect("Source is invalid");
 
@@ -442,11 +443,11 @@ mod lexical_scope_analyzer_tests {
     #[test]
     pub fn variable_resolution_reports_duplicate_variables()
     {
-        let tree = source_to_tree("{
+        let session = source_to_tree("{
             let x = 42;
             let x = 2;
         }");
-        let errors = tree_to_resolutions(&tree)
+        let errors = tree_to_resolutions(session.syntax_tree())
             .err()
             .expect("Source is invalid");
 
@@ -457,13 +458,13 @@ mod lexical_scope_analyzer_tests {
     #[test]
     pub fn variable_resolution_reports_shadowed_variables()
     {
-        let tree = source_to_tree("{
+        let session = source_to_tree("{
             let x = 42;
             {
                 let x = 32;
             }
         }");
-        let errors = tree_to_resolutions(&tree)
+        let errors = tree_to_resolutions(session.syntax_tree())
             .err()
             .expect("Source is invalid");
 
@@ -471,10 +472,8 @@ mod lexical_scope_analyzer_tests {
         assert_eq!(NewtStaticError::ShadowedVariableDeclaration, errors[0]);
     }
 
-    fn source_to_tree(source: &str) -> &SyntaxTree {
-        let session = InterpretingSession::new(InterpretingSessionKind::Stmt, source);
-
-        session.syntax_tree()
+    fn source_to_tree(source: &str) -> InterpretingSession {
+        InterpretingSession::new(InterpretingSessionKind::Stmt, source)
     }
 
     fn tree_to_resolutions<'a>(tree: &'a SyntaxTree)

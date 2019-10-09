@@ -338,6 +338,4 @@ fn parser_precede_node_can_precede_nodes() {
     parser.end_node(three_plus_three, SyntaxKind::BinaryExpr);
 
     let tree = SyntaxTree::from_parser(&parser.end_parsing(), "1+2+3");
-
-    println!("tree:\n{}", tree);
 }

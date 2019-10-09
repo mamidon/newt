@@ -11,21 +11,20 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::collections::HashSet;
 
-pub struct SyntaxTree<'a> {
-    text: &'a str,
+pub struct SyntaxTree {
     root: SyntaxElement,
 }
 
-impl<'a> SyntaxTree<'a> {
-    pub fn new(root: SyntaxElement, text: &'a str) -> SyntaxTree<'a> {
-        SyntaxTree { text, root }
+impl SyntaxTree {
+    pub fn new(root: SyntaxElement) -> SyntaxTree {
+        SyntaxTree { root }
     }
 
     pub fn root(&self) -> &SyntaxElement {
         &self.root
     }
 
-    pub fn from_parser(parser: &CompletedParsing, text: &'a str) -> Self {
+    pub fn from_parser(parser: &CompletedParsing, text: &str) -> Self {
         let events = &parser.events;
         let mut sink = TextTreeSink::new();
         let mut offset = 0;
@@ -81,18 +80,23 @@ impl<'a> SyntaxTree<'a> {
 
         let root = sink.end_tree();
 
-        SyntaxTree::new(root, text)
+        SyntaxTree::new(root)
+    }
+
+    pub fn iter(&self) -> SyntaxTreeIterator {
+        SyntaxTreeIterator {
+            frontier: vec![self.root()],
+        }
     }
 
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        print_tree_element(f, &self.root, "", self.text, true);
+        print_tree_element(f, &self.root, "",true);
         return Ok(());
 
         fn print_tree_element(
             f: &mut Formatter,
             element: &SyntaxElement,
             prefix: &str,
-            text: &str,
             last: bool,
         ) -> usize {
             write!(f, "{}", prefix);
@@ -116,39 +120,33 @@ impl<'a> SyntaxTree<'a> {
                             f,
                             child,
                             &next_prefix,
-                            &text[children_length..],
                             last_child,
                         );
                     }
                     return children_length;
                 }
                 SyntaxElement::Token(token) => {
-                    writeln!(f, "{:?} {:?}", token.token_kind(), &text[..token.length()]);
+                    writeln!(f, "{:?}", token.token_kind());
 
                     return token.length();
                 }
             }
         }
     }
-
-    pub fn iter(&'a self) -> SyntaxTreeIterator<'a> {
-        SyntaxTreeIterator {
-            frontier: vec![self.root()],
-        }
-    }
 }
 
-impl<'a> Display for SyntaxTree<'a> {
+impl Display for SyntaxTree {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         SyntaxTree::fmt(self, f)
     }
 }
 
-impl<'a> Debug for SyntaxTree<'a> {
+impl Debug for SyntaxTree {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         SyntaxTree::fmt(self, f)
     }
 }
+
 
 pub struct SyntaxTreeIterator<'a> {
     frontier: Vec<&'a SyntaxElement>

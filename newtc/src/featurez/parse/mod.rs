@@ -36,39 +36,30 @@ pub enum NewtError {
 pub struct InterpretingSession<'sess> {
     kind: InterpretingSessionKind,
     source: &'sess str,
-    tree: SyntaxTree<'sess>,
-    resolutions: HashMap<RefEquality<'sess, SyntaxNode>, usize>,
-    errors: Vec<NewtError>
+    tree: SyntaxTree,
 }
 
 impl<'sess> InterpretingSession<'sess> {
-    pub fn new(kind: InterpretingSessionKind, source: &'sess str) -> InterpretingSession {
+    pub fn new(kind: InterpretingSessionKind, source: &'sess str) -> InterpretingSession<'sess> {
         let tree = InterpretingSession::syntax_tree_from_source(kind, source);
         let mut resolutions_table: HashMap<RefEquality<'sess, SyntaxNode>, usize> = HashMap::new();
-        let mut errors: Vec<NewtError> = vec![];
-        let borrow = tree.root().as_node().unwrap();
-        if let Some(stmt) = StmtNode::cast(borrow) {
-            let analyzer = LexicalScopeAnalyzer::analyze(stmt);
-            match analyzer {
-                Ok(resolutions) => resolutions_table = resolutions,
-                Err(resolution_errors) => errors.extend(resolution_errors.iter().map(|e| NewtError::Static(*e)))
-            }
-        }
 
         InterpretingSession {
             kind,
             source,
-            errors,
             tree,
-            resolutions: resolutions_table
         }
     }
 
-    pub fn syntax_tree(&self) -> &SyntaxTree<'sess> {
+    pub fn interpret(&self, vm: &mut VirtualMachine) -> Option<NewtValue> {
+        vm.interpret(&self.tree)
+    }
+
+    pub fn syntax_tree(&self) -> &SyntaxTree {
         &self.tree
     }
 
-    fn syntax_tree_from_source(kind: InterpretingSessionKind, source: &'sess str) -> SyntaxTree<'sess> {
+    fn syntax_tree_from_source(kind: InterpretingSessionKind, source: &'sess str) -> SyntaxTree {
         use super::grammar::{root_expr, root_stmt};
 
         let tokens = tokenize(source);
@@ -83,6 +74,5 @@ impl<'sess> InterpretingSession<'sess> {
         SyntaxTree::from_parser(&completed_parsing, source)
     }
 }
-
 
 
