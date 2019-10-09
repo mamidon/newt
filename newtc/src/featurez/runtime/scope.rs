@@ -95,6 +95,10 @@ impl LexicalScope {
     }
 
     pub fn resolve(&self, identifier: &str) -> Result<NewtValue, NewtRuntimeError> {
+        self.resolve_at(0, identifier)
+    }
+
+    pub fn resolve_at(&self, offset: usize, identifier: &str) -> Result<NewtValue, NewtRuntimeError> {
         self.top.borrow().resolve(identifier)
     }
 
@@ -130,7 +134,7 @@ enum DeclarationProgress {
 }
 
 #[derive(Debug)]
-pub struct RefEquality<'a, T: Eq + Hash>(&'a T);
+pub struct RefEquality<'a, T: Eq + Hash>(pub &'a T);
 
 impl<'a, T> Hash for RefEquality<'a, T>
     where T: Eq + Hash

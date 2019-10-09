@@ -53,7 +53,7 @@ impl<'sess> InterpretingSession<'sess> {
 			}
 		}
 
-		let mut session = VirtualMachineInterpretingSession::new(self.syntax_tree(), vm);
+		let mut session = VirtualMachineInterpretingSession::new(self.syntax_tree(), vm, resolutions_table);
 		session.interpret()
 	}
 

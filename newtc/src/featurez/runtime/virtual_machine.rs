@@ -3,6 +3,7 @@ use crate::featurez::syntax::*;
 use crate::featurez::TokenKind;
 use std::collections::HashMap;
 use crate::featurez::runtime::RefEquality;
+use crate::featurez::newtypes::TransparentNewType;
 
 #[derive(Debug)]
 pub struct VirtualMachineState {
@@ -49,13 +50,19 @@ impl VirtualMachineState {
 pub struct VirtualMachineInterpretingSession<'sess> {
     tree: &'sess SyntaxTree,
     state: &'sess mut VirtualMachineState,
+    resolutions: HashMap<RefEquality<'sess, SyntaxNode>, usize>
 }
 
 impl<'sess> VirtualMachineInterpretingSession<'sess> {
-    pub fn new(tree: &'sess SyntaxTree, state: &'sess mut VirtualMachineState) -> VirtualMachineInterpretingSession<'sess> {
+    pub fn new(tree: &'sess SyntaxTree,
+               state: &'sess mut VirtualMachineState,
+                resolutions: HashMap<RefEquality<'sess, SyntaxNode>, usize>)
+        -> VirtualMachineInterpretingSession<'sess> {
+
         VirtualMachineInterpretingSession {
             tree,
-            state
+            state,
+            resolutions
         }
     }
 
@@ -140,8 +147,9 @@ impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineInterpretingSession
     }
 
     fn visit_variable_expr(&mut self, node: &'sess VariableExprNode) -> NewtResult {
+        let offset = self.resolutions.get(&RefEquality(node.to_inner())).unwrap();
         self.state.scope
-            .resolve(node.identifier().lexeme())
+            .resolve_at(*offset, node.identifier().lexeme())
             .map(|value| value.clone())
     }
 
