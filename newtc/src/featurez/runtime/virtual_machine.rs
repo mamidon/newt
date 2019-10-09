@@ -1,6 +1,8 @@
 use super::scope::LexicalScope;
 use crate::featurez::syntax::*;
 use crate::featurez::TokenKind;
+use std::collections::HashMap;
+use crate::featurez::runtime::RefEquality;
 
 #[derive(Debug)]
 pub struct VirtualMachineState {
@@ -14,25 +16,6 @@ impl VirtualMachineState {
             scope: LexicalScope::new(),
             halting_error: None,
         }
-    }
-
-    pub fn interpret<'sess>(&'sess mut self, tree: &'sess SyntaxTree) -> Option<NewtValue> {
-        let node = match tree.root().as_node() {
-            Some(n) => n,
-            None => return None,
-        };
-
-        if let Some(expr) = ExprNode::cast(node) {
-            return self.visit_expr(expr).ok();
-        }
-
-        if let Some(stmt) = StmtNode::cast(node) {
-            self.visit_stmt(stmt);
-
-            return None;
-        }
-
-        return None;
     }
 
     fn halt(&mut self, error: NewtRuntimeError) -> Result<(), NewtRuntimeError> {
@@ -63,9 +46,42 @@ impl VirtualMachineState {
     }
 }
 
-impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineState {
+pub struct VirtualMachineInterpretingSession<'sess> {
+    tree: &'sess SyntaxTree,
+    state: &'sess mut VirtualMachineState,
+}
+
+impl<'sess> VirtualMachineInterpretingSession<'sess> {
+    pub fn new(tree: &'sess SyntaxTree, state: &'sess mut VirtualMachineState) -> VirtualMachineInterpretingSession<'sess> {
+        VirtualMachineInterpretingSession {
+            tree,
+            state
+        }
+    }
+
+    pub fn interpret(&mut self) -> Option<NewtValue> {
+        let node = match self.tree.root().as_node() {
+            Some(n) => n,
+            None => return None,
+        };
+
+        if let Some(expr) = ExprNode::cast(node) {
+            return self.visit_expr(expr).ok();
+        }
+
+        if let Some(stmt) = StmtNode::cast(node) {
+            self.visit_stmt(stmt);
+
+            return None;
+        }
+
+        return None;
+    }
+}
+
+impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineInterpretingSession<'sess> {
     fn visit_expr(&mut self, node: &'sess ExprNode) -> NewtResult {
-        if let Some(error) = self.halting_error {
+        if let Some(error) = self.state.halting_error {
             return Err(error);
         }
 
@@ -124,7 +140,7 @@ impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineState {
     }
 
     fn visit_variable_expr(&mut self, node: &'sess VariableExprNode) -> NewtResult {
-        self.scope
+        self.state.scope
             .resolve(node.identifier().lexeme())
             .map(|value| value.clone())
     }
@@ -134,9 +150,9 @@ impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineState {
     }
 }
 
-impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachineState {
+impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachineInterpretingSession<'sess> {
     fn visit_stmt(&mut self, node: &'sess StmtNode) -> Result<(), NewtRuntimeError> {
-        if let Some(error) = self.halting_error {
+        if let Some(error) = self.state.halting_error {
             return Err(error);
         }
 
@@ -151,7 +167,7 @@ impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachineS
             StmtKind::ReturnStmt(node) => self.visit_return_stmt(node),
         };
 
-        self.halt_on_error(outcome)?;
+        self.state.halt_on_error(outcome)?;
 
         outcome
     }
@@ -164,8 +180,8 @@ impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachineS
         let identifier = node.identifier().lexeme();
         let value = self.visit_expr(node.expr())?;
 
-        match self.scope.bind(&identifier, value) {
-            Err(error) => self.halt(error)?,
+        match self.state.scope.bind(&identifier, value) {
+            Err(error) => self.state.halt(error)?,
             Ok(_) => {}
         };
 
@@ -179,17 +195,17 @@ impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachineS
         let identifier = node.identifier().lexeme();
         let value = self.visit_expr(node.expr())?;
 
-        self.scope.assign(identifier, value)
+        self.state.scope.assign(identifier, value)
     }
 
     fn visit_stmt_list_stmt(&mut self, node: &'sess StmtListStmtNode) -> Result<(), NewtRuntimeError> {
-        self.scope.push();
+        self.state.scope.push();
 
         for stmt in node.stmts() {
             self.visit_stmt(stmt)?;
         }
 
-        self.scope.pop();
+        self.state.scope.pop();
 
         Ok(())
     }
@@ -212,7 +228,7 @@ impl<'sess> StmtVisitor<'sess, Result<(), NewtRuntimeError>> for VirtualMachineS
                     }
                 }
             }
-            _ => self.halt(NewtRuntimeError::TypeError)?,
+            _ => self.state.halt(NewtRuntimeError::TypeError)?,
         }
 
         Ok(())

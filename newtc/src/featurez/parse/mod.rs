@@ -1,4 +1,4 @@
-use crate::featurez::runtime::VirtualMachineState;
+use crate::featurez::runtime::{VirtualMachineState, VirtualMachineInterpretingSession};
 use crate::featurez::runtime::RefEquality;
 use crate::featurez::runtime::LexicalScopeAnalyzer;
 use crate::featurez::syntax::{AstNode, ExprNode, ExprVisitor, NewtValue, NewtStaticError, NewtRuntimeError, SyntaxNode};
@@ -42,7 +42,6 @@ pub struct InterpretingSession<'sess> {
 impl<'sess> InterpretingSession<'sess> {
     pub fn new(kind: InterpretingSessionKind, source: &'sess str) -> InterpretingSession<'sess> {
         let tree = InterpretingSession::syntax_tree_from_source(kind, source);
-        let mut resolutions_table: HashMap<RefEquality<'sess, SyntaxNode>, usize> = HashMap::new();
 
         InterpretingSession {
             kind,
@@ -52,7 +51,19 @@ impl<'sess> InterpretingSession<'sess> {
     }
 
     pub fn interpret(&self, vm: &mut VirtualMachineState) -> Option<NewtValue> {
-        vm.interpret(&self.tree)
+        let mut resolutions_table: HashMap<RefEquality<'_, SyntaxNode>, usize> = HashMap::new();
+        let mut errors: Vec<NewtError> = vec![];
+        let borrow = self.tree.root().as_node().unwrap();
+        if let Some(stmt) = StmtNode::cast(borrow) {
+            let analyzer = LexicalScopeAnalyzer::analyze(stmt);
+            match analyzer {
+                Ok(resolutions) => resolutions_table = resolutions,
+                Err(resolution_errors) => errors.extend(resolution_errors.iter().map(|e| NewtError::Static(*e)))
+            }
+        }
+
+        let mut session = VirtualMachineInterpretingSession::new(self.syntax_tree(), vm);
+        session.interpret()
     }
 
     pub fn syntax_tree(&self) -> &SyntaxTree {
