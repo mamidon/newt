@@ -2,12 +2,13 @@ use super::scope::LexicalScope;
 use crate::featurez::syntax::*;
 use crate::featurez::TokenKind;
 use std::collections::HashMap;
-use crate::featurez::runtime::RefEquality;
+use crate::featurez::runtime::{RefEquality, Callable};
 use crate::featurez::newtypes::TransparentNewType;
 
 #[derive(Debug)]
 pub struct VirtualMachineState {
     scope: LexicalScope,
+    stack: Vec<Box<Callable>>,
     halting_error: Option<NewtRuntimeError>,
 }
 
@@ -15,6 +16,7 @@ impl VirtualMachineState {
     pub fn new() -> VirtualMachineState {
         VirtualMachineState {
             scope: LexicalScope::new(),
+            stack: Vec::new(),
             halting_error: None,
         }
     }
@@ -154,7 +156,16 @@ impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineInterpretingSession
     }
 
     fn visit_function_call_expr(&mut self, node: &'sess FunctionCallExprNode) -> NewtResult {
-        unimplemented!()
+        let callable = match self.visit_expr(node.callee())? {
+            NewtValue::Callable(callable) => callable,
+            _ => return Err(NewtRuntimeError::TypeError)
+        };
+
+        if callable.arity() != node.arguments().count() {
+            return Err(NewtRuntimeError::TypeError);
+        }
+
+        callable.call(self.state)
     }
 }
 
