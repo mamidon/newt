@@ -1,5 +1,5 @@
 ---
-created: "2019-10-10T14:12:36.892809Z"
+created: "2019-10-10T14:19:58.516592Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -80,11 +80,11 @@ expression: approval_document
 ┗ BinaryExpr
   ┠ BinaryExpr
   ┃ ┠ LiteralExpr
-  ┃ ┃ ┗ IntegerLiteral
-  ┃ ┠ Plus
+  ┃ ┃ ┗ IntegerLiteral '1'
+  ┃ ┠ Plus '+'
   ┃ ┗ LiteralExpr
-  ┃   ┗ IntegerLiteral
-  ┠ Plus
+  ┃   ┗ IntegerLiteral '2'
+  ┠ Plus '+'
   ┗ LiteralExpr
-    ┗ IntegerLiteral
+    ┗ IntegerLiteral '3'
 

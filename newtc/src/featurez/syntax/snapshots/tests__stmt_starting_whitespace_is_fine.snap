@@ -1,5 +1,5 @@
 ---
-created: "2019-10-10T14:12:36.894011Z"
+created: "2019-10-10T14:19:58.523773Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -283,52 +283,56 @@ expression: approval_document
 ====tree====
 ============
 ┗ StmtListStmt
-  ┠ WhiteSpace
-  ┠ LeftBrace
+  ┠ WhiteSpace '
+    '
+  ┠ LeftBrace '{'
   ┠ VariableDeclarationStmt
-  ┃ ┠ Let
-  ┃ ┠ WhiteSpace
-  ┃ ┠ Identifier
-  ┃ ┠ WhiteSpace
-  ┃ ┠ Equals
-  ┃ ┠ WhiteSpace
+  ┃ ┠ Let 'let'
+  ┃ ┠ WhiteSpace ' '
+  ┃ ┠ Identifier 'x'
+  ┃ ┠ WhiteSpace ' '
+  ┃ ┠ Equals '='
+  ┃ ┠ WhiteSpace ' '
   ┃ ┠ LiteralExpr
-  ┃ ┃ ┗ IntegerLiteral
-  ┃ ┠ SemiColon
-  ┃ ┗ WhiteSpace
+  ┃ ┃ ┗ IntegerLiteral '1'
+  ┃ ┠ SemiColon ';'
+  ┃ ┗ WhiteSpace '
+	'
   ┠ VariableDeclarationStmt
-  ┃ ┠ Let
-  ┃ ┠ WhiteSpace
-  ┃ ┠ Identifier
-  ┃ ┠ WhiteSpace
-  ┃ ┠ Equals
-  ┃ ┠ WhiteSpace
+  ┃ ┠ Let 'let'
+  ┃ ┠ WhiteSpace ' '
+  ┃ ┠ Identifier 'y'
+  ┃ ┠ WhiteSpace ' '
+  ┃ ┠ Equals '='
+  ┃ ┠ WhiteSpace ' '
   ┃ ┠ LiteralExpr
-  ┃ ┃ ┗ IntegerLiteral
-  ┃ ┠ SemiColon
-  ┃ ┗ WhiteSpace
+  ┃ ┃ ┗ IntegerLiteral '2'
+  ┃ ┠ SemiColon ';'
+  ┃ ┗ WhiteSpace '
+	'
   ┠ VariableDeclarationStmt
-  ┃ ┠ Let
-  ┃ ┠ WhiteSpace
-  ┃ ┠ Identifier
-  ┃ ┠ WhiteSpace
-  ┃ ┠ Equals
-  ┃ ┠ WhiteSpace
+  ┃ ┠ Let 'let'
+  ┃ ┠ WhiteSpace ' '
+  ┃ ┠ Identifier 'c'
+  ┃ ┠ WhiteSpace ' '
+  ┃ ┠ Equals '='
+  ┃ ┠ WhiteSpace ' '
   ┃ ┠ BinaryExpr
   ┃ ┃ ┠ BinaryExpr
   ┃ ┃ ┃ ┠ VariableExpr
-  ┃ ┃ ┃ ┃ ┠ Identifier
-  ┃ ┃ ┃ ┃ ┗ WhiteSpace
-  ┃ ┃ ┃ ┠ Star
-  ┃ ┃ ┃ ┠ WhiteSpace
+  ┃ ┃ ┃ ┃ ┠ Identifier 'x'
+  ┃ ┃ ┃ ┃ ┗ WhiteSpace ' '
+  ┃ ┃ ┃ ┠ Star '*'
+  ┃ ┃ ┃ ┠ WhiteSpace ' '
   ┃ ┃ ┃ ┗ LiteralExpr
-  ┃ ┃ ┃   ┠ IntegerLiteral
-  ┃ ┃ ┃   ┗ WhiteSpace
-  ┃ ┃ ┠ Plus
-  ┃ ┃ ┠ WhiteSpace
+  ┃ ┃ ┃   ┠ IntegerLiteral '2'
+  ┃ ┃ ┃   ┗ WhiteSpace ' '
+  ┃ ┃ ┠ Plus '+'
+  ┃ ┃ ┠ WhiteSpace ' '
   ┃ ┃ ┗ VariableExpr
-  ┃ ┃   ┗ Identifier
-  ┃ ┗ SemiColon
-  ┠ RightBrace
-  ┗ WhiteSpace
+  ┃ ┃   ┗ Identifier 'y'
+  ┃ ┗ SemiColon ';'
+  ┠ RightBrace '}'
+  ┗ WhiteSpace '
+	'
 

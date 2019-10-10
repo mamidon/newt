@@ -126,7 +126,7 @@ impl SyntaxTree {
                     return children_length;
                 }
                 SyntaxElement::Token(token) => {
-                    writeln!(f, "{:?}", token.token_kind());
+                    writeln!(f, "{:?} '{}'", token.token_kind(), token.lexeme());
 
                     return token.length();
                 }
