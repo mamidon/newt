@@ -1,5 +1,5 @@
 ---
-created: "2019-09-13T23:58:08.834101Z"
+created: "2019-10-10T14:12:36.849489Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -95,15 +95,15 @@ expression: approval_document
 ============
 ┗ BinaryExpr
   ┠ GroupingExpr
-  ┃ ┠ LeftParenthesis "("
+  ┃ ┠ LeftParenthesis
   ┃ ┠ BinaryExpr
   ┃ ┃ ┠ LiteralExpr
-  ┃ ┃ ┃ ┗ IntegerLiteral "1"
-  ┃ ┃ ┠ Plus "+"
+  ┃ ┃ ┃ ┗ IntegerLiteral
+  ┃ ┃ ┠ Plus
   ┃ ┃ ┗ LiteralExpr
-  ┃ ┃   ┗ IntegerLiteral "2"
-  ┃ ┗ RightParenthesis ")"
-  ┠ Star "*"
+  ┃ ┃   ┗ IntegerLiteral
+  ┃ ┗ RightParenthesis
+  ┠ Star
   ┗ LiteralExpr
-    ┗ IntegerLiteral "3"
+    ┗ IntegerLiteral
 

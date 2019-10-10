@@ -1,5 +1,5 @@
 ---
-created: "2019-09-13T23:58:08.882454Z"
+created: "2019-10-10T14:12:36.894011Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -7,14 +7,15 @@ expression: approval_document
 ====text====
 ============
 
-	let x = 1;
+    {let x = 1;
 	let y = 2;
-	let c = x * 2 + y;
+	let c = x * 2 + y;}
 	
 ====tokens====
 ============
 [
-    WhiteSpace[2],
+    WhiteSpace[5],
+    LeftBrace[1],
     Let[3],
     WhiteSpace[1],
     Identifier[1],
@@ -49,6 +50,7 @@ expression: approval_document
     WhiteSpace[1],
     Identifier[1],
     SemiColon[1],
+    RightBrace[1],
     WhiteSpace[2],
     EndOfFile[0]
 ]
@@ -56,13 +58,22 @@ expression: approval_document
 ============
 [
     BeginNode {
-        kind: VariableDeclarationStmt,
+        kind: StmtListStmt,
         is_forward_parent: false,
         forward_parent_offset: None
     },
     Trivia {
         kind: WhiteSpace,
-        length: 2
+        length: 5
+    },
+    Token {
+        kind: LeftBrace,
+        length: 1
+    },
+    BeginNode {
+        kind: VariableDeclarationStmt,
+        is_forward_parent: false,
+        forward_parent_offset: None
     },
     Token {
         kind: Let,
@@ -106,14 +117,13 @@ expression: approval_document
         kind: WhiteSpace,
         length: 2
     },
+    EndNode,
     BeginNode {
-        kind: Error(
-            "Unexpected text"
-        ),
+        kind: VariableDeclarationStmt,
         is_forward_parent: false,
         forward_parent_offset: None
     },
-    Trivia {
+    Token {
         kind: Let,
         length: 3
     },
@@ -121,7 +131,7 @@ expression: approval_document
         kind: WhiteSpace,
         length: 1
     },
-    Trivia {
+    Token {
         kind: Identifier,
         length: 1
     },
@@ -129,7 +139,7 @@ expression: approval_document
         kind: WhiteSpace,
         length: 1
     },
-    Trivia {
+    Token {
         kind: Equals,
         length: 1
     },
@@ -137,79 +147,17 @@ expression: approval_document
         kind: WhiteSpace,
         length: 1
     },
-    Trivia {
+    BeginNode {
+        kind: LiteralExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
         kind: IntegerLiteral,
         length: 1
     },
-    Trivia {
-        kind: SemiColon,
-        length: 1
-    },
-    Trivia {
-        kind: WhiteSpace,
-        length: 2
-    },
-    Trivia {
-        kind: Let,
-        length: 3
-    },
-    Trivia {
-        kind: WhiteSpace,
-        length: 1
-    },
-    Trivia {
-        kind: Identifier,
-        length: 1
-    },
-    Trivia {
-        kind: WhiteSpace,
-        length: 1
-    },
-    Trivia {
-        kind: Equals,
-        length: 1
-    },
-    Trivia {
-        kind: WhiteSpace,
-        length: 1
-    },
-    Trivia {
-        kind: Identifier,
-        length: 1
-    },
-    Trivia {
-        kind: WhiteSpace,
-        length: 1
-    },
-    Trivia {
-        kind: Star,
-        length: 1
-    },
-    Trivia {
-        kind: WhiteSpace,
-        length: 1
-    },
-    Trivia {
-        kind: IntegerLiteral,
-        length: 1
-    },
-    Trivia {
-        kind: WhiteSpace,
-        length: 1
-    },
-    Trivia {
-        kind: Plus,
-        length: 1
-    },
-    Trivia {
-        kind: WhiteSpace,
-        length: 1
-    },
-    Trivia {
-        kind: Identifier,
-        length: 1
-    },
-    Trivia {
+    EndNode,
+    Token {
         kind: SemiColon,
         length: 1
     },
@@ -218,47 +166,169 @@ expression: approval_document
         length: 2
     },
     EndNode,
+    BeginNode {
+        kind: VariableDeclarationStmt,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: Let,
+        length: 3
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Token {
+        kind: Identifier,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    Token {
+        kind: Equals,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    BeginNode {
+        kind: VariableExpr,
+        is_forward_parent: false,
+        forward_parent_offset: Some(
+            4
+        )
+    },
+    Token {
+        kind: Identifier,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    EndNode,
+    BeginNode {
+        kind: BinaryExpr,
+        is_forward_parent: true,
+        forward_parent_offset: Some(
+            8
+        )
+    },
+    Token {
+        kind: Star,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    BeginNode {
+        kind: LiteralExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: IntegerLiteral,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    EndNode,
+    EndNode,
+    BeginNode {
+        kind: BinaryExpr,
+        is_forward_parent: true,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: Plus,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 1
+    },
+    BeginNode {
+        kind: VariableExpr,
+        is_forward_parent: false,
+        forward_parent_offset: None
+    },
+    Token {
+        kind: Identifier,
+        length: 1
+    },
+    EndNode,
+    EndNode,
+    Token {
+        kind: SemiColon,
+        length: 1
+    },
+    EndNode,
+    Token {
+        kind: RightBrace,
+        length: 1
+    },
+    Trivia {
+        kind: WhiteSpace,
+        length: 2
+    },
     EndNode
 ]
 ====tree====
 ============
-┗ VariableDeclarationStmt
-  ┠ WhiteSpace "\n\t"
-  ┠ Let "let"
-  ┠ WhiteSpace " "
-  ┠ Identifier "x"
-  ┠ WhiteSpace " "
-  ┠ Equals "="
-  ┠ WhiteSpace " "
-  ┠ LiteralExpr
-  ┃ ┗ IntegerLiteral "1"
-  ┠ SemiColon ";"
-  ┠ WhiteSpace "\n\t"
-  ┗ Error("Unexpected text")
-    ┠ Let "let"
-    ┠ WhiteSpace " "
-    ┠ Identifier "y"
-    ┠ WhiteSpace " "
-    ┠ Equals "="
-    ┠ WhiteSpace " "
-    ┠ IntegerLiteral "2"
-    ┠ SemiColon ";"
-    ┠ WhiteSpace "\n\t"
-    ┠ Let "let"
-    ┠ WhiteSpace " "
-    ┠ Identifier "c"
-    ┠ WhiteSpace " "
-    ┠ Equals "="
-    ┠ WhiteSpace " "
-    ┠ Identifier "x"
-    ┠ WhiteSpace " "
-    ┠ Star "*"
-    ┠ WhiteSpace " "
-    ┠ IntegerLiteral "2"
-    ┠ WhiteSpace " "
-    ┠ Plus "+"
-    ┠ WhiteSpace " "
-    ┠ Identifier "y"
-    ┠ SemiColon ";"
-    ┗ WhiteSpace "\n\t"
+┗ StmtListStmt
+  ┠ WhiteSpace
+  ┠ LeftBrace
+  ┠ VariableDeclarationStmt
+  ┃ ┠ Let
+  ┃ ┠ WhiteSpace
+  ┃ ┠ Identifier
+  ┃ ┠ WhiteSpace
+  ┃ ┠ Equals
+  ┃ ┠ WhiteSpace
+  ┃ ┠ LiteralExpr
+  ┃ ┃ ┗ IntegerLiteral
+  ┃ ┠ SemiColon
+  ┃ ┗ WhiteSpace
+  ┠ VariableDeclarationStmt
+  ┃ ┠ Let
+  ┃ ┠ WhiteSpace
+  ┃ ┠ Identifier
+  ┃ ┠ WhiteSpace
+  ┃ ┠ Equals
+  ┃ ┠ WhiteSpace
+  ┃ ┠ LiteralExpr
+  ┃ ┃ ┗ IntegerLiteral
+  ┃ ┠ SemiColon
+  ┃ ┗ WhiteSpace
+  ┠ VariableDeclarationStmt
+  ┃ ┠ Let
+  ┃ ┠ WhiteSpace
+  ┃ ┠ Identifier
+  ┃ ┠ WhiteSpace
+  ┃ ┠ Equals
+  ┃ ┠ WhiteSpace
+  ┃ ┠ BinaryExpr
+  ┃ ┃ ┠ BinaryExpr
+  ┃ ┃ ┃ ┠ VariableExpr
+  ┃ ┃ ┃ ┃ ┠ Identifier
+  ┃ ┃ ┃ ┃ ┗ WhiteSpace
+  ┃ ┃ ┃ ┠ Star
+  ┃ ┃ ┃ ┠ WhiteSpace
+  ┃ ┃ ┃ ┗ LiteralExpr
+  ┃ ┃ ┃   ┠ IntegerLiteral
+  ┃ ┃ ┃   ┗ WhiteSpace
+  ┃ ┃ ┠ Plus
+  ┃ ┃ ┠ WhiteSpace
+  ┃ ┃ ┗ VariableExpr
+  ┃ ┃   ┗ Identifier
+  ┃ ┗ SemiColon
+  ┠ RightBrace
+  ┗ WhiteSpace
 

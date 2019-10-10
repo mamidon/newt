@@ -66,9 +66,9 @@ syntax_tree_expr_tests! {
 
 syntax_tree_stmt_tests! {
     stmt_starting_whitespace_is_fine: r#"
-	let x = 1;
+    {let x = 1;
 	let y = 2;
-	let c = x * 2 + y;
+	let c = x * 2 + y;}
 	"#,
 }
 
