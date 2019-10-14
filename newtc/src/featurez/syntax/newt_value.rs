@@ -22,6 +22,7 @@ pub enum NewtValue {
     String(Rc<String>),
     Bool(bool),
     Callable(Rc<dyn Callable>),
+    Null
 }
 
 impl NewtValue {
