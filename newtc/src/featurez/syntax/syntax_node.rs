@@ -2,7 +2,7 @@ use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxToken};
 use crate::featurez::TokenKind;
 use std::hash::{Hash, Hasher};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SyntaxNode {
     kind: SyntaxKind,
     length: usize,
