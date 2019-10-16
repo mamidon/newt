@@ -38,7 +38,7 @@ impl TreeSink for TextTreeSink {
         }
         children.reverse();
 
-        let node = SyntaxNode::new(kind, offset - offset_start, children.into_boxed_slice());
+        let node = SyntaxNode::new(kind, offset - offset_start, children);
 
         self.working_set.push(SyntaxElement::Node(node));
     }

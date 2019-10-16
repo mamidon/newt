@@ -1,20 +1,21 @@
 use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxToken};
 use crate::featurez::TokenKind;
 use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct SyntaxNode {
     kind: SyntaxKind,
     length: usize,
-    children: Box<[SyntaxElement]>,
+    children: Rc<[SyntaxElement]>,
 }
 
 impl SyntaxNode {
-    pub fn new(kind: SyntaxKind, length: usize, children: Box<[SyntaxElement]>) -> SyntaxNode {
+    pub fn new(kind: SyntaxKind, length: usize, children: Vec<SyntaxElement>) -> SyntaxNode {
         SyntaxNode {
             kind,
             length,
-            children,
+            children: children.into(),
         }
     }
 
@@ -56,7 +57,9 @@ impl SyntaxNode {
 
 impl PartialEq for SyntaxNode {
     fn eq(&self, other: &Self) -> bool {
-        (self as *const SyntaxNode) == (other as *const SyntaxNode)
+        self.kind == other.kind
+            && self.length == other.length
+            && Rc::ptr_eq(&self.children, &other.children)
     }
 }
 

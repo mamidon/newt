@@ -42,7 +42,7 @@ impl<'sess> InterpretingSession<'sess> {
 	}
 
 	pub fn interpret(&self, vm: &mut VirtualMachineState) -> Option<NewtValue> {
-		let mut resolutions_table: HashMap<RefEquality<'_, SyntaxNode>, usize> = HashMap::new();
+		let mut resolutions_table: HashMap<SyntaxNode, usize> = HashMap::new();
 		let mut errors: Vec<NewtError> = vec![];
 		let borrow = self.tree.root().as_node().unwrap();
 		if let Some(stmt) = StmtNode::cast(borrow) {

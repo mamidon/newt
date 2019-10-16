@@ -3,6 +3,7 @@ use crate::featurez::VirtualMachineState;
 use std::fmt::{Debug, Error, Formatter};
 use std::convert::TryFrom;
 use std::collections::HashMap;
+use crate::featurez::runtime::scope::LexicalScope;
 
 pub trait Callable {
     fn symbol(&self) -> &str;
@@ -20,3 +21,30 @@ impl Debug for Callable {
     }
 }
 
+struct NewtCallable {
+	definition: FunctionDeclarationStmtNode,
+	closure: LexicalScope
+}
+
+impl NewtCallable {
+	pub fn new(node: FunctionDeclarationStmtNode, closure: LexicalScope) -> NewtCallable {
+		NewtCallable {
+			definition: node.clone(),
+			closure: closure.clone()
+		}
+	}
+}
+
+impl Callable for NewtCallable {
+	fn symbol(&self) -> &str {
+		self.definition.identifier().lexeme()
+	}
+
+	fn arity(&self) -> usize {
+		self.definition.arguments().count()
+	}
+
+	fn call(&self, vm: &mut VirtualMachineState, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
+		unimplemented!()
+	}
+}

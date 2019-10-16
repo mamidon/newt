@@ -10,6 +10,7 @@ use std::fmt::Formatter;
 use std::rc::Rc;
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct StmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for StmtNode {
@@ -61,6 +62,7 @@ impl StmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct ReturnStmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for ReturnStmtNode {
@@ -74,6 +76,7 @@ impl ReturnStmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct FunctionDeclarationStmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for FunctionDeclarationStmtNode {
@@ -96,6 +99,7 @@ impl FunctionDeclarationStmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct WhileStmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for WhileStmtNode {
@@ -114,6 +118,7 @@ impl WhileStmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct IfStmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for IfStmtNode {
@@ -138,6 +143,7 @@ impl IfStmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct VariableDeclarationStmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for VariableDeclarationStmtNode {
@@ -162,6 +168,7 @@ impl VariableDeclarationStmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct VariableAssignmentStmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for VariableAssignmentStmtNode {
@@ -180,6 +187,7 @@ impl VariableAssignmentStmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct StmtListStmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for StmtListStmtNode {
@@ -197,6 +205,7 @@ impl StmtListStmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct ExprStmtNode(SyntaxNode);
 
 unsafe impl TransparentNewType for ExprStmtNode {
@@ -210,6 +219,7 @@ impl ExprStmtNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct ExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for ExprNode {
@@ -266,6 +276,7 @@ impl ExprNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct FunctionCallExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for FunctionCallExprNode {
@@ -287,6 +298,7 @@ impl FunctionCallExprNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct LiteralExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for LiteralExprNode {
@@ -300,6 +312,7 @@ impl LiteralExprNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct BinaryExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for BinaryExprNode {
@@ -321,6 +334,7 @@ impl BinaryExprNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct UnaryExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for UnaryExprNode {
@@ -338,6 +352,7 @@ impl UnaryExprNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct GroupingExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for GroupingExprNode {
@@ -351,6 +366,7 @@ impl GroupingExprNode {
 }
 
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct VariableExprNode(SyntaxNode);
 
 unsafe impl TransparentNewType for VariableExprNode {
