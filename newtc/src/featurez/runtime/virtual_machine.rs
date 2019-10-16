@@ -165,7 +165,7 @@ impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineInterpretingSession
             return Err(NewtRuntimeError::TypeError);
         }
 
-        callable.call(self.state)
+        unimplemented!()
     }
 }
 
