@@ -134,44 +134,40 @@ enum DeclarationProgress {
 }
 
 #[derive(Debug)]
-pub struct RefEquality<'a, T: Eq + Hash>(pub &'a T);
+pub struct RefEquality<T>(*const T);
 
-impl<'a, T> Hash for RefEquality<'a, T>
-    where T: Eq + Hash
+impl<T> Hash for RefEquality<T>
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         (self.0 as *const T).hash(state)
     }
 }
 
-impl<'a, 'b, T> PartialEq<RefEquality<'b, T>> for RefEquality<'a, T>
-    where T: Eq + Hash
+impl<T> PartialEq<RefEquality<T>> for RefEquality<T>
 {
-    fn eq(&self, other: &RefEquality<'b, T>) -> bool {
+    fn eq(&self, other: &RefEquality<T>) -> bool {
         (self.0 as *const T) == (other.0 as *const T)
     }
 }
 
-impl<'a, T> Eq for RefEquality<'a, T>
-    where T: Eq + Hash
-{}
-impl<'a, T> From<&'a T> for RefEquality<'a, T>
-    where T: Eq + Hash
+impl<T> From<&T> for RefEquality<T>
 {
-    fn from(reference: &'a T) -> Self {
-        RefEquality(reference)
+    fn from(item: &T) -> Self {
+        RefEquality(item as *const T)
     }
 }
+
+impl<T> Eq for RefEquality<T> {}
 
 #[derive(Debug)]
 pub struct LexicalScopeAnalyzer {
     scopes: Vec<HashMap<String, DeclarationProgress>>,
-    resolutions: HashMap<SyntaxNode, usize>,
+    resolutions: HashMap<RefEquality<SyntaxNode>, usize>,
     errors: Vec<NewtStaticError>
 }
 
 impl LexicalScopeAnalyzer {
-    pub fn analyze(root: &StmtNode) -> Result<HashMap<SyntaxNode, usize>, Vec<NewtStaticError>> {
+    pub fn analyze(root: &StmtNode) -> Result<HashMap<RefEquality<SyntaxNode>, usize>, Vec<NewtStaticError>> {
         let mut state = LexicalScopeAnalyzer {
             scopes: vec![HashMap::new()],
             resolutions: HashMap::new(),
@@ -266,7 +262,8 @@ impl ExprVisitor<'_, ()> for LexicalScopeAnalyzer {
 
     fn visit_variable_expr(&mut self, node: &VariableExprNode) -> () {
         if let Some(offset) = self.resolve_binding(node.identifier().lexeme()) {
-            self.resolutions.insert(node.to_inner().clone(), offset);
+            let key: RefEquality<SyntaxNode> = node.to_inner().into();
+            self.resolutions.insert(key, offset);
         } else {
             self.errors.push(NewtStaticError::UndeclaredVariable);
         }
@@ -306,7 +303,8 @@ impl StmtVisitor<'_, Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
     fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) -> Result<(), NewtStaticError> {
         let offset = self.resolve_binding(node.identifier().lexeme())
             .ok_or(NewtStaticError::UndeclaredVariable)?;
-        self.resolutions.insert(node.to_inner().clone(), offset);
+        let key: RefEquality<SyntaxNode> = node.to_inner().into();
+        self.resolutions.insert(key, offset);
         self.visit_expr(node.expr());
 
         Ok(())
@@ -388,8 +386,8 @@ mod lexical_scope_analyzer_tests {
 
         assert_eq!(3, resolutions.len());
         assert_eq!(2, vars.len());
-        assert_eq!(0, resolutions[vars[0]]);
-        assert_eq!(1, resolutions[vars[1]]);
+        assert_eq!(0, resolutions[&vars[0].into()]);
+        assert_eq!(1, resolutions[&vars[1].into()]);
     }
 
     #[test]
@@ -407,10 +405,6 @@ mod lexical_scope_analyzer_tests {
 
         let first_key = resolutions.keys().nth(1).unwrap();
         let first_var = x_references[0];
-
-        assert_eq!(first_key.kind(), first_var.kind());
-        assert_eq!(first_key.length(), first_var.length());
-        assert!(first_key.eq(first_var));
 
         assert_eq!(2, resolutions.len());
         assert_eq!(1, x_references.len());
@@ -435,8 +429,8 @@ mod lexical_scope_analyzer_tests {
         assert_eq!(2, resolutions.len());
         assert_eq!(1, x_references.len());
         assert_eq!(1, y_references.len());
-        assert_eq!(1, resolutions[x_references[0]]);
-        assert_eq!(0, resolutions[y_references[0]]);
+        assert_eq!(1, resolutions[&x_references[0].into()]);
+        assert_eq!(0, resolutions[&y_references[0].into()]);
     }
 
 	#[test]
@@ -488,7 +482,7 @@ mod lexical_scope_analyzer_tests {
     }
 
     fn tree_to_resolutions(tree: &SyntaxTree)
-        -> Result<HashMap<SyntaxNode, usize>, Vec<NewtStaticError>> {
+        -> Result<HashMap<RefEquality<SyntaxNode>, usize>, Vec<NewtStaticError>> {
         let root = StmtNode::cast(tree.root().as_node().unwrap()).unwrap();
         LexicalScopeAnalyzer::analyze(root)
     }

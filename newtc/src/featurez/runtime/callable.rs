@@ -1,16 +1,17 @@
-use crate::featurez::syntax::{FunctionDeclarationStmtNode, NewtRuntimeError, NewtValue, FunctionCallExprNode};
+use crate::featurez::syntax::{FunctionDeclarationStmtNode, NewtRuntimeError, NewtValue, FunctionCallExprNode, StmtVisitor};
 use crate::featurez::VirtualMachineState;
 use std::fmt::{Debug, Error, Formatter};
 use std::convert::TryFrom;
 use std::collections::HashMap;
 use crate::featurez::runtime::scope::LexicalScope;
+use crate::featurez::runtime::VirtualMachineInterpretingSession;
 
 pub trait Callable {
     fn symbol(&self) -> &str;
     fn arity(&self) -> usize;
 	fn call(
 		&self,
-		vm: &mut VirtualMachineState,
+		vm: &mut VirtualMachineInterpretingSession,
 		arguments: &[NewtValue]
 	) -> Result<NewtValue, NewtRuntimeError>;
 }
@@ -44,7 +45,9 @@ impl Callable for NewtCallable {
 		self.definition.arguments().count()
 	}
 
-	fn call(&self, vm: &mut VirtualMachineState, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
-		unimplemented!()
+	fn call(&self, vm: &mut VirtualMachineInterpretingSession, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
+		vm.visit_stmt_list_stmt(self.definition.stmts());
+
+		Ok(NewtValue::Null)
 	}
 }

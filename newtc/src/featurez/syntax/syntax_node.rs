@@ -63,10 +63,4 @@ impl PartialEq for SyntaxNode {
     }
 }
 
-impl Hash for SyntaxNode {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        (self as *const SyntaxNode).hash(state)
-    }
-}
-
 impl Eq for SyntaxNode {}

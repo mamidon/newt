@@ -52,13 +52,13 @@ impl VirtualMachineState {
 pub struct VirtualMachineInterpretingSession<'sess> {
     tree: &'sess SyntaxTree,
     state: &'sess mut VirtualMachineState,
-    resolutions: HashMap<SyntaxNode, usize>
+    resolutions: HashMap<RefEquality<SyntaxNode>, usize>
 }
 
 impl<'sess> VirtualMachineInterpretingSession<'sess> {
     pub fn new(tree: &'sess SyntaxTree,
                state: &'sess mut VirtualMachineState,
-                resolutions: HashMap<SyntaxNode, usize>)
+                resolutions: HashMap<RefEquality<SyntaxNode>, usize>)
         -> VirtualMachineInterpretingSession<'sess> {
 
         VirtualMachineInterpretingSession {
@@ -149,7 +149,8 @@ impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineInterpretingSession
     }
 
     fn visit_variable_expr(&mut self, node: &'sess VariableExprNode) -> NewtResult {
-        let offset = self.resolutions.get(node.to_inner()).unwrap();
+        let ref key: RefEquality<SyntaxNode> = node.to_inner().into();
+        let offset = self.resolutions.get(key).unwrap();
         self.state.scope
             .resolve_at(*offset, node.identifier().lexeme())
             .map(|value| value.clone())
@@ -165,7 +166,7 @@ impl<'sess> ExprVisitor<'sess, NewtResult> for VirtualMachineInterpretingSession
             return Err(NewtRuntimeError::TypeError);
         }
 
-        unimplemented!()
+        callable.call(self, [])
     }
 }
 
