@@ -11,7 +11,7 @@ pub trait Callable {
     fn arity(&self) -> usize;
 	fn call(
 		&self,
-		vm: &mut VirtualMachineInterpretingSession,
+		vm: &mut VirtualMachineState,
 		arguments: &[NewtValue]
 	) -> Result<NewtValue, NewtRuntimeError>;
 }
@@ -45,9 +45,14 @@ impl Callable for NewtCallable {
 		self.definition.arguments().count()
 	}
 
-	fn call(&self, vm: &mut VirtualMachineInterpretingSession, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
-		vm.visit_stmt_list_stmt(self.definition.stmts());
+	fn call(&self, vm: &mut VirtualMachineState, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
+		let mut environment = LexicalScope::new_with_closure(&self.closure);
+		for parameter in self.definition.arguments().enumerate() {
+			environment.bind(parameter.1.lexeme(), arguments[parameter.0].clone());
+		}
+		let result = vm.visit_stmt_list_stmt_with_scope(self.definition.stmts(), &mut environment);
 
+		result?;
 		Ok(NewtValue::Null)
 	}
 }

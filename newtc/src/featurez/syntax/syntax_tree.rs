@@ -1,7 +1,7 @@
 use crate::featurez::parse::CompletedParsing;
 use crate::featurez::parse::ParseEvent;
 use crate::featurez::syntax::tree_sink::TreeSink;
-use crate::featurez::syntax::SyntaxElement;
+use crate::featurez::syntax::{AstNode, SyntaxElement, SyntaxNode, StmtNode};
 use crate::featurez::syntax::SyntaxToken;
 use crate::featurez::syntax::TextTreeSink;
 
@@ -9,19 +9,41 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
+use crate::featurez::runtime::{RefEquality, LexicalScopeAnalyzer};
+use crate::featurez::driver::NewtError;
 
 pub struct SyntaxTree {
     root: SyntaxElement,
+    resolutions: HashMap<RefEquality<SyntaxNode>, usize>,
+    errors: Vec<NewtError>
 }
 
 impl SyntaxTree {
     pub fn new(root: SyntaxElement) -> SyntaxTree {
-        SyntaxTree { root }
+        SyntaxTree {
+            root,
+            resolutions: HashMap::new(),
+            errors: Vec::new()
+        }
     }
 
     pub fn root(&self) -> &SyntaxElement {
         &self.root
+    }
+
+    pub fn resolutions(&self) -> &HashMap<RefEquality<SyntaxNode>, usize> {
+        &self.resolutions
+    }
+
+    pub fn analyize(&mut self) {
+        if let Some(stmt) = StmtNode::cast(self.root.as_node().expect("Syntax trees always begin with a node")) {
+            let analyzer = LexicalScopeAnalyzer::analyze(stmt);
+            match analyzer {
+                Ok(resolutions) => self.resolutions = resolutions,
+                Err(resolution_errors) => self.errors.extend(resolution_errors.iter().map(|e| NewtError::Static(*e)))
+            }
+        }
     }
 
     pub fn from_parser(parser: &CompletedParsing, text: &str) -> Self {

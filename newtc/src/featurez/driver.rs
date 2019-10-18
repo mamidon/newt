@@ -32,7 +32,8 @@ pub struct InterpretingSession<'sess> {
 
 impl<'sess> InterpretingSession<'sess> {
 	pub fn new(kind: InterpretingSessionKind, source: &'sess str) -> InterpretingSession<'sess> {
-		let tree = InterpretingSession::syntax_tree_from_source(kind, source);
+		let mut tree = InterpretingSession::syntax_tree_from_source(kind, source);
+		tree.analyize();
 
 		InterpretingSession {
 			kind,
@@ -42,18 +43,7 @@ impl<'sess> InterpretingSession<'sess> {
 	}
 
 	pub fn interpret(&self, vm: &mut VirtualMachineState) -> Option<NewtValue> {
-		let mut resolutions_table: HashMap<RefEquality<SyntaxNode>, usize> = HashMap::new();
-		let mut errors: Vec<NewtError> = vec![];
-		let borrow = self.tree.root().as_node().unwrap();
-		if let Some(stmt) = StmtNode::cast(borrow) {
-			let analyzer = LexicalScopeAnalyzer::analyze(stmt);
-			match analyzer {
-				Ok(resolutions) => resolutions_table = resolutions,
-				Err(resolution_errors) => errors.extend(resolution_errors.iter().map(|e| NewtError::Static(*e)))
-			}
-		}
-
-		let mut session = VirtualMachineInterpretingSession::new(self.syntax_tree(), vm, resolutions_table);
+		let mut session = VirtualMachineInterpretingSession::new(self.syntax_tree(), vm);
 		session.interpret()
 	}
 

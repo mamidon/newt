@@ -89,6 +89,12 @@ impl LexicalScope {
         }
     }
 
+    pub fn new_with_closure(closure: &LexicalScope) -> LexicalScope {
+        LexicalScope {
+            top: closure.top.clone()
+        }
+    }
+
     pub fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
         self.top.borrow_mut().bind(identifier, value)?;
         Ok(())
