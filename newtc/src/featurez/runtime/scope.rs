@@ -310,6 +310,7 @@ impl StmtVisitor<'_, Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
         let offset = self.resolve_binding(node.identifier().lexeme())
             .ok_or(NewtStaticError::UndeclaredVariable)?;
         let key: RefEquality<SyntaxNode> = node.to_inner().into();
+        node.to_inner().with_info(SyntaxInfo::VariableResolutionOffset(offset));
         self.resolutions.insert(key, offset);
         self.visit_expr(node.expr());
 

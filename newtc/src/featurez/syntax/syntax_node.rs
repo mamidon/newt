@@ -1,4 +1,4 @@
-use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxToken};
+use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxToken, SyntaxInfo};
 use crate::featurez::TokenKind;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
@@ -17,6 +17,14 @@ impl SyntaxNode {
             length,
             children: children.into(),
         }
+    }
+
+    pub fn with_info(&mut self, info: SyntaxInfo) {
+        assert_eq!(1, Rc::strong_count(&self.children));
+
+        let mut next_children = self.children.to_vec();
+        next_children.push(SyntaxElement::Info(info));
+        self.children = next_children.into();
     }
 
     pub fn nth_node(&self, n: usize) -> &SyntaxNode {
@@ -42,6 +50,10 @@ impl SyntaxNode {
             .unwrap();
 
         token
+    }
+
+    pub fn infos(&self) -> impl Iterator<Item = &SyntaxInfo> {
+        self.children.iter().filter_map(|e| e.as_info())
     }
 
     pub fn kind(&self) -> SyntaxKind {
