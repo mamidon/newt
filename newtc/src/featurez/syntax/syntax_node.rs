@@ -2,6 +2,7 @@ use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxToken, SyntaxInfo
 use crate::featurez::TokenKind;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone)]
 pub struct SyntaxNode {
@@ -19,12 +20,13 @@ impl SyntaxNode {
         }
     }
 
-    pub fn with_info(&mut self, info: SyntaxInfo) {
+    pub fn with_info(&/*mut*/ self, info: SyntaxInfo) {
         assert_eq!(1, Rc::strong_count(&self.children));
 
         let mut next_children = self.children.to_vec();
         next_children.push(SyntaxElement::Info(info));
-        self.children = next_children.into();
+        unimplemented!();
+        //self.children = Rc::new(next_children.into());
     }
 
     pub fn nth_node(&self, n: usize) -> &SyntaxNode {
@@ -63,16 +65,6 @@ impl SyntaxNode {
         self.length
     }
     pub fn children(&self) -> &[SyntaxElement] {
-        &self.children
+        &*self.children
     }
 }
-
-impl PartialEq for SyntaxNode {
-    fn eq(&self, other: &Self) -> bool {
-        self.kind == other.kind
-            && self.length == other.length
-            && Rc::ptr_eq(&self.children, &other.children)
-    }
-}
-
-impl Eq for SyntaxNode {}

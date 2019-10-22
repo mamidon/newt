@@ -40,7 +40,7 @@ impl SyntaxTree {
         if let Some(stmt) = StmtNode::cast(self.root.as_node().expect("Syntax trees always begin with a node")) {
             let analyzer = LexicalScopeAnalyzer::analyze(stmt);
             match analyzer {
-                Ok(resolutions) => self.resolutions = resolutions,
+                Ok(()) => {},
                 Err(resolution_errors) => self.errors.extend(resolution_errors.iter().map(|e| NewtError::Static(*e)))
             }
         }
