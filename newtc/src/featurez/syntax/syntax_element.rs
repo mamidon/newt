@@ -1,11 +1,10 @@
-use crate::featurez::syntax::{SyntaxNode, SyntaxToken, SyntaxInfo};
+use crate::featurez::syntax::{SyntaxNode, SyntaxToken};
 use crate::featurez::TokenKind;
 
 #[derive(Debug, Clone)]
 pub enum SyntaxElement {
     Node(SyntaxNode),
-    Token(SyntaxToken),
-    Info(SyntaxInfo)
+    Token(SyntaxToken)
 }
 
 impl SyntaxElement {
@@ -19,13 +18,6 @@ impl SyntaxElement {
     pub fn is_token(&self) -> bool {
         match self {
             SyntaxElement::Token(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_info(&self) -> bool {
-        match self {
-            SyntaxElement::Info(_) => true,
             _ => false
         }
     }
@@ -48,13 +40,6 @@ impl SyntaxElement {
         match self {
             SyntaxElement::Token(t) => Some(t),
             _ => None,
-        }
-    }
-
-    pub fn as_info(&self) -> Option<&SyntaxInfo> {
-        match self {
-            SyntaxElement::Info(i) => Some(i),
-            _ => None
         }
     }
 }

@@ -151,11 +151,6 @@ impl SyntaxTree {
                     writeln!(f, "{:?} '{}'", token.token_kind(), token.lexeme());
 
                     return token.length();
-                },
-                SyntaxElement::Info(info) => {
-                    writeln!(f, "{:?}", info);
-
-                    return 0;
                 }
             }
         }

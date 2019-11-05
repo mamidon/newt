@@ -1,6 +1,6 @@
-use crate::featurez::syntax::{NewtResult, MutStmtVisitor, MutExprVisitor};
+use crate::featurez::syntax::{NewtResult};
 use crate::featurez::syntax::{NewtRuntimeError, NewtValue};
-use crate::featurez::syntax::{SyntaxElement, SyntaxInfo};
+use crate::featurez::syntax::{SyntaxElement};
 use crate::featurez::syntax::*;
 
 use std::cell::RefCell;
@@ -267,7 +267,7 @@ impl ExprVisitor<()> for LexicalScopeAnalyzer {
 
     fn visit_variable_expr(&mut self, node: &VariableExprNode) -> () {
         if let Some(offset) = self.resolve_binding(node.identifier().lexeme()) {
-            node.to_inner().with_info(SyntaxInfo::VariableResolutionOffset(offset));
+            //node.to_inner().with_info(SyntaxInfo::VariableResolutionOffset(offset));
         } else {
             self.errors.push(NewtStaticError::UndeclaredVariable);
         }
@@ -307,7 +307,7 @@ impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
     fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) -> Result<(), NewtStaticError> {
         let offset = self.resolve_binding(node.identifier().lexeme())
             .ok_or(NewtStaticError::UndeclaredVariable)?;
-        node.to_inner().with_info(SyntaxInfo::VariableResolutionOffset(offset));
+        //node.to_inner().with_info(SyntaxInfo::VariableResolutionOffset(offset));
         self.visit_expr(node.expr());
 
         Ok(())
@@ -367,13 +367,13 @@ impl StmtVisitor<Result<(), NewtStaticError>> for LexicalScopeAnalyzer {
 
 mod lexical_scope_analyzer_tests {
     use crate::featurez::runtime::scope::{LexicalScope, LexicalScopeAnalyzer, RefEquality};
-    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode, SyntaxKind, NewtStaticError, VariableExprNode, VariableAssignmentStmtNode, SyntaxInfo};
+    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode, SyntaxKind, NewtStaticError, VariableExprNode, VariableAssignmentStmtNode};
     use crate::featurez::grammar::root_stmt;
     use crate::featurez::{InterpretingSession, InterpretingSessionKind};
     use crate::featurez::newtypes::TransparentNewType;
     use std::collections::HashMap;
     use std::borrow::Borrow;
-
+/*
     #[test]
     pub fn variable_in_condition_resolves_to_same_scope()
     {
@@ -390,7 +390,7 @@ mod lexical_scope_analyzer_tests {
         assert_eq!(&SyntaxInfo::VariableResolutionOffset(0), vars[0].infos().nth(0).unwrap());
         assert_eq!(&SyntaxInfo::VariableResolutionOffset(1), vars[1].infos().nth(0).unwrap());
     }
-/*
+
     #[test]
     pub fn variable_declared_in_scope_0_used_in_scope_1_resolves_to_scope_0()
     {
