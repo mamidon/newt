@@ -12,164 +12,121 @@ use crate::featurez::newtypes::TransparentNewType;
 type ScopeMap = HashMap<String, StoredValue>;
 
 type ScopeMapLink = Rc<RefCell<ScopeMap>>;
-type ScopeNodeLink = Rc<RefCell<ScopeNode>>;
+
+#[derive(Clone, Debug)]
+struct ScopeNodeLink {
+    next: Rc<RefCell<ScopeNode>>,
+    sequence_number: usize
+}
 
 #[derive(Debug)]
 struct StoredValue {
-    value: NewtValue
+    value: NewtValue,
+	sequence_number: usize
 }
 
 #[derive(Clone, Debug)]
-struct ScopeNode {
-    next: Option<ScopeNodeLink>,
+pub struct ScopeNode {
+    link: Option<ScopeNodeLink>,
     scope: ScopeMapLink
 }
 
-#[derive(Clone, Debug)]
-pub struct LexicalScope {
-    top: ScopeNodeLink,
-}
-
 impl ScopeNode {
-    fn new() -> ScopeNode {
+    pub fn new() -> ScopeNode {
         ScopeNode {
             scope: Rc::new(RefCell::new(HashMap::new())),
-            next: None
+            link: None
+        }
+    }
+
+    pub fn new_with_scope(parent: &ScopeNode) -> ScopeNode {
+        ScopeNode {
+            scope: Rc::new(RefCell::new(HashMap::new())),
+            link: Some(ScopeNodeLink {
+                next: Rc::new(RefCell::new(parent.clone())),
+                sequence_number: parent.scope.borrow().len()
+            })
         }
     }
 }
 
 impl ScopeNode {
-    fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+    pub fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
         let mut hash_map = self.scope.borrow_mut();
 
         if hash_map.contains_key(identifier) {
             return Err(NewtRuntimeError::DuplicateDeclaration);
         }
 
-        let stored_value = StoredValue::new(value);
+        let stored_value = StoredValue::new(value, self.scope.borrow().len());
         hash_map.insert(identifier.to_string(), stored_value);
 
         Ok(())
     }
 
-    fn assign(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+    pub fn assign(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
         let mut scope = self.scope.borrow_mut();
         if let Some(stored_value) = scope.get_mut(identifier) {
-            *stored_value = StoredValue::new(value);
+            *stored_value = StoredValue::new(value, stored_value.sequence_number);
             return Ok(());
         }
 
-        match &self.next {
-            Some(next) => {
-                next.borrow_mut().assign(identifier, value)
+        match &self.link {
+            Some(link) => {
+                link.next.borrow_mut().assign(identifier, value)
             },
             None => Err(NewtRuntimeError::UndefinedVariable)
         }
     }
 
-    fn resolve(&self, identifier: &str) -> Result<NewtValue, NewtRuntimeError> {
+    pub fn resolve(&self, identifier: &str) -> Result<NewtValue, NewtRuntimeError> {
         let scope = self.scope.borrow();
         if let Some(stored_value) = scope.get(identifier) {
             return Ok(stored_value.value.clone());
         }
 
-        match &self.next {
-            Some(next) => {
-                next.borrow().resolve(identifier)
+        match &self.link {
+            Some(link) => {
+                link.next.borrow().filtered_resolve(identifier, link.sequence_number)
+            },
+            None => Err(NewtRuntimeError::UndefinedVariable)
+        }
+    }
+
+    fn filtered_resolve(&self, identifier: &str, sequence_number: usize) -> Result<NewtValue, NewtRuntimeError> {
+        let scope = self.scope.borrow();
+        if let Some(stored_value) = scope.get(identifier) {
+            if stored_value.sequence_number < sequence_number {
+                return Ok(stored_value.value.clone());
+            }
+        }
+
+        match &self.link {
+            Some(link) => {
+                link.next.borrow().resolve(identifier)
             },
             None => Err(NewtRuntimeError::UndefinedVariable)
         }
     }
 }
 
-impl LexicalScope {
-    pub fn new() -> LexicalScope {
-        LexicalScope {
-            top: Rc::new(RefCell::new(ScopeNode::new()))
-        }
-    }
-
-    pub fn new_with_closure(closure: &LexicalScope) -> LexicalScope {
-        LexicalScope {
-            top: closure.top.clone()
-        }
-    }
-
-    pub fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
-        self.top.borrow_mut().bind(identifier, value)?;
-        Ok(())
-    }
-
-    pub fn resolve(&self, identifier: &str) -> Result<NewtValue, NewtRuntimeError> {
-        unimplemented!()
-    }
-
-    pub fn assign(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
-        self.top.borrow_mut().assign(identifier, value)
-    }
-
-    pub fn push(&mut self) {
-        let mut next_top = Rc::new(RefCell::new(ScopeNode::new()));
-        (*next_top).borrow_mut().next = Some(self.top.clone());
-        self.top = next_top;
-    }
-
-    pub fn pop(&mut self) {
-        let next = self.top.borrow().next.clone().unwrap();
-        self.top = next;
-    }
-}
-
 impl StoredValue {
-    fn new(value: NewtValue) -> StoredValue {
+    fn new(value: NewtValue, sequence_number: usize) -> StoredValue {
         StoredValue {
-            value
+            value,
+            sequence_number
         }
     }
 }
-
-#[derive(Debug)]
-enum DeclarationProgress {
-    Undeclared,
-    BeingDeclared,
-    Declared
-}
-
-#[derive(Debug)]
-pub struct RefEquality<T>(*const T);
-
-impl<T> Hash for RefEquality<T>
-{
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        (self.0 as *const T).hash(state)
-    }
-}
-
-impl<T> PartialEq<RefEquality<T>> for RefEquality<T>
-{
-    fn eq(&self, other: &RefEquality<T>) -> bool {
-        (self.0 as *const T) == (other.0 as *const T)
-    }
-}
-
-impl<T> From<&T> for RefEquality<T>
-{
-    fn from(item: &T) -> Self {
-        RefEquality(item as *const T)
-    }
-}
-
-impl<T> Eq for RefEquality<T> {}
 
 mod lexical_scope_analyzer_tests {
-    use crate::featurez::runtime::scope::{LexicalScope, RefEquality};
     use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode, SyntaxKind, NewtStaticError, VariableExprNode, VariableAssignmentStmtNode};
     use crate::featurez::grammar::root_stmt;
     use crate::featurez::{InterpretingSession, InterpretingSessionKind};
     use crate::featurez::newtypes::TransparentNewType;
     use std::collections::HashMap;
     use std::borrow::Borrow;
+    use crate::featurez::runtime::scope::ScopeNode;
 
     fn source_to_tree(source: &str) -> InterpretingSession {
         InterpretingSession::new(InterpretingSessionKind::Stmt, source)
@@ -197,7 +154,7 @@ mod lexical_scope_analyzer_tests {
 
     #[test]
     pub fn lexical_scope_can_resolve_immediately_after_binding() {
-        let mut scope = LexicalScope::new();
+        let mut scope = ScopeNode::new();
 
         scope.bind("foo", NewtValue::Int(42)).unwrap();
         scope.bind("bar", NewtValue::Int(32)).unwrap();
@@ -208,17 +165,17 @@ mod lexical_scope_analyzer_tests {
 
     #[test]
     pub fn lexical_scope_returns_undefined_variable_error_when_resolving_fails() {
-        let mut scope = LexicalScope::new();
+        let mut scope = ScopeNode::new();
 
         assert_eq!(Err(NewtRuntimeError::UndefinedVariable), scope.resolve("zoo"));
     }
 
     #[test]
     pub fn lexical_scope_can_resolve_top_scope_when_scopes_are_nested() {
-        let mut scope = LexicalScope::new();
+        let mut scope = ScopeNode::new();
 
         scope.bind("foo", NewtValue::Int(42)).unwrap();
-        scope.push();
+        scope = ScopeNode::new_with_scope(&scope);
         scope.bind("bar", NewtValue::Int(32)).unwrap();
         let top_scope = scope.clone();
 
@@ -233,7 +190,7 @@ mod lexical_scope_analyzer_tests {
 
     #[test]
     pub fn closed_lexical_scope_cannot_resolve_younger_variables_in_parent_scope() {
-        let mut scope = LexicalScope::new();
+        let mut scope = ScopeNode::new();
 
         scope.bind("foo", NewtValue::Int(42)).unwrap();
         scope.push();

@@ -1,5 +1,4 @@
 use crate::featurez::runtime::{VirtualMachineState, VirtualMachineInterpretingSession};
-use crate::featurez::runtime::RefEquality;
 use crate::featurez::syntax::{AstNode, ExprNode, ExprVisitor, NewtValue, NewtStaticError, NewtRuntimeError, SyntaxNode};
 use crate::featurez::syntax::{StmtNode, StmtVisitor, SyntaxElement, SyntaxTree};
 use crate::featurez::tokens::{tokenize, StrTokenSource, Token, TokenKind};

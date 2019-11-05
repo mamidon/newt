@@ -10,7 +10,6 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::collections::{HashSet, HashMap};
-use crate::featurez::runtime::{RefEquality};
 use crate::featurez::driver::NewtError;
 
 pub struct SyntaxTree {

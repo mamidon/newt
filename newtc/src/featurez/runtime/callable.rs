@@ -3,7 +3,7 @@ use crate::featurez::VirtualMachineState;
 use std::fmt::{Debug, Error, Formatter};
 use std::convert::TryFrom;
 use std::collections::HashMap;
-use crate::featurez::runtime::scope::LexicalScope;
+use crate::featurez::runtime::scope::ScopeNode;
 use crate::featurez::runtime::VirtualMachineInterpretingSession;
 
 pub trait Callable {
@@ -24,11 +24,11 @@ impl Debug for Callable {
 
 struct NewtCallable {
 	definition: FunctionDeclarationStmtNode,
-	closure: LexicalScope
+	closure: ScopeNode
 }
 
 impl NewtCallable {
-	pub fn new(node: FunctionDeclarationStmtNode, closure: LexicalScope) -> NewtCallable {
+	pub fn new(node: FunctionDeclarationStmtNode, closure: ScopeNode) -> NewtCallable {
 		NewtCallable {
 			definition: node.clone(),
 			closure: closure.clone()
@@ -46,11 +46,13 @@ impl Callable for NewtCallable {
 	}
 
 	fn call(&self, vm: &mut VirtualMachineState, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
-		let mut environment = LexicalScope::new_with_closure(&self.closure);
+		let mut environment = ScopeNode::new_with_scope(&self.closure);
 		for parameter in self.definition.arguments().enumerate() {
 			environment.bind(parameter.1.lexeme(), arguments[parameter.0].clone());
 		}
-		let result = vm.visit_stmt_list_stmt_with_scope(self.definition.stmts(), &mut environment);
+
+		let next_vm = VirtualMachineState::new_with_scope(&environment);
+		let result = vm.visit_stmt_list_stmt(self.definition.stmts());
 
 		result?;
 		Ok(NewtValue::Null)

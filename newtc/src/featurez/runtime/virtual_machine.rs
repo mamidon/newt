@@ -1,13 +1,13 @@
-use super::scope::LexicalScope;
 use crate::featurez::syntax::*;
 use crate::featurez::TokenKind;
 use std::collections::HashMap;
-use crate::featurez::runtime::{RefEquality, Callable};
+use crate::featurez::runtime::{Callable};
 use crate::featurez::newtypes::TransparentNewType;
+use crate::featurez::runtime::scope::ScopeNode;
 
 #[derive(Debug)]
 pub struct VirtualMachineState {
-    scope: LexicalScope,
+    scope: ScopeNode,
     stack: Vec<Box<Callable>>,
     halting_error: Option<NewtRuntimeError>,
     tree: Option<SyntaxTree>
@@ -16,22 +16,21 @@ pub struct VirtualMachineState {
 impl VirtualMachineState {
     pub fn new() -> VirtualMachineState {
         VirtualMachineState {
-            scope: LexicalScope::new(),
+            scope: ScopeNode::new(),
             stack: Vec::new(),
             halting_error: None,
             tree: None
         }
     }
 
-    pub fn visit_stmt_list_stmt_with_scope(&mut self, node: &StmtListStmtNode, scope: &mut LexicalScope) -> Result<(), NewtRuntimeError> {
-        std::mem::swap(&mut self.scope, scope);
-
-        self.visit_stmt_list_stmt(node);
-
-        std::mem::swap(&mut self.scope, scope);
-
-        Ok(())
-    }
+	pub fn new_with_scope(scope: &ScopeNode) -> VirtualMachineState {
+		VirtualMachineState {
+			scope: scope.clone(),
+			stack: Vec::new(),
+			halting_error: None,
+			tree: None
+		}
+	}
 
     fn halt(&mut self, error: NewtRuntimeError) -> Result<(), NewtRuntimeError> {
         if !self.halted() {
@@ -160,7 +159,6 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
     fn visit_variable_expr(&mut self, node: &VariableExprNode) -> NewtResult {
         match self.tree {
             Some(ref tree) => {
-                let ref key: RefEquality<SyntaxNode> = node.to_inner().into();
                 self.scope
                     .resolve(node.identifier().lexeme())
                     .map(|value| value.clone())
@@ -237,13 +235,14 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
     }
 
     fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError> {
-        self.scope.push();
+        self.scope = ScopeNode::new_with_scope(&self.scope);
 
         for stmt in node.stmts() {
             self.visit_stmt(stmt)?;
         }
 
-        self.scope.pop();
+        // TODO replace lexical scope with type that handles ownership?
+	    // TODO self.scope.pop();
 
         Ok(())
     }
