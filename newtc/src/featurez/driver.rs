@@ -1,6 +1,5 @@
 use crate::featurez::runtime::{VirtualMachineState, VirtualMachineInterpretingSession};
 use crate::featurez::runtime::RefEquality;
-use crate::featurez::runtime::LexicalScopeAnalyzer;
 use crate::featurez::syntax::{AstNode, ExprNode, ExprVisitor, NewtValue, NewtStaticError, NewtRuntimeError, SyntaxNode};
 use crate::featurez::syntax::{StmtNode, StmtVisitor, SyntaxElement, SyntaxTree};
 use crate::featurez::tokens::{tokenize, StrTokenSource, Token, TokenKind};
@@ -33,7 +32,6 @@ pub struct InterpretingSession<'sess> {
 impl<'sess> InterpretingSession<'sess> {
 	pub fn new(kind: InterpretingSessionKind, source: &'sess str) -> InterpretingSession<'sess> {
 		let mut tree = InterpretingSession::syntax_tree_from_source(kind, source);
-		tree.analyize();
 
 		InterpretingSession {
 			kind,

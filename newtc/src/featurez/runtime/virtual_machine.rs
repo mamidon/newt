@@ -161,9 +161,8 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
         match self.tree {
             Some(ref tree) => {
                 let ref key: RefEquality<SyntaxNode> = node.to_inner().into();
-                let offset = tree.resolutions().get(key).unwrap();
                 self.scope
-                    .resolve_at(*offset, node.identifier().lexeme())
+                    .resolve(node.identifier().lexeme())
                     .map(|value| value.clone())
             },
             None => panic!("We should always have a tree by now")
