@@ -31,6 +31,56 @@ pub struct ScopeNode {
     scope: ScopeMapLink
 }
 
+#[derive(Clone, Debug)]
+pub struct Environment {
+    top: ScopeNodeLink
+}
+
+impl Environment {
+    pub fn new() -> Environment {
+        Environment {
+            top: ScopeNodeLink {
+                next: Rc::new(RefCell::new(ScopeNode::new())),
+                sequence_number: 0
+            }
+        }
+    }
+
+    pub fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+        self.top.next.borrow_mut().bind(identifier, value)
+    }
+
+    pub fn assign(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
+       self.top.next.borrow_mut().assign(identifier, value)
+    }
+
+    pub fn resolve(&self, identifier: &str) -> Result<NewtValue, NewtRuntimeError> {
+        self.top.next.borrow().resolve(identifier)
+    }
+
+    pub fn push_scope(&mut self) {
+        let next_node = ScopeNode::new_with_scope(&*self.top.next.borrow());
+        let sequence_number = next_node.scope.borrow().len();
+        self.top = ScopeNodeLink {
+            next: Rc::new(RefCell::new(next_node)),
+            sequence_number
+        }
+    }
+
+    pub fn pop_scope(&mut self) {
+        let next = self.top.next.borrow()
+            .link.clone()
+            .expect("No more scopes")
+            .next;
+        let sequence_number = next.borrow().scope.borrow().len();
+
+        self.top = ScopeNodeLink {
+            next,
+            sequence_number
+        }
+    }
+}
+
 impl ScopeNode {
     pub fn new() -> ScopeNode {
         ScopeNode {
@@ -58,7 +108,7 @@ impl ScopeNode {
             return Err(NewtRuntimeError::DuplicateDeclaration);
         }
 
-        let stored_value = StoredValue::new(value, self.scope.borrow().len());
+        let stored_value = StoredValue::new(value, hash_map.len());
         hash_map.insert(identifier.to_string(), stored_value);
 
         Ok(())
@@ -126,7 +176,7 @@ mod lexical_scope_analyzer_tests {
     use crate::featurez::newtypes::TransparentNewType;
     use std::collections::HashMap;
     use std::borrow::Borrow;
-    use crate::featurez::runtime::scope::ScopeNode;
+    use crate::featurez::runtime::scope::{ScopeNode, Environment};
 
     fn source_to_tree(source: &str) -> InterpretingSession {
         InterpretingSession::new(InterpretingSessionKind::Stmt, source)
@@ -154,56 +204,70 @@ mod lexical_scope_analyzer_tests {
 
     #[test]
     pub fn lexical_scope_can_resolve_immediately_after_binding() {
-        let mut scope = ScopeNode::new();
+        let mut environment = Environment::new();
 
-        scope.bind("foo", NewtValue::Int(42)).unwrap();
-        scope.bind("bar", NewtValue::Int(32)).unwrap();
+        environment.bind("foo", NewtValue::Int(42)).unwrap();
+        environment.bind("bar", NewtValue::Int(32)).unwrap();
 
-        assert_eq!(Ok(NewtValue::Int(42)), scope.resolve("foo"));
-        assert_eq!(Ok(NewtValue::Int(32)), scope.resolve("bar"));
+        assert_eq!(Ok(NewtValue::Int(42)), environment.resolve("foo"));
+        assert_eq!(Ok(NewtValue::Int(32)), environment.resolve("bar"));
     }
 
     #[test]
     pub fn lexical_scope_returns_undefined_variable_error_when_resolving_fails() {
-        let mut scope = ScopeNode::new();
+        let mut scope = Environment::new();
 
         assert_eq!(Err(NewtRuntimeError::UndefinedVariable), scope.resolve("zoo"));
     }
 
     #[test]
     pub fn lexical_scope_can_resolve_top_scope_when_scopes_are_nested() {
-        let mut scope = ScopeNode::new();
+        let mut environment = Environment::new();
 
-        scope.bind("foo", NewtValue::Int(42)).unwrap();
-        scope = ScopeNode::new_with_scope(&scope);
-        scope.bind("bar", NewtValue::Int(32)).unwrap();
-        let top_scope = scope.clone();
+        environment.bind("foo", NewtValue::Int(42)).unwrap();
+        environment.push_scope();
+        environment.bind("bar", NewtValue::Int(32)).unwrap();
+        let closure = environment.clone();
 
-        scope.pop();
-        scope.bind("zoo", NewtValue::Int(22)).unwrap();
+        environment.pop_scope();
+        environment.bind("zoo", NewtValue::Int(22)).unwrap();
 
-        assert_eq!(Ok(NewtValue::Int(42)), scope.resolve("foo"));
-        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), scope.resolve("bar"));
-        assert_eq!(Ok(NewtValue::Int(32)), top_scope.resolve("bar"));
-        assert_eq!(Ok(NewtValue::Int(22)), scope.resolve("zoo"));
+        assert_eq!(Ok(NewtValue::Int(42)), environment.resolve("foo"));
+        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), environment.resolve("bar"));
+        assert_eq!(Ok(NewtValue::Int(32)), closure.resolve("bar"));
+        assert_eq!(Ok(NewtValue::Int(22)), environment.resolve("zoo"));
     }
 
     #[test]
     pub fn closed_lexical_scope_cannot_resolve_younger_variables_in_parent_scope() {
-        let mut scope = ScopeNode::new();
+        let mut scope = Environment::new();
 
         scope.bind("foo", NewtValue::Int(42)).unwrap();
-        scope.push();
+        scope.push_scope();
 
         let mut closure = scope.clone();
 
         closure.bind("bar", NewtValue::Int(32)).unwrap();
-        scope.pop();
+        scope.pop_scope();
         scope.bind("zoo", NewtValue::Int(22)).unwrap();
 
-        // For now this is allowed, we'll need static analysis to ensure that no one tries
-        // to access a variable 'prior' to declaring it.  Today, saving a function variable
-        // and calling it later could violate that.
-        assert_eq!(Ok(NewtValue::Int(22)), closure.resolve("zoo"));
+        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), closure.resolve("zoo"));
+    }
+
+    #[test]
+    pub fn closed_lexical_scope_cannot_resolve_variables_in_popped_scopes() {
+        let mut scope = Environment::new();
+
+        scope.bind("foo", NewtValue::Int(42)).unwrap();
+        scope.push_scope();
+
+        let mut closure = scope.clone();
+
+        closure.bind("bar", NewtValue::Int(32)).unwrap();
+        scope.pop_scope();
+        scope.bind("zoo", NewtValue::Int(22)).unwrap();
+
+        assert_eq!(Ok(NewtValue::Int(32)), closure.resolve("bar"));
+        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), scope.resolve("bar"));
     }
 }
