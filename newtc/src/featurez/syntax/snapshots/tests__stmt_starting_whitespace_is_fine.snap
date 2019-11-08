@@ -1,5 +1,5 @@
 ---
-created: "2019-10-19T23:47:05.034207Z"
+created: "2019-11-08T15:26:37.012295Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -52,7 +52,7 @@ expression: approval_document
     SemiColon[1],
     RightBrace[1],
     WhiteSpace[2],
-    EndOfFile[0],
+    EndOfFile[0]
 ]
 ====events====
 ============
@@ -60,225 +60,225 @@ expression: approval_document
     BeginNode {
         kind: StmtListStmt,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Trivia {
         kind: WhiteSpace,
-        length: 5,
+        length: 5
     },
     Token {
         kind: LeftBrace,
-        length: 1,
+        length: 1
     },
     BeginNode {
         kind: VariableDeclarationStmt,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: Let,
-        length: 3,
+        length: 3
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     Token {
         kind: Identifier,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     Token {
         kind: Equals,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     BeginNode {
         kind: LiteralExpr,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: IntegerLiteral,
-        length: 1,
+        length: 1
     },
     EndNode,
     Token {
         kind: SemiColon,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 2,
+        length: 2
     },
     EndNode,
     BeginNode {
         kind: VariableDeclarationStmt,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: Let,
-        length: 3,
+        length: 3
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     Token {
         kind: Identifier,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     Token {
         kind: Equals,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     BeginNode {
         kind: LiteralExpr,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: IntegerLiteral,
-        length: 1,
+        length: 1
     },
     EndNode,
     Token {
         kind: SemiColon,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 2,
+        length: 2
     },
     EndNode,
     BeginNode {
         kind: VariableDeclarationStmt,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: Let,
-        length: 3,
+        length: 3
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     Token {
         kind: Identifier,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     Token {
         kind: Equals,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     BeginNode {
         kind: VariableExpr,
         is_forward_parent: false,
         forward_parent_offset: Some(
-            4,
-        ),
+            4
+        )
     },
     Token {
         kind: Identifier,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     EndNode,
     BeginNode {
         kind: BinaryExpr,
         is_forward_parent: true,
         forward_parent_offset: Some(
-            8,
-        ),
+            8
+        )
     },
     Token {
         kind: Star,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     BeginNode {
         kind: LiteralExpr,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: IntegerLiteral,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     EndNode,
     EndNode,
     BeginNode {
         kind: BinaryExpr,
         is_forward_parent: true,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: Plus,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 1,
+        length: 1
     },
     BeginNode {
         kind: VariableExpr,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: Identifier,
-        length: 1,
+        length: 1
     },
     EndNode,
     EndNode,
     Token {
         kind: SemiColon,
-        length: 1,
+        length: 1
     },
     EndNode,
     Token {
         kind: RightBrace,
-        length: 1,
+        length: 1
     },
     Trivia {
         kind: WhiteSpace,
-        length: 2,
+        length: 2
     },
-    EndNode,
+    EndNode
 ]
 ====tree====
 ============

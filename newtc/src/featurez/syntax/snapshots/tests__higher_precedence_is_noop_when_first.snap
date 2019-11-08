@@ -1,5 +1,5 @@
 ---
-created: "2019-10-19T23:47:05.033209500Z"
+created: "2019-11-08T15:26:36.945277Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -15,7 +15,7 @@ expression: approval_document
     IntegerLiteral[1],
     Plus[1],
     IntegerLiteral[1],
-    EndOfFile[0],
+    EndOfFile[0]
 ]
 ====events====
 ============
@@ -24,56 +24,56 @@ expression: approval_document
         kind: LiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: Some(
-            3,
-        ),
+            3
+        )
     },
     Token {
         kind: IntegerLiteral,
-        length: 1,
+        length: 1
     },
     EndNode,
     BeginNode {
         kind: BinaryExpr,
         is_forward_parent: true,
         forward_parent_offset: Some(
-            6,
-        ),
+            6
+        )
     },
     Token {
         kind: Star,
-        length: 1,
+        length: 1
     },
     BeginNode {
         kind: LiteralExpr,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: IntegerLiteral,
-        length: 1,
+        length: 1
     },
     EndNode,
     EndNode,
     BeginNode {
         kind: BinaryExpr,
         is_forward_parent: true,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: Plus,
-        length: 1,
+        length: 1
     },
     BeginNode {
         kind: LiteralExpr,
         is_forward_parent: false,
-        forward_parent_offset: None,
+        forward_parent_offset: None
     },
     Token {
         kind: IntegerLiteral,
-        length: 1,
+        length: 1
     },
     EndNode,
-    EndNode,
+    EndNode
 ]
 ====tree====
 ============
