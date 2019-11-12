@@ -25,7 +25,9 @@ impl AstNode for StmtNode {
             | SyntaxKind::ExprStmt
             | SyntaxKind::IfStmt
             | SyntaxKind::StmtListStmt
-            | SyntaxKind::WhileStmt => Some(StmtNode::from_inner(node)),
+            | SyntaxKind::WhileStmt
+            | SyntaxKind::FunctionDeclarationStmt
+            | SyntaxKind::ReturnStmt => Some(StmtNode::from_inner(node)),
             _ => None,
         }
     }
@@ -85,7 +87,13 @@ unsafe impl TransparentNewType for FunctionDeclarationStmtNode {
 
 impl FunctionDeclarationStmtNode {
     pub fn identifier(&self) -> &SyntaxToken {
-        self.0.nth_token(1)
+        self.0
+            .children()
+            .iter()
+            .filter_map(|c| c.as_token())
+            .filter(|c| c.token_kind() == TokenKind::Identifier)
+            .nth(0)
+            .unwrap()
     }
 
     pub fn arguments(&self) -> impl Iterator<Item = &SyntaxToken> {

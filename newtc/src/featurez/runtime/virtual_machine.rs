@@ -3,32 +3,28 @@ use crate::featurez::TokenKind;
 use std::collections::HashMap;
 use crate::featurez::runtime::{Callable};
 use crate::featurez::newtypes::TransparentNewType;
-use crate::featurez::runtime::scope::ScopeNode;
+use crate::featurez::runtime::scope::{ScopeNode, Environment};
+use crate::featurez::runtime::callable::NewtCallable;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct VirtualMachineState {
-    scope: ScopeNode,
-    stack: Vec<Box<Callable>>,
-    halting_error: Option<NewtRuntimeError>,
-    tree: Option<SyntaxTree>
+    scope: Environment,
+    halting_error: Option<NewtRuntimeError>
 }
 
 impl VirtualMachineState {
     pub fn new() -> VirtualMachineState {
         VirtualMachineState {
-            scope: ScopeNode::new(),
-            stack: Vec::new(),
-            halting_error: None,
-            tree: None
+            scope: Environment::new(),
+            halting_error: None
         }
     }
 
-	pub fn new_with_scope(scope: &ScopeNode) -> VirtualMachineState {
+	pub fn new_with_scope(scope: &Environment) -> VirtualMachineState {
 		VirtualMachineState {
 			scope: scope.clone(),
-			stack: Vec::new(),
-			halting_error: None,
-			tree: None
+			halting_error: None
 		}
 	}
 
@@ -37,19 +33,22 @@ impl VirtualMachineState {
             self.halting_error = Some(error)
         }
 
-        Err(self.halting_error.unwrap())
+        match &self.halting_error {
+            Some(error) => Err(error.clone()),
+            None => unreachable!("We should be halted")
+        }
     }
 
     fn halt_on_error<T>(
         &mut self,
         result: Result<T, NewtRuntimeError>,
     ) -> Result<T, NewtRuntimeError> {
-        if let Some(error) = self.halting_error {
-            return Err(error);
+        if let Some(error) = &self.halting_error {
+            return Err(error.clone());
         }
 
-        if let Err(error) = result {
-            self.halt(error);
+        if let Err(error) = &result {
+            self.halt(error.clone());
         }
 
         result
@@ -81,12 +80,15 @@ impl<'sess> VirtualMachineInterpretingSession<'sess> {
             Some(n) => n,
             None => return None,
         };
+        println!("INTERPRET");
 
         if let Some(expr) = ExprNode::cast(node) {
+            println!("EXPR");
             return self.state.visit_expr(expr).ok();
         }
 
         if let Some(stmt) = StmtNode::cast(node) {
+            println!("STMT");
             self.state.visit_stmt(stmt);
 
             return None;
@@ -98,8 +100,8 @@ impl<'sess> VirtualMachineInterpretingSession<'sess> {
 
 impl ExprVisitor<NewtResult> for VirtualMachineState {
     fn visit_expr(&mut self, node: &ExprNode) -> NewtResult {
-        if let Some(error) = self.halting_error {
-            return Err(error);
+        if let Some(error) = &self.halting_error {
+            return Err(error.clone());
         }
 
         let outcome = match node.kind() {
@@ -157,14 +159,9 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
     }
 
     fn visit_variable_expr(&mut self, node: &VariableExprNode) -> NewtResult {
-        match self.tree {
-            Some(ref tree) => {
-                self.scope
-                    .resolve(node.identifier().lexeme())
-                    .map(|value| value.clone())
-            },
-            None => panic!("We should always have a tree by now")
-        }
+        self.scope
+            .resolve(node.identifier().lexeme())
+            .map(|value| value.clone())
     }
 
     fn visit_function_call_expr(&mut self, node: &FunctionCallExprNode) -> NewtResult {
@@ -188,10 +185,11 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
 
 impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
     fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
-        if let Some(error) = self.halting_error {
-            return Err(error);
+        if let Some(error) = &self.halting_error {
+            return Err(error.clone());
         }
 
+        println!("HELLO");
         let outcome = match node.kind() {
             StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node),
             StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node),
@@ -203,7 +201,7 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
             StmtKind::ReturnStmt(node) => self.visit_return_stmt(node),
         };
 
-        self.halt_on_error(outcome)?;
+        self.halt_on_error(outcome.clone())?;
 
         outcome
     }
@@ -235,14 +233,13 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
     }
 
     fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError> {
-        self.scope = ScopeNode::new_with_scope(&self.scope);
+        self.scope.push_scope();
 
         for stmt in node.stmts() {
             self.visit_stmt(stmt)?;
         }
 
-        // TODO replace lexical scope with type that handles ownership?
-	    // TODO self.scope.pop();
+        self.scope.pop_scope();
 
         Ok(())
     }
@@ -290,10 +287,21 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
         &mut self,
         node: &FunctionDeclarationStmtNode,
     ) -> Result<(), NewtRuntimeError> {
-        unimplemented!()
+        println!("FOOO");
+        let callable = NewtCallable::new(node, &self.scope);
+        println!("{}", node.identifier().lexeme());
+        self.scope.bind(node.identifier().lexeme(), NewtValue::Callable(Rc::new(callable)))?;
+
+        Ok(())
     }
 
     fn visit_return_stmt(&mut self, node: &ReturnStmtNode) -> Result<(), NewtRuntimeError> {
-        unimplemented!()
+        match node.result() {
+            Some(expr) => {
+                let ok_is_err = self.visit_expr(expr)?;
+                Err(NewtRuntimeError::ReturnedValue(ok_is_err))
+            },
+            None => Err(NewtRuntimeError::NullValueEncountered)
+        }
     }
 }

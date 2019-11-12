@@ -3,7 +3,7 @@ use crate::featurez::VirtualMachineState;
 use std::fmt::{Debug, Error, Formatter};
 use std::convert::TryFrom;
 use std::collections::HashMap;
-use crate::featurez::runtime::scope::ScopeNode;
+use crate::featurez::runtime::scope::{ScopeNode, Environment};
 use crate::featurez::runtime::VirtualMachineInterpretingSession;
 
 pub trait Callable {
@@ -22,13 +22,13 @@ impl Debug for Callable {
     }
 }
 
-struct NewtCallable {
+pub struct NewtCallable {
 	definition: FunctionDeclarationStmtNode,
-	closure: ScopeNode
+	closure: Environment
 }
 
 impl NewtCallable {
-	pub fn new(node: FunctionDeclarationStmtNode, closure: ScopeNode) -> NewtCallable {
+	pub fn new(node: &FunctionDeclarationStmtNode, closure: &Environment) -> NewtCallable {
 		NewtCallable {
 			definition: node.clone(),
 			closure: closure.clone()
@@ -46,7 +46,7 @@ impl Callable for NewtCallable {
 	}
 
 	fn call(&self, vm: &mut VirtualMachineState, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
-		let mut environment = ScopeNode::new_with_scope(&self.closure);
+		let mut environment = self.closure.clone();
 		for parameter in self.definition.arguments().enumerate() {
 			environment.bind(parameter.1.lexeme(), arguments[parameter.0].clone());
 		}

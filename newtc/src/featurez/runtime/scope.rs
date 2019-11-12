@@ -46,6 +46,12 @@ impl Environment {
         }
     }
 
+    pub fn with_closure(closure: &Environment) -> Environment {
+        let mut environment = closure.clone();
+        environment.push_scope();
+        return environment;
+    }
+
     pub fn bind(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
         self.top.next.borrow_mut().bind(identifier, value)
     }
