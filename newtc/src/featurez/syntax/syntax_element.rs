@@ -38,7 +38,7 @@ impl SyntaxElement {
 
     pub fn as_token(&self) -> Option<&SyntaxToken> {
         match self {
-            SyntaxElement::Token(t) => Some(t),
+            SyntaxElement::Token(t) if !t.token_kind().is_trivia() => Some(t),
             _ => None,
         }
     }

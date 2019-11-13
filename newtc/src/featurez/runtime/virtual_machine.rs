@@ -80,15 +80,12 @@ impl<'sess> VirtualMachineInterpretingSession<'sess> {
             Some(n) => n,
             None => return None,
         };
-        println!("INTERPRET");
 
         if let Some(expr) = ExprNode::cast(node) {
-            println!("EXPR");
             return self.state.visit_expr(expr).ok();
         }
 
         if let Some(stmt) = StmtNode::cast(node) {
-            println!("STMT");
             self.state.visit_stmt(stmt);
 
             return None;
@@ -189,7 +186,6 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
             return Err(error.clone());
         }
 
-        println!("HELLO");
         let outcome = match node.kind() {
             StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node),
             StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node),
@@ -287,9 +283,7 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
         &mut self,
         node: &FunctionDeclarationStmtNode,
     ) -> Result<(), NewtRuntimeError> {
-        println!("FOOO");
         let callable = NewtCallable::new(node, &self.scope);
-        println!("{}", node.identifier().lexeme());
         self.scope.bind(node.identifier().lexeme(), NewtValue::Callable(Rc::new(callable)))?;
 
         Ok(())

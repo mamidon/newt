@@ -87,13 +87,7 @@ unsafe impl TransparentNewType for FunctionDeclarationStmtNode {
 
 impl FunctionDeclarationStmtNode {
     pub fn identifier(&self) -> &SyntaxToken {
-        self.0
-            .children()
-            .iter()
-            .filter_map(|c| c.as_token())
-            .filter(|c| c.token_kind() == TokenKind::Identifier)
-            .nth(0)
-            .unwrap()
+        self.0.nth_token(1)
     }
 
     pub fn arguments(&self) -> impl Iterator<Item = &SyntaxToken> {
