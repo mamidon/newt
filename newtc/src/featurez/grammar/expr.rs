@@ -3,6 +3,7 @@ use crate::featurez::parse::Parser;
 use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, SyntaxTree};
 use crate::featurez::{Token, TokenKind};
 use std::collections::HashMap;
+use crate::OutputMode::Tokens;
 
 type PrecedenceTable = HashMap<TokenKind, (usize, bool)>;
 
@@ -27,7 +28,11 @@ lazy_static! {
 pub fn expr(p: &mut Parser) {
     let lhs = primary_expr(p);
 
-    expr_core(p, lhs, 4);
+    let mut left_expr = expr_core(p, lhs, 4);
+
+    while p.current() != TokenKind::EndOfFile && p.token_if(TokenKind::LeftParenthesis) {
+        left_expr = call_expr(p, left_expr);
+    }
 }
 
 // https://en.wikipedia.org/wiki/Operator-precedence_parser#Example_execution_of_the_algorithm
@@ -128,7 +133,6 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
 
             p.end_node(node, SyntaxKind::VariableExpr)
         }
-        // TODO function calls
         _ => {
             p.expect_token_kind_in(&[], "Expected a primary expression");
 
@@ -137,4 +141,22 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
     };
 
     completed
+}
+
+fn call_expr(p: &mut Parser, mut lhs: CompletedMarker) -> CompletedMarker {
+    let mut call_begin = p.begin_node();
+    p.precede_node(&mut lhs, &call_begin);
+
+    if p.current() != TokenKind::EndOfFile && p.current() != TokenKind::RightParenthesis {
+        expr(p);
+    }
+
+    while p.current() != TokenKind::EndOfFile && p.current() != TokenKind::RightParenthesis {
+        p.expect_token_kind(TokenKind::Comma, "Expected ','");
+        expr(p);
+    }
+
+    p.expect_token_kind(TokenKind::RightParenthesis, "Expected ')'");
+
+    p.end_node(call_begin, SyntaxKind::FunctionCallExpr)
 }
