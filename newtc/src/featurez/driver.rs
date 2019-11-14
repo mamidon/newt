@@ -9,6 +9,7 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::collections::HashMap;
+use crate::featurez::grammar::root_stmt;
 
 
 #[derive(Copy, Clone)]
@@ -61,6 +62,17 @@ impl<'sess> InterpretingSession<'sess> {
 		};
 
 		SyntaxTree::from_parser(&completed_parsing, source)
+	}
+}
+
+
+impl From<&str> for SyntaxTree {
+	fn from(source: &str) -> Self {
+		let tokens = tokenize(source);
+		let token_source = StrTokenSource::new(tokens);
+		let mut p = Parser::new(token_source);
+
+		SyntaxTree::from_parser(&root_stmt(p), source)
 	}
 }
 
