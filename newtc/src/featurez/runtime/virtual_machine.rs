@@ -164,7 +164,9 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
     fn visit_function_call_expr(&mut self, node: &FunctionCallExprNode) -> NewtResult {
         let callable = match self.visit_expr(node.callee())? {
             NewtValue::Callable(callable) => callable,
-            _ => return Err(NewtRuntimeError::TypeError)
+            _ => {
+                return Err(NewtRuntimeError::TypeError);
+            }
         };
 
         if callable.arity() != node.arguments().count() {

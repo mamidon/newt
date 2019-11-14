@@ -45,6 +45,10 @@ impl SyntaxNode {
         token
     }
 
+    pub fn tokens(&self) -> impl Iterator<Item = &SyntaxToken> {
+        self.children.iter().filter_map(|e| e.as_token())
+    }
+
     pub fn kind(&self) -> SyntaxKind {
         self.kind
     }

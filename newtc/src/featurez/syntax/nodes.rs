@@ -91,7 +91,9 @@ impl FunctionDeclarationStmtNode {
     }
 
     pub fn arguments(&self) -> impl Iterator<Item = &SyntaxToken> {
-        self.0.children().iter().filter_map(|e| e.as_token())
+	    self.0.tokens()
+		    .filter(|t| t.token_kind() == TokenKind::Identifier)
+		    .skip(1)
     }
 
     pub fn stmts(&self) -> &StmtListStmtNode {
@@ -292,10 +294,9 @@ impl FunctionCallExprNode {
 
     pub fn arguments(&self) -> impl Iterator<Item = &ExprNode> {
         self.0
-            .children()
-            .iter()
-            .filter_map(|c| c.as_node())
+	        .nodes()
             .filter_map(|n| ExprNode::cast(n))
+	        .skip(1)
     }
 }
 
