@@ -408,7 +408,6 @@ fn function_call_expr_node_handles_multiple_arguments() {
 	assert_eq!(3, node.arguments().count());
 }
 
-
 #[test]
 fn function_call_expr_node_properly_orders_arguments() {
 	let tree: SyntaxTree = "foo(x, 2+2, bar());".into();
@@ -419,6 +418,212 @@ fn function_call_expr_node_properly_orders_arguments() {
 	assert_eq!(SyntaxKind::VariableExpr, arguments[0].syntax().kind());
 	assert_eq!(SyntaxKind::BinaryExpr, arguments[1].syntax().kind());
 	assert_eq!(SyntaxKind::FunctionCallExpr, arguments[2].syntax().kind());
+}
+
+#[test]
+fn function_call_expr_node_round_trips() {
+	let tree: SyntaxTree = "foo();".into();
+	let node: &FunctionCallExprNode = expect_expr_node(&tree);
+
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::FunctionCallExpr(_) => {},
+		_ => panic!("Could not round trip Stmt")
+	};
+}
+
+#[test]
+fn literal_expr_node_handles_integers() {
+	let tree: SyntaxTree = "42;".into();
+	let node: &LiteralExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+}
+
+#[test]
+fn literal_expr_node_handles_true_booleans() {
+	let tree: SyntaxTree = "true;".into();
+	let node: &LiteralExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+}
+
+#[test]
+fn literal_expr_node_handles_false_booleans() {
+	let tree: SyntaxTree = "false;".into();
+	let node: &LiteralExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+}
+
+#[test]
+fn literal_expr_node_handles_string_booleans() {
+	let tree: SyntaxTree = "\"hello, world!\";".into();
+	let node: &LiteralExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+}
+
+#[test]
+fn literal_expr_node_handles_glyphs() {
+	let tree: SyntaxTree = "'a';".into();
+	let node: &LiteralExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+}
+
+#[test]
+fn literal_expr_node_handles_floats() {
+	let tree: SyntaxTree = "3.14;".into();
+	let node: &LiteralExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+}
+
+#[test]
+fn literal_expr_node_round_trips() {
+	let tree: SyntaxTree = "42;".into();
+	let node: &LiteralExprNode = expect_expr_node(&tree);
+
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::LiteralExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
+}
+
+#[test]
+fn binary_expr_node_does_not_swap_operands() {
+	let tree: SyntaxTree = "2+foo();".into();
+	let node: &BinaryExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::LiteralExpr, node.lhs().syntax().kind());
+	assert_eq!(SyntaxKind::FunctionCallExpr, node.rhs().syntax().kind());
+}
+
+#[test]
+fn binary_expr_node_handles_operators() {
+	fn binary_expr_node_operator_test(source: &str, expected_operator: TokenKind) {
+		let tree: SyntaxTree = source.into();
+		let node: &BinaryExprNode = expect_expr_node(&tree);
+
+		assert_eq!(expected_operator, node.operator(), "{}", source);
+	}
+
+	let test_cases = [
+		("2+2", TokenKind::Plus),
+		("2-2", TokenKind::Minus),
+		("2*2", TokenKind::Star),
+		("2/2", TokenKind::Slash),
+
+		("2>2", TokenKind::Greater),
+		("2>=2", TokenKind::GreaterEquals),
+		("2<2", TokenKind::Less),
+		("2<=2", TokenKind::LessEquals),
+
+		("2==2", TokenKind::EqualsEquals),
+	];
+
+	for test_case in &test_cases {
+		binary_expr_node_operator_test(test_case.0, test_case.1);
+	}
+}
+
+#[test]
+fn binary_expr_node_round_trips() {
+	let tree: SyntaxTree = "2+2;".into();
+	let node: &BinaryExprNode = expect_expr_node(&tree);
+
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::BinaryExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
+}
+
+#[test]
+fn unary_expr_node_handles_operand() {
+	let tree: SyntaxTree = "-2;".into();
+	let node: &UnaryExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::LiteralExpr, node.rhs().syntax().kind());
+}
+
+#[test]
+fn unary_expr_node_handles_operators() {
+	fn unary_expr_node_operator_test(source: &str, expected_operator: TokenKind) {
+		let tree: SyntaxTree = source.into();
+		let node: &UnaryExprNode = expect_expr_node(&tree);
+
+		assert_eq!(expected_operator, node.operator(), "{}", source);
+	}
+
+	let test_cases = [
+		("!true", TokenKind::Bang),
+		("-2", TokenKind::Minus),
+	];
+
+	for test_case in &test_cases {
+		unary_expr_node_operator_test(test_case.0, test_case.1);
+	}
+}
+
+#[test]
+fn unary_expr_node_round_trips() {
+	let tree: SyntaxTree = "-2;".into();
+	let node: &BinaryExprNode = expect_expr_node(&tree);
+
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::UnaryExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
+}
+
+#[test]
+fn grouping_expr_handles_sub_expr() {
+	let tree: SyntaxTree = "(2+2);".into();
+	let node: &GroupingExprNode = expect_expr_node(&tree);
+
+	assert_eq!(SyntaxKind::BinaryExpr, node.expr().syntax().kind());
+}
+
+#[test]
+fn grouping_expr_node_round_trips() {
+	let tree: SyntaxTree = "(2+2);".into();
+	let node: &GroupingExprNode = expect_expr_node(&tree);
+
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::GroupingExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
+}
+
+#[test]
+fn variable_expr_node_handles_identifier() {
+	let tree: SyntaxTree = "x;".into();
+	let node: &VariableExprNode = expect_expr_node(&tree);
+
+	assert_eq!("x", node.identifier().lexeme());
+}
+
+#[test]
+fn variable_expr_node_round_trips() {
+	let tree: SyntaxTree = "x;".into();
+	let node: &VariableExprNode = expect_expr_node(&tree);
+
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::VariableExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
 }
 
 

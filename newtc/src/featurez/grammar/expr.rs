@@ -28,11 +28,7 @@ lazy_static! {
 pub fn expr(p: &mut Parser) {
     let lhs = primary_expr(p);
 
-    let mut left_expr = expr_core(p, lhs, 4);
-
-    while p.current() != TokenKind::EndOfFile && p.token_if(TokenKind::LeftParenthesis) {
-        left_expr = call_expr(p, left_expr);
-    }
+    expr_core(p, lhs, 4);
 }
 
 // https://en.wikipedia.org/wiki/Operator-precedence_parser#Example_execution_of_the_algorithm
@@ -77,7 +73,7 @@ fn lookahead_binary(token: TokenKind) -> bool {
 fn primary_expr(p: &mut Parser) -> CompletedMarker {
     let mut node = p.begin_node();
 
-    let completed = match p.current() {
+    let mut completed = match p.current() {
         TokenKind::Bang => {
             p.token_if(TokenKind::Bang);
             expr(p);
@@ -139,6 +135,10 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
             p.end_node(node, SyntaxKind::LiteralExpr)
         }
     };
+
+    while p.current() != TokenKind::EndOfFile && p.token_if(TokenKind::LeftParenthesis) {
+        completed = call_expr(p, completed);
+    }
 
     completed
 }
