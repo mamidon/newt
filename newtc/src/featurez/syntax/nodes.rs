@@ -243,7 +243,8 @@ impl AstNode for ExprNode {
             | SyntaxKind::UnaryExpr
             | SyntaxKind::LiteralExpr
             | SyntaxKind::GroupingExpr
-            | SyntaxKind::VariableExpr => Some(ExprNode::from_inner(node)),
+            | SyntaxKind::VariableExpr
+            | SyntaxKind::FunctionCallExpr => Some(ExprNode::from_inner(node)),
             _ => None,
         }
     }
