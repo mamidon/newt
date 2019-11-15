@@ -199,7 +199,7 @@ unsafe impl TransparentNewType for StmtListStmtNode {
 }
 
 impl StmtListStmtNode {
-    pub fn stmts(&self) -> impl IntoIterator<Item = &StmtNode> {
+    pub fn stmts(&self) -> impl Iterator<Item = &StmtNode> {
         self.0
             .children()
             .iter()
