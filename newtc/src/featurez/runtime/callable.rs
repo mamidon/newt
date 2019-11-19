@@ -47,14 +47,20 @@ impl Callable for NewtCallable {
 
 	fn call(&self, vm: &mut VirtualMachineState, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
 		let mut environment = self.closure.clone();
+		environment.push_scope();
+
 		for parameter in self.definition.arguments().enumerate() {
 			environment.bind(parameter.1.lexeme(), arguments[parameter.0].clone());
 		}
 
-		let next_vm = VirtualMachineState::new_with_scope(&environment);
-		let result = vm.visit_stmt_list_stmt(self.definition.stmts());
+		let mut next_vm = VirtualMachineState::new_with_scope(&environment);
+		let result = next_vm.visit_stmt_list_stmt(self.definition.stmts());
+		environment.pop_scope();
 
-		result?;
-		Ok(NewtValue::Null)
+		match result {
+			Ok(value) => Ok(NewtValue::Null),
+			Err(NewtRuntimeError::ReturnedValue(value)) => Ok(value),
+			Err(error) => Err(error)
+		}
 	}
 }

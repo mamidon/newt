@@ -136,7 +136,7 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
         }
     };
 
-    while p.current() != TokenKind::EndOfFile && p.token_if(TokenKind::LeftParenthesis) {
+    while p.current() != TokenKind::EndOfFile && p.current() == TokenKind::LeftParenthesis {
         completed = call_expr(p, completed);
     }
 
@@ -147,6 +147,7 @@ fn call_expr(p: &mut Parser, mut lhs: CompletedMarker) -> CompletedMarker {
     let mut call_begin = p.begin_node();
     p.precede_node(&mut lhs, &call_begin);
 
+    p.expect_token_kind(TokenKind::LeftParenthesis, "Expected '('");
     if p.current() != TokenKind::EndOfFile && p.current() != TokenKind::RightParenthesis {
         expr(p);
     }

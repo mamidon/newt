@@ -276,4 +276,18 @@ mod lexical_scope_analyzer_tests {
         assert_eq!(Ok(NewtValue::Int(32)), closure.resolve("bar"));
         assert_eq!(Err(NewtRuntimeError::UndefinedVariable), scope.resolve("bar"));
     }
+
+    #[test]
+    fn call_environment_does_not_affect_calling_environment() {
+        let mut calling = Environment::new();
+        calling.bind("a", NewtValue::Int(1)).unwrap();
+
+        let mut callee = calling.clone();
+        callee.push_scope();
+        callee.bind("b", NewtValue::Int(2)).unwrap();
+
+
+        assert_eq!(NewtValue::Int(1), calling.resolve("a").unwrap());
+        assert_eq!(NewtValue::Int(1), callee.resolve("a").unwrap());
+    }
 }
