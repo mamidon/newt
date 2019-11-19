@@ -173,6 +173,7 @@ impl PartialEq for NewtValue {
             (NewtValue::Bool(a), NewtValue::Bool(b)) => a == b,
             (NewtValue::String(a), NewtValue::String(b)) => a == b,
             (NewtValue::Glyph(a), NewtValue::Glyph(b)) => a == b,
+            (NewtValue::Null, NewtValue::Null) => true,
             _ => false,
         }
     }

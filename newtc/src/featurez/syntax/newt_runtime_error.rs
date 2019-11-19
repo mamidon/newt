@@ -7,5 +7,6 @@ pub enum NewtRuntimeError {
     DuplicateDeclaration,
     // We hit this when a function doesn't return anything, but we try to assign it to a variable
     NullValueEncountered,
-    ReturnedValue(NewtValue)
+    ReturnedValue(NewtValue),
+    InvalidSyntaxTree
 }
