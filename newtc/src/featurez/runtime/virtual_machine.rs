@@ -9,53 +9,41 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct VirtualMachineState {
-    scope: Environment,
-    halting_error: Option<NewtRuntimeError>
+    scope: Environment
 }
 
 impl VirtualMachineState {
     pub fn new() -> VirtualMachineState {
         VirtualMachineState {
-            scope: Environment::new(),
-            halting_error: None
+            scope: Environment::new()
         }
     }
 
 	pub fn new_with_scope(scope: &Environment) -> VirtualMachineState {
 		VirtualMachineState {
-			scope: scope.clone(),
-			halting_error: None
+			scope: scope.clone()
 		}
 	}
 
-    fn halt(&mut self, error: NewtRuntimeError) -> Result<(), NewtRuntimeError> {
-        if !self.halted() {
-            self.halting_error = Some(error)
+    pub fn interpret(&mut self, tree: &SyntaxTree) -> NewtResult {
+        let node = tree.root()
+            .as_node()
+            .ok_or(NewtRuntimeError::InvalidSyntaxTree)?;
+
+        let result = if let Some(expr) = ExprNode::cast(node) {
+            self.visit_expr(expr)
+        } else if let Some(stmt) = StmtNode::cast(node) {
+            self.visit_stmt(stmt)
+                .map(|_| NewtValue::Null)
+        } else {
+            panic!("All nodes should be either an Expression or Statement!");
+        };
+
+        match result {
+            Ok(value) => Ok(NewtValue::Null),
+            Err(NewtRuntimeError::ReturnedValue(value)) => Ok(value),
+            Err(error) => Err(error)
         }
-
-        match &self.halting_error {
-            Some(error) => Err(error.clone()),
-            None => unreachable!("We should be halted")
-        }
-    }
-
-    fn halt_on_error<T>(
-        &mut self,
-        result: Result<T, NewtRuntimeError>,
-    ) -> Result<T, NewtRuntimeError> {
-        if let Some(error) = &self.halting_error {
-            return Err(error.clone());
-        }
-
-        if let Err(error) = &result {
-            self.halt(error.clone());
-        }
-
-        result
-    }
-
-    fn halted(&self) -> bool {
-        self.halting_error.is_some()
     }
 }
 
@@ -75,42 +63,34 @@ impl<'sess> VirtualMachineInterpretingSession<'sess> {
         }
     }
 
-    pub fn interpret(&mut self) -> Option<NewtValue> {
+    pub fn interpret(&mut self) -> NewtResult {
         let node = match self.tree.root().as_node() {
             Some(n) => n,
-            None => return None,
+            None => panic!("invalid code"),
         };
 
         if let Some(expr) = ExprNode::cast(node) {
-            return self.state.visit_expr(expr).ok();
+            return self.state.visit_expr(expr);
         }
 
         if let Some(stmt) = StmtNode::cast(node) {
-            self.state.visit_stmt(stmt);
-
-            return None;
+            return self.state.visit_stmt(stmt).map(|_| NewtValue::Null);
         }
 
-        return None;
+        unreachable!()
     }
 }
 
 impl ExprVisitor<NewtResult> for VirtualMachineState {
     fn visit_expr(&mut self, node: &ExprNode) -> NewtResult {
-        if let Some(error) = &self.halting_error {
-            return Err(error.clone());
-        }
-
-        let outcome = match node.kind() {
+        match node.kind() {
             ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
             ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
             ExprKind::LiteralExpr(node) => self.visit_literal_expr(node),
             ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
             ExprKind::VariableExpr(node) => self.visit_variable_expr(node),
             ExprKind::FunctionCallExpr(node) => self.visit_function_call_expr(node),
-        };
-
-        outcome
+        }
     }
 
     fn visit_binary_expr(&mut self, node: &BinaryExprNode) -> NewtResult {
@@ -127,7 +107,7 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
             TokenKind::Less => Ok(NewtValue::Bool(lhs < rhs)),
             TokenKind::LessEquals => Ok(NewtValue::Bool(lhs <= rhs)),
             TokenKind::EqualsEquals => Ok(NewtValue::Bool(lhs == rhs)),
-            _ => unreachable!("not a binary"),
+            kind => unreachable!("TokenKind {:?} is not a binary", kind),
         }
     }
 
@@ -184,24 +164,18 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
 
 impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
     fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
-        if let Some(error) = &self.halting_error {
-            return Err(error.clone());
-        }
-
-        let outcome = match node.kind() {
-            StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node),
-            StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node),
-            StmtKind::StmtListStmt(node) => self.visit_stmt_list_stmt(node),
-            StmtKind::ExprStmt(node) => self.visit_expr_stmt(node),
-            StmtKind::IfStmt(node) => self.visit_if_stmt(node),
-            StmtKind::WhileStmt(node) => self.visit_while_stmt(node),
-            StmtKind::FunctionDeclarationStmt(node) => self.visit_function_declaration_stmt(node),
-            StmtKind::ReturnStmt(node) => self.visit_return_stmt(node),
+        match node.kind() {
+            StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node)?,
+            StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node)?,
+            StmtKind::StmtListStmt(node) => self.visit_stmt_list_stmt(node)?,
+            StmtKind::ExprStmt(node) => self.visit_expr_stmt(node)?,
+            StmtKind::IfStmt(node) => self.visit_if_stmt(node)?,
+            StmtKind::WhileStmt(node) => self.visit_while_stmt(node)?,
+            StmtKind::FunctionDeclarationStmt(node) => self.visit_function_declaration_stmt(node)?,
+            StmtKind::ReturnStmt(node) => self.visit_return_stmt(node)?,
         };
 
-        self.halt_on_error(outcome.clone())?;
-
-        outcome
+        Ok(())
     }
 
     fn visit_variable_declaration_stmt(
@@ -212,10 +186,7 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
         let identifier = node.identifier().lexeme();
         let value = self.visit_expr(node.expr())?;
 
-        match self.scope.bind(&identifier, value) {
-            Err(error) => self.halt(error)?,
-            Ok(_) => {}
-        };
+        self.scope.bind(&identifier, value)?;
 
         Ok(())
     }
@@ -260,7 +231,7 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
                     }
                 }
             }
-            _ => self.halt(NewtRuntimeError::TypeError)?,
+            _ => Err(NewtRuntimeError::TypeError)?,
         }
 
         Ok(())
