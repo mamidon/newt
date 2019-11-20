@@ -80,14 +80,17 @@ mod tests {
 				if (x == 2) {
 					return 1;
 				}
-				if (x <= 1) {
+				if (x == 1) {
 					return 1;
+				}
+				if (x == 0) {
+					return 0;
 				}
 
 				return fibinacci(x-2) + fibinacci(x-1);
 			}"#);
 
-		assert_eq!(Ok(NewtValue::Int(42)), evaluate(&mut vm, "fibinacci(5)"));
+		assert_eq!(Ok(NewtValue::Int(8)), evaluate(&mut vm, "fibinacci(6)"));
 	}
 
 	fn define(vm: &mut VirtualMachineState, source: &str) {
