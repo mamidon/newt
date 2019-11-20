@@ -4,6 +4,7 @@ use crate::featurez::{VirtualMachineState, StrTokenSource};
 use crate::featurez::grammar::root_expr;
 use crate::featurez::parse::Parser;
 use crate::featurez::tokenize;
+use std::rc::Rc;
 
 #[test]
 fn return_statements_return_values() {
@@ -46,22 +47,41 @@ fn return_statements_short_circuit_inside_scope() {
 }
 
 #[test]
-fn if_statements_do_not_execute_when_condition_is_falsey() {
+fn if_statements_only_execute_when_condition_is_true() {
 	let mut vm = VirtualMachineState::new();
 
 	define(&mut vm, r#"
-	fn fibonacci_step(x) {
-		if (x == 2) { return 1; }
-		if (x <= 1) { return 1; }
+	fn if_only_true(x) {
+		if (x == 2) { return "two"; }
+		if (x <= 1) { return "less than or equal to 1"; }
 
-		return x;
+		return "more than two";
 	}"#);
 
-	assert_eq!(NewtValue::Int(10), evaluate(&mut vm, "fibonacci_step(10)").unwrap());
-	assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibonacci_step(2)").unwrap());
-	assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibonacci_step(1)").unwrap());
-	assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibonacci_step(0)").unwrap());
+	assert_eq!(into_newt_value("\"more than two\""), evaluate(&mut vm, "if_only_true(10)").unwrap());
+	assert_eq!(into_newt_value("\"two\""), evaluate(&mut vm, "if_only_true(2)").unwrap());
+	assert_eq!(into_newt_value("\"less than or equal to 1\""), evaluate(&mut vm, "if_only_true(1)").unwrap());
+	assert_eq!(into_newt_value("\"less than or equal to 1\""), evaluate(&mut vm, "if_only_true(0)").unwrap());
 }
+
+#[test]
+fn if_statements_do_execute_else_branch_when_condition_is_false() {
+	let mut vm = VirtualMachineState::new();
+
+	define(&mut vm, r#"
+	fn if_only_false(x) {
+		if (x == 2) {} else { return 'a'; }
+
+		return 'c';
+	}"#);
+
+	assert_eq!(into_newt_value('a'), evaluate(&mut vm, "if_only_false(10)").unwrap());
+	assert_eq!(into_newt_value('c'), evaluate(&mut vm, "if_only_false(2)").unwrap());
+	assert_eq!(into_newt_value('a'), evaluate(&mut vm, "if_only_false(1)").unwrap());
+	assert_eq!(into_newt_value('a'), evaluate(&mut vm, "if_only_false(0)").unwrap());
+}
+
+
 
 #[test]
 fn virtual_machine_correctly_computes_fibonacci_5() {
@@ -101,4 +121,8 @@ fn evaluate(vm: &mut VirtualMachineState, source: &str) -> NewtResult {
 	let tree = SyntaxTree::from_parser(&completed_parsing, source);
 
 	vm.interpret(&tree)
+}
+
+fn into_newt_value<T: Into<NewtValue>>(value: T) -> NewtValue {
+	value.into()
 }
