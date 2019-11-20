@@ -178,3 +178,56 @@ impl PartialEq for NewtValue {
         }
     }
 }
+
+impl From<&str> for NewtValue {
+    fn from(s: &str) -> Self {
+        NewtValue::String(Rc::new(s.to_string()))
+    }
+}
+
+impl From<i64> for NewtValue {
+    fn from(i: i64) -> Self {
+        NewtValue::Int(i)
+    }
+}
+
+impl From<u32> for NewtValue {
+    fn from(i: u32) -> Self {
+        NewtValue::Int(i.into())
+    }
+}
+
+impl From<char> for NewtValue {
+    fn from(c: char) -> Self {
+        NewtValue::Glyph(c)
+    }
+}
+
+impl From<bool> for NewtValue {
+    fn from(b: bool) -> Self {
+        NewtValue::Bool(b)
+    }
+}
+
+impl From<f64> for NewtValue {
+    fn from(f: f64) -> Self {
+        NewtValue::Float(f)
+    }
+}
+
+impl From<f32> for NewtValue {
+    fn from(f: f32) -> Self {
+        NewtValue::Float(f.into())
+    }
+}
+
+impl<T> From<Option<T>> for NewtValue
+	where T: Into<NewtValue> {
+
+	fn from(maybe: Option<T>) -> Self {
+        match maybe {
+            Some(value) => value.into(),
+            None => NewtValue::Null
+        }
+    }
+}
