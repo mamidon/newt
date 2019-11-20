@@ -1,7 +1,7 @@
 use crate::featurez::parse::CompletedParsing;
 use crate::featurez::parse::ParseEvent;
 use crate::featurez::syntax::tree_sink::TreeSink;
-use crate::featurez::syntax::{AstNode, SyntaxElement, SyntaxNode, StmtNode};
+use crate::featurez::syntax::{AstNode, SyntaxElement, SyntaxNode, StmtNode, SyntaxKind};
 use crate::featurez::syntax::SyntaxToken;
 use crate::featurez::syntax::TextTreeSink;
 
@@ -40,29 +40,7 @@ impl SyntaxTree {
                     is_forward_parent: false,
                     forward_parent_offset,
                 } => {
-                    if let Some(first_parent_offset) = forward_parent_offset {
-                        let mut offset = *first_parent_offset;
-
-                        loop {
-                            match &events[index + offset] {
-                                ParseEvent::BeginNode {
-                                    kind: parent_kind,
-                                    is_forward_parent: true,
-                                    forward_parent_offset: next_offset,
-                                } => {
-                                    sink.begin_node(*parent_kind, 0);
-                                    if let Some(next_offset) = next_offset {
-                                        offset += *next_offset
-                                    } else {
-                                        break;
-                                    }
-                                }
-                                _ => break,
-                            };
-                        }
-                    }
-
-                    sink.begin_node(*k, 0);
+                    Self::begin_forward_parents(&mut sink, &events, index);
                 }
                 ParseEvent::BeginNode {
                     kind: _,
@@ -71,7 +49,8 @@ impl SyntaxTree {
                 } => {
                     // noop
                 }
-                ParseEvent::EndNode => sink.end_node(0),
+                ParseEvent::EndNode => {
+                    sink.end_node(0);},
                 ParseEvent::Token { kind: k, length: l } => {
                     sink.attach_token(SyntaxToken::new(*k, *l, &text[offset..offset + l]));
                     offset += l;
@@ -136,6 +115,24 @@ impl SyntaxTree {
                     return token.length();
                 }
             }
+        }
+    }
+
+    fn begin_forward_parents(sink: &mut TextTreeSink, events: &[ParseEvent], index: usize) {
+        let event = &events[index];
+
+        match event {
+            ParseEvent::BeginNode {
+                kind,
+                forward_parent_offset: offset,
+                is_forward_parent: _
+            } => {
+                if let Some(next_offset) = offset {
+                    Self::begin_forward_parents(sink, events, index + *next_offset);
+                }
+                sink.begin_node(*kind, 0);
+            },
+            _ => {}
         }
     }
 }
