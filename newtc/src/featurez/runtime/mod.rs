@@ -58,25 +58,25 @@ mod tests {
 		let mut vm = VirtualMachineState::new();
 
 		define(&mut vm, r#"
-		fn fibinacci_step(x) {
+		fn fibonacci_step(x) {
 			if (x == 2) { return 1; }
 			if (x <= 1) { return 1; }
 
 			return x;
 		}"#);
 
-		assert_eq!(NewtValue::Int(10), evaluate(&mut vm, "fibinacci_step(10)").unwrap());
-		assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibinacci_step(2)").unwrap());
-		assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibinacci_step(1)").unwrap());
-		assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibinacci_step(0)").unwrap());
+		assert_eq!(NewtValue::Int(10), evaluate(&mut vm, "fibonacci_step(10)").unwrap());
+		assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibonacci_step(2)").unwrap());
+		assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibonacci_step(1)").unwrap());
+		assert_eq!(NewtValue::Int(1), evaluate(&mut vm, "fibonacci_step(0)").unwrap());
 	}
 
 	#[test]
-	fn virtual_machine_correctly_computes_fibinacci_5() {
+	fn virtual_machine_correctly_computes_fibonacci_5() {
 		let mut vm = VirtualMachineState::new();
 
 		define(&mut vm, r#"
-			fn fibinacci(x) {
+			fn fibonacci(x) {
 				if (x == 2) {
 					return 1;
 				}
@@ -90,7 +90,7 @@ mod tests {
 				return fibinacci(x-2) + fibinacci(x-1);
 			}"#);
 
-		assert_eq!(Ok(NewtValue::Int(8)), evaluate(&mut vm, "fibinacci(6)"));
+		assert_eq!(Ok(NewtValue::Int(8)), evaluate(&mut vm, "fibonacci(6)"));
 	}
 
 	fn define(vm: &mut VirtualMachineState, source: &str) {
