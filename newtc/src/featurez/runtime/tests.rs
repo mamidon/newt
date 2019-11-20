@@ -79,7 +79,7 @@ fn virtual_machine_correctly_computes_fibonacci_5() {
 				return 0;
 			}
 
-			return fibinacci(x-2) + fibinacci(x-1);
+			return fibonacci(x-2) + fibonacci(x-1);
 		}"#);
 
 	assert_eq!(Ok(NewtValue::Int(8)), evaluate(&mut vm, "fibonacci(6)"));
