@@ -126,17 +126,15 @@ fn newt_value_truthy_semantics_for_untruthy_values() {
 			return false;
 		}
 	}
-	"#);
-	// TODO examine why I can't define multiple functions in one define call
-	define(&mut vm, r#"
+
 	fn null_value() {}
 	"#);
 
-	assert_eq!(NewtRuntimeError::TypeError, evaluate(&mut vm, "truthiness(1.0)").unwrap_err());
-	assert_eq!(NewtRuntimeError::TypeError, evaluate(&mut vm, "truthiness(\"foo\")").unwrap_err());
-	assert_eq!(NewtRuntimeError::TypeError, evaluate(&mut vm, "truthiness('c')").unwrap_err());
-	assert_eq!(NewtRuntimeError::TypeError, evaluate(&mut vm, "truthiness(truthiness)").unwrap_err());
-	assert_eq!(NewtRuntimeError::TypeError, evaluate(&mut vm, "truthiness(null_value())").unwrap_err());
+	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness(1.0)"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness(\"foo\")"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness('c')"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness(truthiness)"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness(null_value())"));
 }
 
 #[test]

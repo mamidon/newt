@@ -206,6 +206,19 @@ impl StmtListStmtNode {
             .filter_map(|n| n.as_node())
             .filter_map(StmtNode::cast)
     }
+
+    pub fn has_braces(&self) -> bool {
+        let token_count = self.0.tokens().count();
+
+        if token_count > 0 {
+            let first = self.0.tokens().nth(0).unwrap();
+            let last = self.0.tokens().nth(token_count - 1).unwrap();
+
+            first.token_kind() == TokenKind::LeftBrace && last.token_kind() == TokenKind::RightBrace
+        } else {
+            false
+        }
+    }
 }
 
 #[repr(transparent)]

@@ -202,13 +202,17 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
     }
 
     fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError> {
-        self.scope.push_scope();
+	    if node.has_braces() {
+		    self.scope.push_scope();
+	    }
 
         for stmt in node.stmts() {
             self.visit_stmt(stmt)?;
         }
 
-        self.scope.pop_scope();
+        if node.has_braces() {
+	        self.scope.pop_scope();
+        }
 
         Ok(())
     }

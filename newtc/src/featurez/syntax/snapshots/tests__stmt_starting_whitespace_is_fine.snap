@@ -1,5 +1,5 @@
 ---
-created: "2019-11-08T15:26:37.012295Z"
+created: "2019-11-21T15:42:55.418397Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -65,6 +65,11 @@ expression: approval_document
     Trivia {
         kind: WhiteSpace,
         length: 5
+    },
+    BeginNode {
+        kind: StmtListStmt,
+        is_forward_parent: false,
+        forward_parent_offset: None
     },
     Token {
         kind: LeftBrace,
@@ -278,6 +283,7 @@ expression: approval_document
         kind: WhiteSpace,
         length: 2
     },
+    EndNode,
     EndNode
 ]
 ====tree====
@@ -285,54 +291,55 @@ expression: approval_document
 ┗ StmtListStmt
   ┠ WhiteSpace '
     '
-  ┠ LeftBrace '{'
-  ┠ VariableDeclarationStmt
-  ┃ ┠ Let 'let'
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ Identifier 'x'
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ Equals '='
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ LiteralExpr
-  ┃ ┃ ┗ IntegerLiteral '1'
-  ┃ ┠ SemiColon ';'
-  ┃ ┗ WhiteSpace '
+  ┗ StmtListStmt
+    ┠ LeftBrace '{'
+    ┠ VariableDeclarationStmt
+    ┃ ┠ Let 'let'
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ Identifier 'x'
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ Equals '='
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ LiteralExpr
+    ┃ ┃ ┗ IntegerLiteral '1'
+    ┃ ┠ SemiColon ';'
+    ┃ ┗ WhiteSpace '
 	'
-  ┠ VariableDeclarationStmt
-  ┃ ┠ Let 'let'
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ Identifier 'y'
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ Equals '='
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ LiteralExpr
-  ┃ ┃ ┗ IntegerLiteral '2'
-  ┃ ┠ SemiColon ';'
-  ┃ ┗ WhiteSpace '
+    ┠ VariableDeclarationStmt
+    ┃ ┠ Let 'let'
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ Identifier 'y'
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ Equals '='
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ LiteralExpr
+    ┃ ┃ ┗ IntegerLiteral '2'
+    ┃ ┠ SemiColon ';'
+    ┃ ┗ WhiteSpace '
 	'
-  ┠ VariableDeclarationStmt
-  ┃ ┠ Let 'let'
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ Identifier 'c'
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ Equals '='
-  ┃ ┠ WhiteSpace ' '
-  ┃ ┠ BinaryExpr
-  ┃ ┃ ┠ BinaryExpr
-  ┃ ┃ ┃ ┠ VariableExpr
-  ┃ ┃ ┃ ┃ ┠ Identifier 'x'
-  ┃ ┃ ┃ ┃ ┗ WhiteSpace ' '
-  ┃ ┃ ┃ ┠ Star '*'
-  ┃ ┃ ┃ ┠ WhiteSpace ' '
-  ┃ ┃ ┃ ┗ LiteralExpr
-  ┃ ┃ ┃   ┠ IntegerLiteral '2'
-  ┃ ┃ ┃   ┗ WhiteSpace ' '
-  ┃ ┃ ┠ Plus '+'
-  ┃ ┃ ┠ WhiteSpace ' '
-  ┃ ┃ ┗ VariableExpr
-  ┃ ┃   ┗ Identifier 'y'
-  ┃ ┗ SemiColon ';'
-  ┠ RightBrace '}'
-  ┗ WhiteSpace '
+    ┠ VariableDeclarationStmt
+    ┃ ┠ Let 'let'
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ Identifier 'c'
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ Equals '='
+    ┃ ┠ WhiteSpace ' '
+    ┃ ┠ BinaryExpr
+    ┃ ┃ ┠ BinaryExpr
+    ┃ ┃ ┃ ┠ VariableExpr
+    ┃ ┃ ┃ ┃ ┠ Identifier 'x'
+    ┃ ┃ ┃ ┃ ┗ WhiteSpace ' '
+    ┃ ┃ ┃ ┠ Star '*'
+    ┃ ┃ ┃ ┠ WhiteSpace ' '
+    ┃ ┃ ┃ ┗ LiteralExpr
+    ┃ ┃ ┃   ┠ IntegerLiteral '2'
+    ┃ ┃ ┃   ┗ WhiteSpace ' '
+    ┃ ┃ ┠ Plus '+'
+    ┃ ┃ ┠ WhiteSpace ' '
+    ┃ ┃ ┗ VariableExpr
+    ┃ ┃   ┗ Identifier 'y'
+    ┃ ┗ SemiColon ';'
+    ┠ RightBrace '}'
+    ┗ WhiteSpace '
 	'
 

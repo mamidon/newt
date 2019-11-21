@@ -630,7 +630,8 @@ fn variable_expr_node_round_trips() {
 fn expect_stmt_node<N: TransparentNewType<Inner=SyntaxNode>>(tree: &SyntaxTree) -> &N {
 	tree.root()
 		.as_node()
-		.map(|n| N::from_inner(n))
+		.map(|r| StmtListStmtNode::from_inner(r))
+		.map(|n| N::from_inner(n.stmts().nth(0).unwrap().to_inner()))
 		.expect("Expected a root node with a valid type")
 }
 
