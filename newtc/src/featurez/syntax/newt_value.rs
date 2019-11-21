@@ -191,6 +191,12 @@ impl From<i64> for NewtValue {
     }
 }
 
+impl From<i32> for NewtValue {
+    fn from(i: i32) -> Self {
+        NewtValue::Int(i.into())
+    }
+}
+
 impl From<u32> for NewtValue {
     fn from(i: u32) -> Self {
         NewtValue::Int(i.into())

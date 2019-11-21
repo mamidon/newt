@@ -30,13 +30,19 @@ impl VirtualMachineState {
             .as_node()
             .ok_or(NewtRuntimeError::InvalidSyntaxTree)?;
 
-        if let Some(expr) = ExprNode::cast(node) {
+        let result = if let Some(expr) = ExprNode::cast(node) {
             self.visit_expr(expr)
         } else if let Some(stmt) = StmtNode::cast(node) {
             self.visit_stmt(stmt)
                 .map(|f| NewtValue::Null)
         } else {
             panic!("All nodes should be either an Expression or Statement!");
+        };
+
+        match result {
+            Ok(value) => Ok(value),
+            Err(NewtRuntimeError::ReturnedValue(value)) => Ok(value),
+            Err(error) => Err(error)
         }
     }
 }
@@ -214,9 +220,10 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
 
     fn visit_if_stmt(&mut self, node: &IfStmtNode) -> Result<(), NewtRuntimeError> {
         let result = self.visit_expr(node.condition())?;
+        let truthiness = result.as_truthy();
 
-        match result {
-            NewtValue::Bool(conditional) => {
+        match truthiness {
+            Some(conditional) => {
                 if conditional {
                     self.visit_stmt_list_stmt(node.when_true())?;
                 } else {
@@ -225,7 +232,7 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
                     }
                 }
             }
-            _ => Err(NewtRuntimeError::TypeError)?,
+            None => Err(NewtRuntimeError::TypeError)?,
         }
 
         Ok(())
