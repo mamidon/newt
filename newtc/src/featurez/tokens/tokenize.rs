@@ -170,7 +170,6 @@ fn scan_string_literal(cursor: &mut Cursor) -> Option<Token> {
     }
 
     cursor.next();
-    cursor.next();
 
     while cursor.current().is_some() && cursor.match_char_predicate(&|c: char| c != '"') {
         cursor.next();
