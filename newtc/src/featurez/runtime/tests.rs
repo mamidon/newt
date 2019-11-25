@@ -10,7 +10,7 @@ use std::rc::Rc;
 fn return_statement_returns_value() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn returns_value() {
 		return 42;
 	}"#);
@@ -22,7 +22,7 @@ fn return_statement_returns_value() {
 fn return_statement_short_circuits() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn return_short_circuits() {
 		return 42;
 		return 32;
@@ -35,7 +35,7 @@ fn return_statement_short_circuits() {
 fn return_statement_short_circuit_inside_scope() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn return_early() {
 		if (true) {
 			return 42;
@@ -49,24 +49,22 @@ fn return_statement_short_circuit_inside_scope() {
 #[test]
 fn return_statement_returns_value_outside_of_function() {
 	let mut vm = VirtualMachine::new();
-	let tree: SyntaxTree = "return 42;".into();
 
-	assert_eq_newt_values(42.into(), vm.interpret(&tree).unwrap());
+	assert_eq_newt_values(42.into(), vm.interpret("return 42;").unwrap());
 }
 
 #[test]
 fn return_statement_no_return_statement_returns_null() {
 	let mut vm = VirtualMachine::new();
-	let tree: SyntaxTree = "let x = 1;".into();
 
-	assert_eq!(NewtValue::Null, vm.interpret(&tree).unwrap());
+	assert_eq!(NewtValue::Null, vm.interpret("let x = 1;").unwrap());
 }
 
 #[test]
 fn if_statement_executes_correct_branches_for_conditional() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn if_statement(x) {
 		if (x) { return 1; }
 		return 2;
@@ -80,7 +78,7 @@ fn if_statement_executes_correct_branches_for_conditional() {
 fn if_statement_uses_truthiness() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn if_statement(x) {
 		if (x) { return 1; }
 		return 2;
@@ -94,7 +92,7 @@ fn if_statement_uses_truthiness() {
 fn if_else_statement_executes_correct_branches_for_conditional() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn if_else_statement(x) {
 		if (x) {
 			return 1;
@@ -111,7 +109,7 @@ fn if_else_statement_executes_correct_branches_for_conditional() {
 fn if_else_statement_uses_truthiness() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn if_else_statement(x) {
 		if (x) {
 			return 1;
@@ -128,7 +126,7 @@ fn if_else_statement_uses_truthiness() {
 fn while_statement_repeats_conditional_evaluations_to_false() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn while_statement(loops_to_do) {
 		let loops_done = 0;
 		while (loops_to_do > 0) {
@@ -147,7 +145,7 @@ fn while_statement_repeats_conditional_evaluations_to_false() {
 fn while_statement_uses_truthy_semantics() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn while_statement(truthy) {
 		while (truthy) {
 			return true;
@@ -163,7 +161,7 @@ fn while_statement_uses_truthy_semantics() {
 #[test]
 fn newt_value_truthy_semantics_for_truthy_values() {
 	let mut vm = VirtualMachine::new();
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn truthiness(x) {
 		if (x) {
 			return true;
@@ -185,7 +183,7 @@ fn newt_value_truthy_semantics_for_truthy_values() {
 #[test]
 fn newt_value_truthy_semantics_for_untruthy_values() {
 	let mut vm = VirtualMachine::new();
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn truthiness(x) {
 		if (x) {
 			return true;
@@ -227,7 +225,7 @@ fn newt_value_string_equality_semantics() {
 fn function_declaration_statement_adds_function_to_scope() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret("fn function_declaration() { return 42; }");
+	vm.interpret("fn function_declaration() { return 42; }");
 
 	assert_eq_newt_values(42.into(), evaluate(&mut vm, "function_declaration()").unwrap());
 	assert_eq!(Err(NewtRuntimeError::UndefinedVariable), evaluate(&mut vm, "foo()"));
@@ -237,7 +235,7 @@ fn function_declaration_statement_adds_function_to_scope() {
 fn function_declaration_statement_can_nest_declarations() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn outer_declaration() {
 		fn inner_declaration() {
 			return 32;
@@ -253,7 +251,7 @@ fn function_declaration_statement_can_nest_declarations() {
 fn function_declaration_statement_can_capture_closure() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 	fn count_to_max(max) {
 		let count = 0;
 		fn counter() {
@@ -279,7 +277,7 @@ fn function_declaration_statement_can_capture_closure() {
 fn variable_declaration_statement_adds_variable_to_top_scope() {
 	let mut vm = VirtualMachine::new();
 
-	vm.new_interpret("let x = 42;");
+	vm.interpret("let x = 42;");
 
 	assert_eq_newt_values(42.into(), evaluate(&mut vm, "x").unwrap());
 }
@@ -287,7 +285,7 @@ fn variable_declaration_statement_adds_variable_to_top_scope() {
 #[test]
 fn variable_declaration_statement_does_not_effect_scope_prior_to_declaration() {
 	let mut vm = VirtualMachine::new();
-	let result = vm.new_interpret(r#"
+	let result = vm.interpret(r#"
 	let y = x;
 	let x = 42;
 	"#);
@@ -298,7 +296,7 @@ fn variable_declaration_statement_does_not_effect_scope_prior_to_declaration() {
 #[test]
 fn virtual_machine_correctly_computes_fibonacci_5() {
 	let mut vm = VirtualMachine::new();
-	vm.new_interpret(r#"
+	vm.interpret(r#"
 		fn fibonacci(x) {
 			if (x == 2) {
 				return 1;
@@ -324,7 +322,7 @@ fn evaluate(vm: &mut VirtualMachine, source: &str) -> NewtResult {
 	let completed_parsing = root_expr(parser);
 	let tree = SyntaxTree::from_parser(&completed_parsing, source);
 
-	vm.interpret(&tree)
+	vm.interpret(tree)
 }
 
 fn assert_eq_newt_values(a: NewtValue, b: NewtValue) {
