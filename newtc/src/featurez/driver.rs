@@ -1,4 +1,4 @@
-use crate::featurez::runtime::{VirtualMachineState, VirtualMachineInterpretingSession};
+use crate::featurez::runtime::{VirtualMachine, VirtualMachineInterpretingSession};
 use crate::featurez::syntax::{AstNode, ExprNode, ExprVisitor, NewtValue, NewtStaticError, NewtRuntimeError, SyntaxNode, NewtResult};
 use crate::featurez::syntax::{StmtNode, StmtVisitor, SyntaxElement, SyntaxTree};
 use crate::featurez::tokens::{tokenize, StrTokenSource, Token, TokenKind};
@@ -40,7 +40,7 @@ impl<'sess> InterpretingSession<'sess> {
 		}
 	}
 
-	pub fn interpret(&self, vm: &mut VirtualMachineState) -> NewtResult {
+	pub fn interpret(&self, vm: &mut VirtualMachine) -> NewtResult {
 		let mut session = VirtualMachineInterpretingSession::new(self.syntax_tree(), vm);
 		session.interpret()
 	}

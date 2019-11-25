@@ -52,7 +52,7 @@ fn main() {
 fn batch(file: String, output_mode: OutputMode) {
     match output_mode {
         OutputMode::Tokens => token_batch(file),
-        OutputMode::ParseTree => parse_batch(&file, &mut VirtualMachineState::new()),
+        OutputMode::ParseTree => parse_batch(&file, &mut VirtualMachine::new()),
         _ => unimplemented!(
             "Have not yet implemented batch processing for {:?}",
             output_mode
@@ -96,7 +96,7 @@ fn token_repl() {
 
 fn parse_repl() {
     let mut input_buffer = String::new();
-    let mut machine = VirtualMachineState::new();
+    let mut machine = VirtualMachine::new();
 
     loop {
         if input_buffer.is_empty() {
@@ -142,7 +142,7 @@ fn balanced_braces(input_buffer: &str) -> bool {
     return braces_counted == 0 && parenthesis_counted == 0;
 }
 
-fn parse_batch(file: &str, machine: &mut VirtualMachineState) {
+fn parse_batch(file: &str, machine: &mut VirtualMachine) {
     let session = InterpretingSession::new(InterpretingSessionKind::Stmt, file);
 
     println!("{}", session.syntax_tree());

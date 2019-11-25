@@ -8,19 +8,19 @@ use crate::featurez::runtime::callable::NewtCallable;
 use std::rc::Rc;
 
 #[derive(Debug)]
-pub struct VirtualMachineState {
+pub struct VirtualMachine {
     scope: Environment
 }
 
-impl VirtualMachineState {
-    pub fn new() -> VirtualMachineState {
-        VirtualMachineState {
+impl VirtualMachine {
+    pub fn new() -> VirtualMachine {
+        VirtualMachine {
             scope: Environment::new()
         }
     }
 
-	pub fn new_with_scope(scope: &Environment) -> VirtualMachineState {
-		VirtualMachineState {
+	pub fn new_with_scope(scope: &Environment) -> VirtualMachine {
+		VirtualMachine {
 			scope: scope.clone()
 		}
 	}
@@ -49,12 +49,12 @@ impl VirtualMachineState {
 
 pub struct VirtualMachineInterpretingSession<'sess> {
     tree: &'sess SyntaxTree,
-    state: &'sess mut VirtualMachineState,
+    state: &'sess mut VirtualMachine,
 }
 
 impl<'sess> VirtualMachineInterpretingSession<'sess> {
     pub fn new(tree: &'sess SyntaxTree,
-               state: &'sess mut VirtualMachineState)
+               state: &'sess mut VirtualMachine)
         -> VirtualMachineInterpretingSession<'sess> {
 
         VirtualMachineInterpretingSession {
@@ -81,7 +81,7 @@ impl<'sess> VirtualMachineInterpretingSession<'sess> {
     }
 }
 
-impl ExprVisitor<NewtResult> for VirtualMachineState {
+impl ExprVisitor<NewtResult> for VirtualMachine {
     fn visit_expr(&mut self, node: &ExprNode) -> NewtResult {
         match node.kind() {
             ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
@@ -162,7 +162,7 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
     }
 }
 
-impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
+impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
     fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
         match node.kind() {
             StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node)?,

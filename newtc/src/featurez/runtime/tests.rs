@@ -1,6 +1,6 @@
 use crate::featurez::syntax::{SyntaxTree, NewtResult, NewtValue, NewtRuntimeError};
 use crate::featurez::runtime::scope::Environment;
-use crate::featurez::{VirtualMachineState, StrTokenSource};
+use crate::featurez::{VirtualMachine, StrTokenSource};
 use crate::featurez::grammar::root_expr;
 use crate::featurez::parse::Parser;
 use crate::featurez::tokenize;
@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 #[test]
 fn return_statement_returns_value() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn returns_value() {
@@ -20,7 +20,7 @@ fn return_statement_returns_value() {
 
 #[test]
 fn return_statement_short_circuits() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn return_short_circuits() {
@@ -33,7 +33,7 @@ fn return_statement_short_circuits() {
 
 #[test]
 fn return_statement_short_circuit_inside_scope() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn return_early() {
@@ -48,7 +48,7 @@ fn return_statement_short_circuit_inside_scope() {
 
 #[test]
 fn return_statement_returns_value_outside_of_function() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 	let tree: SyntaxTree = "return 42;".into();
 
 	assert_eq_newt_values(42.into(), vm.interpret(&tree).unwrap());
@@ -56,7 +56,7 @@ fn return_statement_returns_value_outside_of_function() {
 
 #[test]
 fn return_statement_no_return_statement_returns_null() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 	let tree: SyntaxTree = "let x = 1;".into();
 
 	assert_eq!(NewtValue::Null, vm.interpret(&tree).unwrap());
@@ -64,7 +64,7 @@ fn return_statement_no_return_statement_returns_null() {
 
 #[test]
 fn if_statement_executes_correct_branches_for_conditional() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn if_statement(x) {
@@ -78,7 +78,7 @@ fn if_statement_executes_correct_branches_for_conditional() {
 
 #[test]
 fn if_statement_uses_truthiness() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn if_statement(x) {
@@ -92,7 +92,7 @@ fn if_statement_uses_truthiness() {
 
 #[test]
 fn if_else_statement_executes_correct_branches_for_conditional() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn if_else_statement(x) {
@@ -109,7 +109,7 @@ fn if_else_statement_executes_correct_branches_for_conditional() {
 
 #[test]
 fn if_else_statement_uses_truthiness() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn if_else_statement(x) {
@@ -126,7 +126,7 @@ fn if_else_statement_uses_truthiness() {
 
 #[test]
 fn while_statement_repeats_conditional_evaluations_to_false() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn while_statement(loops_to_do) {
@@ -145,7 +145,7 @@ fn while_statement_repeats_conditional_evaluations_to_false() {
 
 #[test]
 fn while_statement_uses_truthy_semantics() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn while_statement(truthy) {
@@ -162,7 +162,7 @@ fn while_statement_uses_truthy_semantics() {
 
 #[test]
 fn newt_value_truthy_semantics_for_truthy_values() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 	define(&mut vm, r#"
 	fn truthiness(x) {
 		if (x) {
@@ -184,7 +184,7 @@ fn newt_value_truthy_semantics_for_truthy_values() {
 
 #[test]
 fn newt_value_truthy_semantics_for_untruthy_values() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 	define(&mut vm, r#"
 	fn truthiness(x) {
 		if (x) {
@@ -206,7 +206,7 @@ fn newt_value_truthy_semantics_for_untruthy_values() {
 
 #[test]
 fn newt_value_bool_equality_semantics() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	assert_eq_newt_values(true.into(), evaluate(&mut vm, "true == true").unwrap());
 	assert_eq_newt_values(true.into(), evaluate(&mut vm, "false == false").unwrap());
@@ -216,7 +216,7 @@ fn newt_value_bool_equality_semantics() {
 
 #[test]
 fn newt_value_string_equality_semantics() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	assert_eq_newt_values(true.into(), evaluate(&mut vm, "\"Hello, world!\" == \"Hello, world!\"").unwrap());
 	assert_eq_newt_values(false.into(), evaluate(&mut vm, "\"\" == \"Hello, world!\"").unwrap());
@@ -225,7 +225,7 @@ fn newt_value_string_equality_semantics() {
 
 #[test]
 fn function_declaration_statement_adds_function_to_scope() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, "fn function_declaration() { return 42; }");
 
@@ -235,7 +235,7 @@ fn function_declaration_statement_adds_function_to_scope() {
 
 #[test]
 fn function_declaration_statement_can_nest_declarations() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn outer_declaration() {
@@ -251,7 +251,7 @@ fn function_declaration_statement_can_nest_declarations() {
 
 #[test]
 fn function_declaration_statement_can_capture_closure() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 	fn count_to_max(max) {
@@ -277,7 +277,7 @@ fn function_declaration_statement_can_capture_closure() {
 
 #[test]
 fn variable_declaration_statement_adds_variable_to_top_scope() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, "let x = 42;");
 
@@ -286,7 +286,7 @@ fn variable_declaration_statement_adds_variable_to_top_scope() {
 
 #[test]
 fn variable_declaration_statement_does_not_effect_scope_prior_to_declaration() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 	let tree: SyntaxTree = r#"
 	let y = x;
 	let x = 42;
@@ -298,7 +298,7 @@ fn variable_declaration_statement_does_not_effect_scope_prior_to_declaration() {
 
 #[test]
 fn virtual_machine_correctly_computes_fibonacci_5() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
 	define(&mut vm, r#"
 		fn fibonacci(x) {
@@ -318,14 +318,14 @@ fn virtual_machine_correctly_computes_fibonacci_5() {
 	assert_eq!(Ok(NewtValue::Int(8)), evaluate(&mut vm, "fibonacci(6)"));
 }
 
-fn define(vm: &mut VirtualMachineState, source: &str) {
+fn define(vm: &mut VirtualMachine, source: &str) {
 	let tree: SyntaxTree = source.into();
 	let result = vm.interpret(&tree);
 
 	assert_eq!(NewtValue::Null, result.unwrap());
 }
 
-fn evaluate(vm: &mut VirtualMachineState, source: &str) -> NewtResult {
+fn evaluate(vm: &mut VirtualMachine, source: &str) -> NewtResult {
 	let tokens = tokenize(source);
 	let token_source = StrTokenSource::new(tokens);
 	let mut parser = Parser::new(token_source);
