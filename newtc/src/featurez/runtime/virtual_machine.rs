@@ -25,6 +25,29 @@ impl VirtualMachine {
 		}
 	}
 
+    pub fn new_interpret<S: Into<SyntaxTree>>(&mut self, source: S) -> NewtResult {
+        let tree: SyntaxTree = source.into();
+
+        let node = tree.root()
+            .as_node()
+            .ok_or(NewtRuntimeError::InvalidSyntaxTree)?;
+
+        let result = if let Some(expr) = ExprNode::cast(node) {
+            self.visit_expr(expr)
+        } else if let Some(stmt) = StmtNode::cast(node) {
+            self.visit_stmt(stmt)
+                .map(|f| NewtValue::Null)
+        } else {
+            panic!("All nodes should be either an Expression or Statement!");
+        };
+
+        match result {
+            Ok(value) => Ok(value),
+            Err(NewtRuntimeError::ReturnedValue(value)) => Ok(value),
+            Err(error) => Err(error)
+        }
+    }
+
     pub fn interpret(&mut self, tree: &SyntaxTree) -> NewtResult {
         let node = tree.root()
             .as_node()
