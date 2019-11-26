@@ -9,4 +9,4 @@ mod driver;
 
 pub use self::runtime::VirtualMachine;
 pub use self::tokens::{tokenize, StrTokenSource, Token, TokenKind};
-
+pub use self::syntax::SyntaxTree;

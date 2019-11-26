@@ -143,10 +143,19 @@ fn balanced_braces(input_buffer: &str) -> bool {
 }
 
 fn parse_batch(file: &str, machine: &mut VirtualMachine) {
-    let result = machine.interpret(file);
+    let tree: SyntaxTree = file.into();
 
-    println!("RESULT: {:?}", result);
-    println!("STATE: {:#?}", machine);
+
+    if tree.errors().count() == 0 {
+        let result = machine.interpret(tree);
+
+        println!("RESULT: {:?}", result);
+        println!("STATE: {:#?}", machine);
+    } else {
+        for error_report in tree.errors() {
+            println!("{}", error_report);
+        }
+    }
 }
 
 fn print_tokens(source_text: &str, tokens: &Vec<Token>) {

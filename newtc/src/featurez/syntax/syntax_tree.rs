@@ -22,7 +22,13 @@ pub struct SyntaxTree {
 
 pub struct ErrorReport {
     pub(crate) line: usize,
-    pub(crate) message: String
+    pub(crate) message: String,
+}
+
+impl Display for ErrorReport {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+		write!(f, "{}: {}", self.line, self.message)
+	}
 }
 
 impl SyntaxTree {
