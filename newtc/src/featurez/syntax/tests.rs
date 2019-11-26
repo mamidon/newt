@@ -378,7 +378,7 @@ fn expr_stmt_node_round_trips() {
 
 #[test]
 fn function_call_expr_node_handles_callee() {
-	let tree: SyntaxTree = "foo();".into();
+	let tree: SyntaxTree = "foo()".into();
 	let node: &FunctionCallExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::VariableExpr, node.callee().syntax().kind());
@@ -386,7 +386,7 @@ fn function_call_expr_node_handles_callee() {
 
 #[test]
 fn function_call_expr_node_handles_zero_arguments() {
-	let tree: SyntaxTree = "foo();".into();
+	let tree: SyntaxTree = "foo()".into();
 	let node: &FunctionCallExprNode = expect_expr_node(&tree);
 
 	assert_eq!(0, node.arguments().count());
@@ -394,7 +394,7 @@ fn function_call_expr_node_handles_zero_arguments() {
 
 #[test]
 fn function_call_expr_node_handles_one_arguments() {
-	let tree: SyntaxTree = "foo(x);".into();
+	let tree: SyntaxTree = "foo(x)".into();
 	let node: &FunctionCallExprNode = expect_expr_node(&tree);
 
 	assert_eq!(1, node.arguments().count());
@@ -402,7 +402,7 @@ fn function_call_expr_node_handles_one_arguments() {
 
 #[test]
 fn function_call_expr_node_handles_multiple_arguments() {
-	let tree: SyntaxTree = "foo(x, y, z);".into();
+	let tree: SyntaxTree = "foo(x, y, z)".into();
 	let node: &FunctionCallExprNode = expect_expr_node(&tree);
 
 	assert_eq!(3, node.arguments().count());
@@ -410,7 +410,7 @@ fn function_call_expr_node_handles_multiple_arguments() {
 
 #[test]
 fn function_call_expr_node_properly_orders_arguments() {
-	let tree: SyntaxTree = "foo(x, 2+2, bar());".into();
+	let tree: SyntaxTree = "foo(x, 2+2, bar())".into();
 	let node: &FunctionCallExprNode = expect_expr_node(&tree);
 	let arguments: Vec<&ExprNode> = node.arguments().collect();
 
@@ -422,7 +422,7 @@ fn function_call_expr_node_properly_orders_arguments() {
 
 #[test]
 fn function_call_expr_node_round_trips() {
-	let tree: SyntaxTree = "foo();".into();
+	let tree: SyntaxTree = "foo()".into();
 	let node: &FunctionCallExprNode = expect_expr_node(&tree);
 
 	let expr = ExprNode::cast(node.to_inner()).unwrap();
@@ -435,7 +435,7 @@ fn function_call_expr_node_round_trips() {
 
 #[test]
 fn literal_expr_node_handles_integers() {
-	let tree: SyntaxTree = "42;".into();
+	let tree: SyntaxTree = "42".into();
 	let node: &LiteralExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
@@ -443,7 +443,7 @@ fn literal_expr_node_handles_integers() {
 
 #[test]
 fn literal_expr_node_handles_true_booleans() {
-	let tree: SyntaxTree = "true;".into();
+	let tree: SyntaxTree = "true".into();
 	let node: &LiteralExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
@@ -451,7 +451,7 @@ fn literal_expr_node_handles_true_booleans() {
 
 #[test]
 fn literal_expr_node_handles_false_booleans() {
-	let tree: SyntaxTree = "false;".into();
+	let tree: SyntaxTree = "false".into();
 	let node: &LiteralExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
@@ -459,7 +459,7 @@ fn literal_expr_node_handles_false_booleans() {
 
 #[test]
 fn literal_expr_node_handles_string_booleans() {
-	let tree: SyntaxTree = "\"hello, world!\";".into();
+	let tree: SyntaxTree = "\"hello, world!\"".into();
 	let node: &LiteralExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
@@ -467,7 +467,7 @@ fn literal_expr_node_handles_string_booleans() {
 
 #[test]
 fn literal_expr_node_handles_glyphs() {
-	let tree: SyntaxTree = "'a';".into();
+	let tree: SyntaxTree = "'a'".into();
 	let node: &LiteralExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
@@ -475,7 +475,7 @@ fn literal_expr_node_handles_glyphs() {
 
 #[test]
 fn literal_expr_node_handles_floats() {
-	let tree: SyntaxTree = "3.14;".into();
+	let tree: SyntaxTree = "3.14".into();
 	let node: &LiteralExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
@@ -483,7 +483,7 @@ fn literal_expr_node_handles_floats() {
 
 #[test]
 fn literal_expr_node_round_trips() {
-	let tree: SyntaxTree = "42;".into();
+	let tree: SyntaxTree = "42".into();
 	let node: &LiteralExprNode = expect_expr_node(&tree);
 
 	let expr = ExprNode::cast(node.to_inner()).unwrap();
@@ -496,7 +496,7 @@ fn literal_expr_node_round_trips() {
 
 #[test]
 fn binary_expr_node_does_not_swap_operands() {
-	let tree: SyntaxTree = "2+foo();".into();
+	let tree: SyntaxTree = "2+foo()".into();
 	let node: &BinaryExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::LiteralExpr, node.lhs().syntax().kind());
@@ -533,7 +533,7 @@ fn binary_expr_node_handles_operators() {
 
 #[test]
 fn binary_expr_node_round_trips() {
-	let tree: SyntaxTree = "2+2;".into();
+	let tree: SyntaxTree = "2+2".into();
 	let node: &BinaryExprNode = expect_expr_node(&tree);
 
 	let expr = ExprNode::cast(node.to_inner()).unwrap();
@@ -546,7 +546,7 @@ fn binary_expr_node_round_trips() {
 
 #[test]
 fn unary_expr_node_handles_operand() {
-	let tree: SyntaxTree = "-2;".into();
+	let tree: SyntaxTree = "-2".into();
 	let node: &UnaryExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::LiteralExpr, node.rhs().syntax().kind());
@@ -573,7 +573,7 @@ fn unary_expr_node_handles_operators() {
 
 #[test]
 fn unary_expr_node_round_trips() {
-	let tree: SyntaxTree = "-2;".into();
+	let tree: SyntaxTree = "-2".into();
 	let node: &BinaryExprNode = expect_expr_node(&tree);
 
 	let expr = ExprNode::cast(node.to_inner()).unwrap();
@@ -586,7 +586,7 @@ fn unary_expr_node_round_trips() {
 
 #[test]
 fn grouping_expr_handles_sub_expr() {
-	let tree: SyntaxTree = "(2+2);".into();
+	let tree: SyntaxTree = "(2+2)".into();
 	let node: &GroupingExprNode = expect_expr_node(&tree);
 
 	assert_eq!(SyntaxKind::BinaryExpr, node.expr().syntax().kind());
@@ -594,7 +594,7 @@ fn grouping_expr_handles_sub_expr() {
 
 #[test]
 fn grouping_expr_node_round_trips() {
-	let tree: SyntaxTree = "(2+2);".into();
+	let tree: SyntaxTree = "(2+2)".into();
 	let node: &GroupingExprNode = expect_expr_node(&tree);
 
 	let expr = ExprNode::cast(node.to_inner()).unwrap();
@@ -607,7 +607,7 @@ fn grouping_expr_node_round_trips() {
 
 #[test]
 fn variable_expr_node_handles_identifier() {
-	let tree: SyntaxTree = "x;".into();
+	let tree: SyntaxTree = "x".into();
 	let node: &VariableExprNode = expect_expr_node(&tree);
 
 	assert_eq!("x", node.identifier().lexeme());
@@ -615,7 +615,7 @@ fn variable_expr_node_handles_identifier() {
 
 #[test]
 fn variable_expr_node_round_trips() {
-	let tree: SyntaxTree = "x;".into();
+	let tree: SyntaxTree = "x".into();
 	let node: &VariableExprNode = expect_expr_node(&tree);
 
 	let expr = ExprNode::cast(node.to_inner()).unwrap();
@@ -636,8 +636,11 @@ fn expect_stmt_node<N: TransparentNewType<Inner=SyntaxNode>>(tree: &SyntaxTree) 
 }
 
 fn expect_expr_node<N: TransparentNewType<Inner=SyntaxNode>>(tree: &SyntaxTree) -> &N {
-	let stmt: &ExprStmtNode = expect_stmt_node(tree);
-	N::from_inner(stmt.expr().syntax())
+	tree.root()
+		.as_node()
+		.map(|r| ExprNode::from_inner(r))
+		.map(|n| N::from_inner(n.to_inner()))
+		.expect("Expected a root node with a valid type")
 }
 
 macro_rules! syntax_tree_expr_tests {

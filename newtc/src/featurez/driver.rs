@@ -9,7 +9,7 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::collections::HashMap;
-use crate::featurez::grammar::root_stmt;
+use crate::featurez::grammar::{root_stmt, root_expr};
 
 
 #[derive(Copy, Clone)]
@@ -68,11 +68,25 @@ impl<'sess> InterpretingSession<'sess> {
 
 impl From<&str> for SyntaxTree {
 	fn from(source: &str) -> Self {
+		let statement_token_kinds = [
+			TokenKind::SemiColon,
+			TokenKind::RightBrace,
+			TokenKind::LeftBrace,
+			TokenKind::RightBracket,
+			TokenKind::LeftBracket
+		];
 		let tokens = tokenize(source);
+		let statement_tokens = tokens.iter().any(|t| statement_token_kinds.contains(&t.token_kind()));
 		let token_source = StrTokenSource::new(tokens);
 		let mut p = Parser::new(token_source);
 
-		SyntaxTree::from_parser(&root_stmt(p), source)
+		let parsing = if statement_tokens {
+			root_stmt(p)
+		} else {
+			root_expr(p)
+		};
+
+		SyntaxTree::from_parser(&parsing, source)
 	}
 }
 
