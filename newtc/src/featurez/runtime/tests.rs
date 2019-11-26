@@ -314,6 +314,13 @@ fn virtual_machine_correctly_computes_fibonacci_5() {
 	assert_eq!(Ok(NewtValue::Int(8)), evaluate(&mut vm, "fibonacci(6)"));
 }
 
+#[test]
+fn virtual_machine_short_circuits_incorrect_syntax() {
+	let mut vm = VirtualMachine::new();
+
+	assert_eq!(Err(NewtRuntimeError::InvalidSyntaxTree), evaluate(&mut vm, "2++2"));
+}
+
 fn evaluate(vm: &mut VirtualMachine, source: &str) -> NewtResult {
 	let tokens = tokenize(source);
 	let token_source = StrTokenSource::new(tokens);
