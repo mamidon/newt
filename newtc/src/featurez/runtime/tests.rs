@@ -70,7 +70,7 @@ fn if_statement_executes_correct_branches_for_conditional() {
 		return 2;
 	}"#);
 
-	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("if_statement(true)"));
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("if_statement(false)"));
 	assert_eq!(Ok(NewtValue::Int(2)), vm.interpret("if_statement(false)"));
 }
 
