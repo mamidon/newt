@@ -1,9 +1,10 @@
-use crate::featurez::parse::CompletedParsing;
+use crate::featurez::parse::{CompletedParsing, Parser};
 use crate::featurez::parse::ParseEvent;
 use crate::featurez::syntax::tree_sink::TreeSink;
 use crate::featurez::syntax::{AstNode, SyntaxElement, SyntaxNode, StmtNode, SyntaxKind};
 use crate::featurez::syntax::SyntaxToken;
 use crate::featurez::syntax::TextTreeSink;
+use crate::featurez::tokenize;
 
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -11,6 +12,8 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::collections::{HashSet, HashMap};
 use crate::featurez::driver::NewtError;
+use crate::featurez::{TokenKind, StrTokenSource};
+use crate::featurez::grammar::{root_stmt, root_expr};
 
 pub struct SyntaxTree {
     root: SyntaxElement,
@@ -167,3 +170,30 @@ impl<'a> Iterator for SyntaxTreeIterator<'a> {
         return next;
     }
 }
+
+
+
+impl From<&str> for SyntaxTree {
+    fn from(source: &str) -> Self {
+        let statement_token_kinds = [
+            TokenKind::SemiColon,
+            TokenKind::RightBrace,
+            TokenKind::LeftBrace,
+            TokenKind::RightBracket,
+            TokenKind::LeftBracket
+        ];
+        let tokens = tokenize(source);
+        let statement_tokens = tokens.iter().any(|t| statement_token_kinds.contains(&t.token_kind()));
+        let token_source = StrTokenSource::new(tokens);
+        let mut p = Parser::new(token_source);
+
+        let parsing = if statement_tokens {
+            root_stmt(p)
+        } else {
+            root_expr(p)
+        };
+
+        SyntaxTree::from_parser(&parsing, source)
+    }
+}
+

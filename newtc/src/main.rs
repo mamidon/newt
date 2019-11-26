@@ -143,11 +143,7 @@ fn balanced_braces(input_buffer: &str) -> bool {
 }
 
 fn parse_batch(file: &str, machine: &mut VirtualMachine) {
-    let session = InterpretingSession::new(InterpretingSessionKind::Stmt, file);
-
-    println!("{}", session.syntax_tree());
-
-    let result = session.interpret(machine);
+    let result = machine.interpret(file);
 
     println!("RESULT: {:?}", result);
     println!("STATE: {:#?}", machine);

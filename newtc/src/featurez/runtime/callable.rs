@@ -4,7 +4,6 @@ use std::fmt::{Debug, Error, Formatter};
 use std::convert::TryFrom;
 use std::collections::HashMap;
 use crate::featurez::runtime::scope::{ScopeNode, Environment};
-use crate::featurez::runtime::VirtualMachineInterpretingSession;
 
 pub trait Callable {
     fn symbol(&self) -> &str;

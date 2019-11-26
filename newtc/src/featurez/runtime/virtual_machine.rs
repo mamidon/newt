@@ -49,40 +49,6 @@ impl VirtualMachine {
     }
 }
 
-pub struct VirtualMachineInterpretingSession<'sess> {
-    tree: &'sess SyntaxTree,
-    state: &'sess mut VirtualMachine,
-}
-
-impl<'sess> VirtualMachineInterpretingSession<'sess> {
-    pub fn new(tree: &'sess SyntaxTree,
-               state: &'sess mut VirtualMachine)
-        -> VirtualMachineInterpretingSession<'sess> {
-
-        VirtualMachineInterpretingSession {
-            tree,
-            state,
-        }
-    }
-
-    pub fn interpret(&mut self) -> NewtResult {
-        let node = match self.tree.root().as_node() {
-            Some(n) => n,
-            None => panic!("invalid code"),
-        };
-
-        if let Some(expr) = ExprNode::cast(node) {
-            return self.state.visit_expr(expr);
-        }
-
-        if let Some(stmt) = StmtNode::cast(node) {
-            return self.state.visit_stmt(stmt).map(|_| NewtValue::Null);
-        }
-
-        unreachable!()
-    }
-}
-
 impl ExprVisitor<NewtResult> for VirtualMachine {
     fn visit_expr(&mut self, node: &ExprNode) -> NewtResult {
         match node.kind() {
