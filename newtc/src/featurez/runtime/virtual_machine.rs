@@ -28,6 +28,10 @@ impl VirtualMachine {
     pub fn interpret<S: Into<SyntaxTree>>(&mut self, source: S) -> NewtResult {
         let tree: SyntaxTree = source.into();
 
+        if tree.errors().count() != 0 {
+            return Err(NewtRuntimeError::InvalidSyntaxTree);
+        }
+
         let node = tree.root()
             .as_node()
             .ok_or(NewtRuntimeError::InvalidSyntaxTree)?;

@@ -37,6 +37,10 @@ impl SyntaxTree {
         &self.root
     }
 
+	pub fn errors(&self) -> impl Iterator<Item=&ErrorReport> {
+		self.errors.iter()
+	}
+
     pub fn from_parser(parser: &CompletedParsing, text: &str) -> Self {
         let events = &parser.events;
 
