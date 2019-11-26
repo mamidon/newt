@@ -17,14 +17,19 @@ use crate::featurez::grammar::{root_stmt, root_expr};
 
 pub struct SyntaxTree {
     root: SyntaxElement,
-    errors: Vec<NewtError>
+    errors: Vec<ErrorReport>
+}
+
+pub struct ErrorReport {
+    pub(crate) line: usize,
+    pub(crate) message: String
 }
 
 impl SyntaxTree {
-    pub fn new(root: SyntaxElement) -> SyntaxTree {
+    fn new(root: SyntaxElement, errors: Vec<ErrorReport>) -> SyntaxTree {
         SyntaxTree {
             root,
-            errors: Vec::new()
+            errors
         }
     }
 
@@ -34,8 +39,12 @@ impl SyntaxTree {
 
     pub fn from_parser(parser: &CompletedParsing, text: &str) -> Self {
         let events = &parser.events;
+
         let mut sink = TextTreeSink::new();
         let mut offset = 0;
+        let mut error_reports: Vec<ErrorReport> = Vec::new();
+        let mut lines = 0;
+
         for (index, event) in events.iter().enumerate() {
             match event {
                 ParseEvent::BeginNode {
@@ -43,23 +52,44 @@ impl SyntaxTree {
                     is_forward_parent: false,
                     forward_parent_offset,
                 } => {
+                    match k {
+                        SyntaxKind::Error(message) => {
+                            error_reports.push(ErrorReport {
+                                message: message.to_string(),
+                                line: lines + 1
+                            })
+                        },
+                        _ => {}
+                    }
                     Self::begin_forward_parents(&mut sink, &events, index);
                 }
                 ParseEvent::BeginNode {
-                    kind: _,
+                    kind,
                     is_forward_parent: true,
                     forward_parent_offset: _,
                 } => {
-                    // noop
+                    match kind {
+                        SyntaxKind::Error(message) => {
+                            error_reports.push(ErrorReport {
+                                message: message.to_string(),
+                                line: lines + 1
+                            })
+                        },
+                        _ => {}
+                    }
                 }
                 ParseEvent::EndNode => {
-                    sink.end_node(0);},
+                    sink.end_node(0);
+                },
                 ParseEvent::Token { kind: k, length: l } => {
                     sink.attach_token(SyntaxToken::new(*k, *l, &text[offset..offset + l]));
                     offset += l;
                 }
                 ParseEvent::Trivia { kind: k, length: l } => {
-                    sink.attach_token(SyntaxToken::new(*k, *l, &text[offset..offset + l]));
+                    let lexeme = &text[offset..offset + l];
+                    lines = lines + lexeme.chars().filter(|c| *c == '\n').count();
+
+                    sink.attach_token(SyntaxToken::new(*k, *l, lexeme));
                     offset += *l;
                 }
             }
@@ -67,7 +97,7 @@ impl SyntaxTree {
 
         let root = sink.end_tree();
 
-        SyntaxTree::new(root)
+        SyntaxTree::new(root, error_reports)
     }
 
     pub fn iter(&self) -> SyntaxTreeIterator {
