@@ -1,17 +1,16 @@
 use crate::featurez::syntax::{FunctionDeclarationStmtNode, NewtRuntimeError, NewtValue, FunctionCallExprNode, StmtVisitor};
-use crate::featurez::VirtualMachineState;
+use crate::featurez::VirtualMachine;
 use std::fmt::{Debug, Error, Formatter};
 use std::convert::TryFrom;
 use std::collections::HashMap;
 use crate::featurez::runtime::scope::{ScopeNode, Environment};
-use crate::featurez::runtime::VirtualMachineInterpretingSession;
 
 pub trait Callable {
     fn symbol(&self) -> &str;
     fn arity(&self) -> usize;
 	fn call(
 		&self,
-		vm: &mut VirtualMachineState,
+		vm: &mut VirtualMachine,
 		arguments: &[NewtValue]
 	) -> Result<NewtValue, NewtRuntimeError>;
 }
@@ -45,7 +44,7 @@ impl Callable for NewtCallable {
 		self.definition.arguments().count()
 	}
 
-	fn call(&self, vm: &mut VirtualMachineState, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
+	fn call(&self, vm: &mut VirtualMachine, arguments: &[NewtValue]) -> Result<NewtValue, NewtRuntimeError> {
 		let mut environment = self.closure.clone();
 		environment.push_scope();
 
@@ -53,7 +52,7 @@ impl Callable for NewtCallable {
 			environment.bind(parameter.1.lexeme(), arguments[parameter.0].clone());
 		}
 
-		let mut next_vm = VirtualMachineState::new_with_scope(&environment);
+		let mut next_vm = VirtualMachine::new_with_scope(&environment);
 		let result = next_vm.visit_stmt_list_stmt(self.definition.stmts());
 		environment.pop_scope();
 

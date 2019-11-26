@@ -52,7 +52,7 @@ fn main() {
 fn batch(file: String, output_mode: OutputMode) {
     match output_mode {
         OutputMode::Tokens => token_batch(file),
-        OutputMode::ParseTree => parse_batch(&file, &mut VirtualMachineState::new()),
+        OutputMode::ParseTree => parse_batch(&file, &mut VirtualMachine::new()),
         _ => unimplemented!(
             "Have not yet implemented batch processing for {:?}",
             output_mode
@@ -96,7 +96,7 @@ fn token_repl() {
 
 fn parse_repl() {
     let mut input_buffer = String::new();
-    let mut machine = VirtualMachineState::new();
+    let mut machine = VirtualMachine::new();
 
     loop {
         if input_buffer.is_empty() {
@@ -142,15 +142,20 @@ fn balanced_braces(input_buffer: &str) -> bool {
     return braces_counted == 0 && parenthesis_counted == 0;
 }
 
-fn parse_batch(file: &str, machine: &mut VirtualMachineState) {
-    let session = InterpretingSession::new(InterpretingSessionKind::Stmt, file);
+fn parse_batch(file: &str, machine: &mut VirtualMachine) {
+    let tree: SyntaxTree = file.into();
 
-    println!("{}", session.syntax_tree());
 
-    let result = session.interpret(machine);
+    if tree.errors().count() == 0 {
+        let result = machine.interpret(tree);
 
-    println!("RESULT: {:?}", result);
-    println!("STATE: {:#?}", machine);
+        println!("RESULT: {:?}", result);
+        println!("STATE: {:#?}", machine);
+    } else {
+        for error_report in tree.errors() {
+            println!("{}", error_report);
+        }
+    }
 }
 
 fn print_tokens(source_text: &str, tokens: &Vec<Token>) {

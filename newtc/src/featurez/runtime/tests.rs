@@ -1,6 +1,6 @@
 use crate::featurez::syntax::{SyntaxTree, NewtResult, NewtValue, NewtRuntimeError};
 use crate::featurez::runtime::scope::Environment;
-use crate::featurez::{VirtualMachineState, StrTokenSource};
+use crate::featurez::{VirtualMachine, StrTokenSource};
 use crate::featurez::grammar::root_expr;
 use crate::featurez::parse::Parser;
 use crate::featurez::tokenize;
@@ -8,34 +8,34 @@ use std::rc::Rc;
 
 #[test]
 fn return_statement_returns_value() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn returns_value() {
 		return 42;
 	}"#);
 
-	assert_eq_newt_values(42.into(), evaluate(&mut vm, "returns_value()").unwrap());
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("returns_value()"));
 }
 
 #[test]
 fn return_statement_short_circuits() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn return_short_circuits() {
 		return 42;
 		return 32;
 	}"#);
 
-	assert_eq_newt_values(42.into(), evaluate(&mut vm, "return_short_circuits()").unwrap());
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("return_short_circuits()"));
 }
 
 #[test]
 fn return_statement_short_circuit_inside_scope() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn return_early() {
 		if (true) {
 			return 42;
@@ -43,58 +43,56 @@ fn return_statement_short_circuit_inside_scope() {
 		return 32;
 	}"#);
 
-	assert_eq_newt_values(42.into(), evaluate(&mut vm, "return_early()").unwrap());
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("return_early()"));
 }
 
 #[test]
 fn return_statement_returns_value_outside_of_function() {
-	let mut vm = VirtualMachineState::new();
-	let tree: SyntaxTree = "return 42;".into();
+	let mut vm = VirtualMachine::new();
 
-	assert_eq_newt_values(42.into(), vm.interpret(&tree).unwrap());
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("return 42;"));
 }
 
 #[test]
 fn return_statement_no_return_statement_returns_null() {
-	let mut vm = VirtualMachineState::new();
-	let tree: SyntaxTree = "let x = 1;".into();
+	let mut vm = VirtualMachine::new();
 
-	assert_eq!(NewtValue::Null, vm.interpret(&tree).unwrap());
+	assert_eq!(Ok(NewtValue::Null), vm.interpret("let x = 1;"));
 }
 
 #[test]
 fn if_statement_executes_correct_branches_for_conditional() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn if_statement(x) {
 		if (x) { return 1; }
 		return 2;
 	}"#);
 
-	assert_eq_newt_values(1.into(), evaluate(&mut vm, "if_statement(true)").unwrap());
-	assert_eq_newt_values(2.into(), evaluate(&mut vm, "if_statement(false)").unwrap());
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("if_statement(true)"));
+	assert_eq!(Ok(NewtValue::Int(2)), vm.interpret("if_statement(false)"));
 }
 
 #[test]
 fn if_statement_uses_truthiness() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn if_statement(x) {
 		if (x) { return 1; }
 		return 2;
 	}"#);
 
-	assert_eq_newt_values(1.into(), evaluate(&mut vm, "if_statement(1)").unwrap());
-	assert_eq_newt_values(2.into(), evaluate(&mut vm, "if_statement(0)").unwrap());
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("if_statement(1)"));
+	assert_eq!(Ok(NewtValue::Int(2)), vm.interpret("if_statement(0)"));
 }
 
 #[test]
 fn if_else_statement_executes_correct_branches_for_conditional() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn if_else_statement(x) {
 		if (x) {
 			return 1;
@@ -103,15 +101,15 @@ fn if_else_statement_executes_correct_branches_for_conditional() {
 		}
 	}"#);
 
-	assert_eq_newt_values(1.into(), evaluate(&mut vm, "if_else_statement(true)").unwrap());
-	assert_eq_newt_values(2.into(), evaluate(&mut vm, "if_else_statement(false)").unwrap());
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("if_else_statement(true)"));
+	assert_eq!(Ok(NewtValue::Int(2)), vm.interpret("if_else_statement(false)"));
 }
 
 #[test]
 fn if_else_statement_uses_truthiness() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn if_else_statement(x) {
 		if (x) {
 			return 1;
@@ -120,15 +118,15 @@ fn if_else_statement_uses_truthiness() {
 		}
 	}"#);
 
-	assert_eq_newt_values(1.into(), evaluate(&mut vm, "if_else_statement(1)").unwrap());
-	assert_eq_newt_values(2.into(), evaluate(&mut vm, "if_else_statement(0)").unwrap());
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("if_else_statement(1)"));
+	assert_eq!(Ok(NewtValue::Int(2)), vm.interpret("if_else_statement(0)"));
 }
 
 #[test]
 fn while_statement_repeats_conditional_evaluations_to_false() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn while_statement(loops_to_do) {
 		let loops_done = 0;
 		while (loops_to_do > 0) {
@@ -139,15 +137,15 @@ fn while_statement_repeats_conditional_evaluations_to_false() {
 		return loops_done;
 	}"#);
 
-	assert_eq_newt_values(10.into(), evaluate(&mut vm, "while_statement(10)").unwrap());
-	assert_eq_newt_values(0.into(), evaluate(&mut vm, "while_statement(0)").unwrap());
+	assert_eq!(Ok(NewtValue::Int(10)), vm.interpret("while_statement(10)"));
+	assert_eq!(Ok(NewtValue::Int(0)), vm.interpret("while_statement(0)"));
 }
 
 #[test]
 fn while_statement_uses_truthy_semantics() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn while_statement(truthy) {
 		while (truthy) {
 			return true;
@@ -156,14 +154,14 @@ fn while_statement_uses_truthy_semantics() {
 		return false;
 	}"#);
 
-	assert_eq_newt_values(true.into(), evaluate(&mut vm, "while_statement(1)").unwrap());
-	assert_eq_newt_values(false.into(), evaluate(&mut vm, "while_statement(0)").unwrap());
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("while_statement(1)"));
+	assert_eq!(Ok(NewtValue::Bool(false)), vm.interpret("while_statement(0)"));
 }
 
 #[test]
 fn newt_value_truthy_semantics_for_truthy_values() {
-	let mut vm = VirtualMachineState::new();
-	define(&mut vm, r#"
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
 	fn truthiness(x) {
 		if (x) {
 			return true;
@@ -173,19 +171,19 @@ fn newt_value_truthy_semantics_for_truthy_values() {
 	}"#);
 
 	// integers
-	assert_eq_newt_values(true.into(), evaluate(&mut vm, "truthiness(1)").unwrap());
-	assert_eq_newt_values(false.into(), evaluate(&mut vm, "truthiness(0)").unwrap());
-	assert_eq_newt_values(true.into(), evaluate(&mut vm, "truthiness(-1)").unwrap());
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("truthiness(1)"));
+	assert_eq!(Ok(NewtValue::Bool(false)), vm.interpret("truthiness(0)"));
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("truthiness(-1)"));
 
 	// booleans
-	assert_eq_newt_values(true.into(), evaluate(&mut vm, "truthiness(true)").unwrap());
-	assert_eq_newt_values(false.into(), evaluate(&mut vm, "truthiness(false)").unwrap());
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("truthiness(true)"));
+	assert_eq!(Ok(NewtValue::Bool(false)), vm.interpret("truthiness(false)"));
 }
 
 #[test]
 fn newt_value_truthy_semantics_for_untruthy_values() {
-	let mut vm = VirtualMachineState::new();
-	define(&mut vm, r#"
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
 	fn truthiness(x) {
 		if (x) {
 			return true;
@@ -197,47 +195,47 @@ fn newt_value_truthy_semantics_for_untruthy_values() {
 	fn null_value() {}
 	"#);
 
-	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness(1.0)"));
-	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness(\"foo\")"));
-	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness('c')"));
-	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness(truthiness)"));
-	assert_eq!(Err(NewtRuntimeError::TypeError), evaluate(&mut vm, "truthiness(null_value())"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), vm.interpret("truthiness(1.0)"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), vm.interpret("truthiness(\"foo\")"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), vm.interpret("truthiness('c')"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), vm.interpret("truthiness(truthiness)"));
+	assert_eq!(Err(NewtRuntimeError::TypeError), vm.interpret("truthiness(null_value())"));
 }
 
 #[test]
 fn newt_value_bool_equality_semantics() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	assert_eq_newt_values(true.into(), evaluate(&mut vm, "true == true").unwrap());
-	assert_eq_newt_values(true.into(), evaluate(&mut vm, "false == false").unwrap());
-	assert_eq_newt_values(false.into(), evaluate(&mut vm, "true == false").unwrap());
-	assert_eq_newt_values(false.into(), evaluate(&mut vm, "false == true").unwrap());
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("true == true"));
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("false == false"));
+	assert_eq!(Ok(NewtValue::Bool(false)), vm.interpret("true == false"));
+	assert_eq!(Ok(NewtValue::Bool(false)), vm.interpret("false == true"));
 }
 
 #[test]
 fn newt_value_string_equality_semantics() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	assert_eq_newt_values(true.into(), evaluate(&mut vm, "\"Hello, world!\" == \"Hello, world!\"").unwrap());
-	assert_eq_newt_values(false.into(), evaluate(&mut vm, "\"\" == \"Hello, world!\"").unwrap());
-	assert_eq_newt_values(true.into(), evaluate(&mut vm, "\"\" == \"\"").unwrap());
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("\"Hello, world!\" == \"Hello, world!\""));
+	assert_eq!(Ok(NewtValue::Bool(false)), vm.interpret("\"\" == \"Hello, world!\""));
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("\"\" == \"\""));
 }
 
 #[test]
 fn function_declaration_statement_adds_function_to_scope() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, "fn function_declaration() { return 42; }");
+	vm.interpret("fn function_declaration() { return 42; }");
 
-	assert_eq_newt_values(42.into(), evaluate(&mut vm, "function_declaration()").unwrap());
-	assert_eq!(Err(NewtRuntimeError::UndefinedVariable), evaluate(&mut vm, "foo()"));
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("function_declaration()"));
+	assert_eq!(Err(NewtRuntimeError::UndefinedVariable), vm.interpret("foo()"));
 }
 
 #[test]
 fn function_declaration_statement_can_nest_declarations() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn outer_declaration() {
 		fn inner_declaration() {
 			return 32;
@@ -246,14 +244,14 @@ fn function_declaration_statement_can_nest_declarations() {
 		return inner_declaration;
 	}"#);
 
-	assert_eq_newt_values(32.into(), evaluate(&mut vm, "outer_declaration()()").unwrap());
+	assert_eq!(Ok(NewtValue::Int(32)), vm.interpret("outer_declaration()()"));
 }
 
 #[test]
 fn function_declaration_statement_can_capture_closure() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, r#"
+	vm.interpret(r#"
 	fn count_to_max(max) {
 		let count = 0;
 		fn counter() {
@@ -269,38 +267,36 @@ fn function_declaration_statement_can_capture_closure() {
 	let count_to_3 = count_to_max(3);
 	"#);
 
-	assert_eq_newt_values(1.into(), evaluate(&mut vm, "count_to_3()").unwrap());
-	assert_eq_newt_values(2.into(), evaluate(&mut vm, "count_to_3()").unwrap());
-	assert_eq_newt_values(3.into(), evaluate(&mut vm, "count_to_3()").unwrap());
-	assert_eq_newt_values(3.into(), evaluate(&mut vm, "count_to_3()").unwrap());
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("count_to_3()"));
+	assert_eq!(Ok(NewtValue::Int(2)), vm.interpret("count_to_3()"));
+	assert_eq!(Ok(NewtValue::Int(3)), vm.interpret("count_to_3()"));
+	assert_eq!(Ok(NewtValue::Int(3)), vm.interpret("count_to_3()"));
 }
 
 #[test]
 fn variable_declaration_statement_adds_variable_to_top_scope() {
-	let mut vm = VirtualMachineState::new();
+	let mut vm = VirtualMachine::new();
 
-	define(&mut vm, "let x = 42;");
+	vm.interpret("let x = 42;");
 
-	assert_eq_newt_values(42.into(), evaluate(&mut vm, "x").unwrap());
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("x"));
 }
 
 #[test]
 fn variable_declaration_statement_does_not_effect_scope_prior_to_declaration() {
-	let mut vm = VirtualMachineState::new();
-	let tree: SyntaxTree = r#"
+	let mut vm = VirtualMachine::new();
+	let result = vm.interpret(r#"
 	let y = x;
 	let x = 42;
-	"#.into();
-	let result = vm.interpret(&tree);
+	"#);
 
 	assert_eq!(Err(NewtRuntimeError::UndefinedVariable), result);
 }
 
 #[test]
 fn virtual_machine_correctly_computes_fibonacci_5() {
-	let mut vm = VirtualMachineState::new();
-
-	define(&mut vm, r#"
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
 		fn fibonacci(x) {
 			if (x == 2) {
 				return 1;
@@ -315,17 +311,17 @@ fn virtual_machine_correctly_computes_fibonacci_5() {
 			return fibonacci(x-2) + fibonacci(x-1);
 		}"#);
 
-	assert_eq!(Ok(NewtValue::Int(8)), evaluate(&mut vm, "fibonacci(6)"));
+	assert_eq!(Ok(NewtValue::Int(8)), vm.interpret("fibonacci(6)"));
 }
 
-fn define(vm: &mut VirtualMachineState, source: &str) {
-	let tree: SyntaxTree = source.into();
-	let result = vm.interpret(&tree);
+#[test]
+fn virtual_machine_short_circuits_incorrect_syntax() {
+	let mut vm = VirtualMachine::new();
 
-	assert_eq!(NewtValue::Null, result.unwrap());
+	assert_eq!(Err(NewtRuntimeError::InvalidSyntaxTree), vm.interpret("2++2"));
 }
 
-fn evaluate(vm: &mut VirtualMachineState, source: &str) -> NewtResult {
+fn evaluate(vm: &mut VirtualMachine, source: &str) -> NewtResult {
 	let tokens = tokenize(source);
 	let token_source = StrTokenSource::new(tokens);
 	let mut parser = Parser::new(token_source);
@@ -333,7 +329,7 @@ fn evaluate(vm: &mut VirtualMachineState, source: &str) -> NewtResult {
 	let completed_parsing = root_expr(parser);
 	let tree = SyntaxTree::from_parser(&completed_parsing, source);
 
-	vm.interpret(&tree)
+	vm.interpret(tree)
 }
 
 fn assert_eq_newt_values(a: NewtValue, b: NewtValue) {

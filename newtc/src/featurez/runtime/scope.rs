@@ -176,37 +176,8 @@ impl StoredValue {
 }
 
 mod lexical_scope_analyzer_tests {
-    use crate::featurez::syntax::{NewtValue, NewtRuntimeError, SyntaxToken, SyntaxTree, StmtNode, AstNode, SyntaxElement, SyntaxNode, WhileStmtNode, SyntaxKind, NewtStaticError, VariableExprNode, VariableAssignmentStmtNode};
-    use crate::featurez::grammar::root_stmt;
-    use crate::featurez::{InterpretingSession, InterpretingSessionKind};
-    use crate::featurez::newtypes::TransparentNewType;
-    use std::collections::HashMap;
-    use std::borrow::Borrow;
-    use crate::featurez::runtime::scope::{ScopeNode, Environment};
-
-    fn source_to_tree(source: &str) -> InterpretingSession {
-        InterpretingSession::new(InterpretingSessionKind::Stmt, source)
-    }
-
-    fn tree_to_variable_references<'a>(tree: &'a SyntaxTree, identifier: &str) -> Vec<&'a SyntaxNode> {
-        tree.iter()
-            .filter_map(|e|
-                e.as_node().filter(|n| n.kind() == SyntaxKind::VariableExpr))
-            .map(|n| VariableExprNode::from_inner(n))
-            .filter(|v| v.identifier().lexeme() == identifier)
-            .map(|n| n.to_inner())
-            .collect()
-    }
-
-    fn tree_to_variable_assignments<'a>(tree: &'a SyntaxTree, identifier: &str) -> Vec<&'a SyntaxNode> {
-        tree.iter()
-            .filter_map(|e|
-                e.as_node().filter(|n| n.kind() == SyntaxKind::VariableAssignmentStmt))
-            .map(|n| VariableAssignmentStmtNode::from_inner(n))
-            .filter(|v| v.identifier().lexeme() == identifier)
-            .map(|n| n.to_inner())
-            .collect()
-    }
+    use crate::featurez::syntax::{NewtValue, NewtRuntimeError};
+    use crate::featurez::runtime::scope::{Environment};
 
     #[test]
     pub fn lexical_scope_can_resolve_immediately_after_binding() {

@@ -8,24 +8,30 @@ use crate::featurez::runtime::callable::NewtCallable;
 use std::rc::Rc;
 
 #[derive(Debug)]
-pub struct VirtualMachineState {
+pub struct VirtualMachine {
     scope: Environment
 }
 
-impl VirtualMachineState {
-    pub fn new() -> VirtualMachineState {
-        VirtualMachineState {
+impl VirtualMachine {
+    pub fn new() -> VirtualMachine {
+        VirtualMachine {
             scope: Environment::new()
         }
     }
 
-	pub fn new_with_scope(scope: &Environment) -> VirtualMachineState {
-		VirtualMachineState {
+	pub fn new_with_scope(scope: &Environment) -> VirtualMachine {
+		VirtualMachine {
 			scope: scope.clone()
 		}
 	}
 
-    pub fn interpret(&mut self, tree: &SyntaxTree) -> NewtResult {
+    pub fn interpret<S: Into<SyntaxTree>>(&mut self, source: S) -> NewtResult {
+        let tree: SyntaxTree = source.into();
+
+        if tree.errors().count() != 0 {
+            return Err(NewtRuntimeError::InvalidSyntaxTree);
+        }
+
         let node = tree.root()
             .as_node()
             .ok_or(NewtRuntimeError::InvalidSyntaxTree)?;
@@ -47,41 +53,7 @@ impl VirtualMachineState {
     }
 }
 
-pub struct VirtualMachineInterpretingSession<'sess> {
-    tree: &'sess SyntaxTree,
-    state: &'sess mut VirtualMachineState,
-}
-
-impl<'sess> VirtualMachineInterpretingSession<'sess> {
-    pub fn new(tree: &'sess SyntaxTree,
-               state: &'sess mut VirtualMachineState)
-        -> VirtualMachineInterpretingSession<'sess> {
-
-        VirtualMachineInterpretingSession {
-            tree,
-            state,
-        }
-    }
-
-    pub fn interpret(&mut self) -> NewtResult {
-        let node = match self.tree.root().as_node() {
-            Some(n) => n,
-            None => panic!("invalid code"),
-        };
-
-        if let Some(expr) = ExprNode::cast(node) {
-            return self.state.visit_expr(expr);
-        }
-
-        if let Some(stmt) = StmtNode::cast(node) {
-            return self.state.visit_stmt(stmt).map(|_| NewtValue::Null);
-        }
-
-        unreachable!()
-    }
-}
-
-impl ExprVisitor<NewtResult> for VirtualMachineState {
+impl ExprVisitor<NewtResult> for VirtualMachine {
     fn visit_expr(&mut self, node: &ExprNode) -> NewtResult {
         match node.kind() {
             ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
@@ -162,7 +134,7 @@ impl ExprVisitor<NewtResult> for VirtualMachineState {
     }
 }
 
-impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachineState {
+impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
     fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
         match node.kind() {
             StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node)?,
