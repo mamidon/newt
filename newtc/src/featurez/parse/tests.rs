@@ -261,7 +261,7 @@ fn parser_begin_node_can_nest_nodes() {
     parser.end_node(inner, SyntaxKind::UnaryExpr);
 
     parser.token_if(TokenKind::Slash);
-    parser.end_node(outer, SyntaxKind::LiteralExpr);
+    parser.end_node(outer, SyntaxKind::PrimitiveLiteralExpr);
 
     let events = parser.end_parsing().events;
 
@@ -280,7 +280,7 @@ fn parser_begin_node_can_nest_nodes() {
     assert_eq!(
         expected_outer_node_start,
         &ParseEvent::BeginNode {
-            kind: SyntaxKind::LiteralExpr,
+            kind: SyntaxKind::PrimitiveLiteralExpr,
             is_forward_parent: false,
             forward_parent_offset: None
         }

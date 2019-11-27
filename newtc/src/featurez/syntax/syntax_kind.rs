@@ -5,7 +5,7 @@ pub enum SyntaxKind {
     GroupingExpr,
     BinaryExpr,
     UnaryExpr,
-    LiteralExpr,
+    PrimitiveLiteralExpr,
     VariableExpr,
     FunctionCallExpr,
     VariableDeclarationStmt,

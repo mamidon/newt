@@ -254,7 +254,7 @@ impl AstNode for ExprNode {
         match node.kind() {
             SyntaxKind::BinaryExpr
             | SyntaxKind::UnaryExpr
-            | SyntaxKind::LiteralExpr
+            | SyntaxKind::PrimitiveLiteralExpr
             | SyntaxKind::GroupingExpr
             | SyntaxKind::VariableExpr
             | SyntaxKind::FunctionCallExpr => Some(ExprNode::from_inner(node)),
@@ -276,8 +276,8 @@ impl ExprNode {
             SyntaxKind::UnaryExpr => {
                 ExprKind::UnaryExpr(UnaryExprNode::from_inner(self.to_inner()))
             }
-            SyntaxKind::LiteralExpr => {
-                ExprKind::LiteralExpr(LiteralExprNode::from_inner(self.to_inner()))
+            SyntaxKind::PrimitiveLiteralExpr => {
+                ExprKind::PrimitiveLiteralExpr(PrimitiveLiteralExprNode::from_inner(self.to_inner()))
             }
             SyntaxKind::GroupingExpr => {
                 ExprKind::GroupingExpr(GroupingExprNode::from_inner(self.to_inner()))
@@ -316,13 +316,13 @@ impl FunctionCallExprNode {
 
 #[repr(transparent)]
 #[derive(Clone)]
-pub struct LiteralExprNode(SyntaxNode);
+pub struct PrimitiveLiteralExprNode(SyntaxNode);
 
-unsafe impl TransparentNewType for LiteralExprNode {
+unsafe impl TransparentNewType for PrimitiveLiteralExprNode {
     type Inner = SyntaxNode;
 }
 
-impl LiteralExprNode {
+impl PrimitiveLiteralExprNode {
     pub fn literal(&self) -> &SyntaxToken {
         self.0.nth_token(0)
     }

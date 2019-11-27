@@ -7,7 +7,7 @@ use super::NewtRuntimeError;
 use crate::featurez::runtime::Callable;
 
 use crate::featurez::syntax::{
-    AstNode, BinaryExprNode, ExprKind, ExprNode, GroupingExprNode, LiteralExprNode, SyntaxElement,
+    AstNode, BinaryExprNode, ExprKind, ExprNode, GroupingExprNode, PrimitiveLiteralExprNode, SyntaxElement,
     SyntaxKind, SyntaxNode, SyntaxToken, SyntaxTree, TextTreeSink, TokenSource, TreeSink,
     UnaryExprNode,
 };
@@ -34,16 +34,16 @@ impl NewtValue {
         ExprNode::cast(node)
             .and_then(|n| Some(n.kind()))
             .and_then(|k| {
-                if let ExprKind::LiteralExpr(l) = k {
+                if let ExprKind::PrimitiveLiteralExpr(l) = k {
                     Some(l)
                 } else {
                     None
                 }
             })
-            .and_then(|e| Some(NewtValue::from_literal_node(e)))
+            .and_then(|e| Some(NewtValue::from_primitive_literal_node(e)))
     }
 
-    pub fn from_literal_node(node: &LiteralExprNode) -> NewtValue {
+    pub fn from_primitive_literal_node(node: &PrimitiveLiteralExprNode) -> NewtValue {
         let literal = node.literal();
         let lexeme = literal.lexeme();
 

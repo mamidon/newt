@@ -58,7 +58,7 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
         match node.kind() {
             ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
             ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
-            ExprKind::LiteralExpr(node) => self.visit_literal_expr(node),
+            ExprKind::PrimitiveLiteralExpr(node) => self.visit_primitive_literal_expr(node),
             ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
             ExprKind::VariableExpr(node) => self.visit_variable_expr(node),
             ExprKind::FunctionCallExpr(node) => self.visit_function_call_expr(node),
@@ -94,9 +94,9 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
         }
     }
 
-    fn visit_literal_expr(&mut self, node: &LiteralExprNode) -> NewtResult {
+    fn visit_primitive_literal_expr(&mut self, node: &PrimitiveLiteralExprNode) -> NewtResult {
         let literal = node.literal();
-        let value = NewtValue::from_literal_node(node);
+        let value = NewtValue::from_primitive_literal_node(node);
 
         Ok(value)
     }

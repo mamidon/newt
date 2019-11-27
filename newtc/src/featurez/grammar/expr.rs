@@ -89,30 +89,30 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
         TokenKind::IntegerLiteral => {
             p.token_if(TokenKind::IntegerLiteral);
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::FloatLiteral => {
             p.token_if(TokenKind::FloatLiteral);
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::GlyphLiteral => {
             p.token_if(TokenKind::GlyphLiteral);
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::StringLiteral => {
             p.token_if(TokenKind::StringLiteral);
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::True => {
             p.token_if(TokenKind::True);
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::False => {
             p.token_if(TokenKind::False);
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::LeftParenthesis => {
             p.token_if(TokenKind::LeftParenthesis);
@@ -132,7 +132,7 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
         _ => {
             p.expect_token_kind_in(&[], "Expected a primary expression");
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
     };
 

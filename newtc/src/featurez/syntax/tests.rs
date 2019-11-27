@@ -137,7 +137,7 @@ fn while_stmt_node_handles_conditional() {
 		.nth_node(0)
 		.kind();
 
-	assert_eq!(SyntaxKind::LiteralExpr, conditional_kind);
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, conditional_kind);
 }
 
 #[test]
@@ -176,7 +176,7 @@ fn if_stmt_node_handles_conditional() {
 		.nth_node(0)
 		.kind();
 
-	assert_eq!(SyntaxKind::LiteralExpr, conditional_kind);
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, conditional_kind);
 }
 
 #[test]
@@ -259,7 +259,7 @@ fn variable_declaration_stmt_node_handles_expr() {
 	let tree: SyntaxTree = "let x = 42;".into();
 	let node: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.expr().syntax().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
 }
 
 #[test]
@@ -319,7 +319,7 @@ fn expr_stmt_node_handles_literal_expr() {
 	let tree: SyntaxTree = "42;".into();
 	let node: &ExprStmtNode = expect_stmt_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.expr().syntax().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
 }
 
 #[test]
@@ -436,60 +436,60 @@ fn function_call_expr_node_round_trips() {
 #[test]
 fn literal_expr_node_handles_integers() {
 	let tree: SyntaxTree = "42".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
 fn literal_expr_node_handles_true_booleans() {
 	let tree: SyntaxTree = "true".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
 fn literal_expr_node_handles_false_booleans() {
 	let tree: SyntaxTree = "false".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
 fn literal_expr_node_handles_string_booleans() {
 	let tree: SyntaxTree = "\"hello, world!\"".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
 fn literal_expr_node_handles_glyphs() {
 	let tree: SyntaxTree = "'a'".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
 fn literal_expr_node_handles_floats() {
 	let tree: SyntaxTree = "3.14".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
 fn literal_expr_node_round_trips() {
 	let tree: SyntaxTree = "42".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
 	let expr = ExprNode::cast(node.to_inner()).unwrap();
 
 	match expr.kind() {
-		ExprKind::LiteralExpr(_) => {},
+		ExprKind::PrimitiveLiteralExpr(_) => {},
 		_ => panic!("Could not round trip Expr")
 	};
 }
@@ -499,7 +499,7 @@ fn binary_expr_node_does_not_swap_operands() {
 	let tree: SyntaxTree = "2+foo()".into();
 	let node: &BinaryExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.lhs().syntax().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.lhs().syntax().kind());
 	assert_eq!(SyntaxKind::FunctionCallExpr, node.rhs().syntax().kind());
 }
 
@@ -549,7 +549,7 @@ fn unary_expr_node_handles_operand() {
 	let tree: SyntaxTree = "-2".into();
 	let node: &UnaryExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.rhs().syntax().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.rhs().syntax().kind());
 }
 
 #[test]
