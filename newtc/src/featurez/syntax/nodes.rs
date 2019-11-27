@@ -343,7 +343,51 @@ unsafe impl TransparentNewType for ObjectLiteralExprNode {
 
 impl ObjectLiteralExprNode {
     pub fn fields(&self) -> HashMap<String, ExprNode> {
-        HashMap::new()
+        let relevant_children: Vec<_> = self.0
+            .children()
+            .iter()
+            .filter(ObjectLiteralExprNode::is_identifier_token_or_expr_node)
+            .collect();
+        let pairs = relevant_children.chunks_exact(2);
+        let mut map: HashMap<String, ExprNode> = HashMap::new();
+
+        if !pairs.remainder().is_empty() {
+            panic!("Object literal did not have fully formed pairs");
+        }
+
+        for slice in pairs {
+            match slice {
+                [key_element, value_element] => {
+                    let key = ObjectLiteralExprNode::as_identifier(key_element).unwrap().lexeme().to_string();
+                    let value = ObjectLiteralExprNode::as_expr_node(value_element).unwrap().clone();
+                    map.insert(key, value);
+                }
+                _ => unreachable!("Shouldn't happen with chunks_exact of 2")
+            }
+        }
+
+        map
+    }
+
+    fn as_identifier(element: &&SyntaxElement) -> Option<SyntaxToken> {
+        match element {
+            SyntaxElement::Token(token) => Some(token.clone()),
+            _ => None
+        }
+    }
+
+    fn as_expr_node(element: &SyntaxElement) -> Option<&ExprNode> {
+        match element {
+            SyntaxElement::Node(node) => ExprNode::cast(node),
+            _ => None
+        }
+    }
+
+    fn is_identifier_token_or_expr_node(element: &&SyntaxElement) -> bool {
+        match element {
+            SyntaxElement::Token(token) => token.token_kind() == TokenKind::Identifier,
+            SyntaxElement::Node(node) => ExprNode::cast(node).is_some()
+        }
     }
 }
 
