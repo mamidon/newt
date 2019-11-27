@@ -13,6 +13,9 @@ use crate::featurez::syntax::{
 };
 use crate::featurez::TokenKind;
 use std::rc::Rc;
+use std::collections::HashMap;
+
+type NewtObject = HashMap<String, NewtValue>;
 
 #[derive(Debug, Clone)]
 pub enum NewtValue {
@@ -22,6 +25,7 @@ pub enum NewtValue {
     String(Rc<String>),
     Bool(bool),
     Callable(Rc<dyn Callable>),
+    Object(Rc<NewtObject>),
     Null
 }
 
