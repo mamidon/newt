@@ -258,7 +258,8 @@ impl AstNode for ExprNode {
             | SyntaxKind::PrimitiveLiteralExpr
             | SyntaxKind::GroupingExpr
             | SyntaxKind::VariableExpr
-            | SyntaxKind::FunctionCallExpr => Some(ExprNode::from_inner(node)),
+            | SyntaxKind::FunctionCallExpr
+            | SyntaxKind::ObjectLiteralExpr => Some(ExprNode::from_inner(node)),
             _ => None,
         }
     }
@@ -280,6 +281,9 @@ impl ExprNode {
             SyntaxKind::PrimitiveLiteralExpr => {
                 ExprKind::PrimitiveLiteralExpr(PrimitiveLiteralExprNode::from_inner(self.to_inner()))
             }
+	        SyntaxKind::ObjectLiteralExpr => {
+		        ExprKind::ObjectLiteralExpr(ObjectLiteralExprNode::from_inner(self.to_inner()))
+	        }
             SyntaxKind::GroupingExpr => {
                 ExprKind::GroupingExpr(GroupingExprNode::from_inner(self.to_inner()))
             }

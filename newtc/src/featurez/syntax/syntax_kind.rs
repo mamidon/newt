@@ -6,6 +6,7 @@ pub enum SyntaxKind {
     BinaryExpr,
     UnaryExpr,
     PrimitiveLiteralExpr,
+    ObjectLiteralExpr,
     VariableExpr,
     FunctionCallExpr,
     VariableDeclarationStmt,
