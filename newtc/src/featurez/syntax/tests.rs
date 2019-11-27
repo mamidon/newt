@@ -434,7 +434,7 @@ fn function_call_expr_node_round_trips() {
 }
 
 #[test]
-fn literal_expr_node_handles_integers() {
+fn primitive_literal_expr_node_handles_integers() {
 	let tree: SyntaxTree = "42".into();
 	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
@@ -442,7 +442,7 @@ fn literal_expr_node_handles_integers() {
 }
 
 #[test]
-fn literal_expr_node_handles_true_booleans() {
+fn primitive_literal_expr_node_handles_true_booleans() {
 	let tree: SyntaxTree = "true".into();
 	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
@@ -450,7 +450,7 @@ fn literal_expr_node_handles_true_booleans() {
 }
 
 #[test]
-fn literal_expr_node_handles_false_booleans() {
+fn primitive_literal_expr_node_handles_false_booleans() {
 	let tree: SyntaxTree = "false".into();
 	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
@@ -458,7 +458,7 @@ fn literal_expr_node_handles_false_booleans() {
 }
 
 #[test]
-fn literal_expr_node_handles_string_booleans() {
+fn primitive_literal_expr_node_handles_string_booleans() {
 	let tree: SyntaxTree = "\"hello, world!\"".into();
 	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
@@ -466,7 +466,7 @@ fn literal_expr_node_handles_string_booleans() {
 }
 
 #[test]
-fn literal_expr_node_handles_glyphs() {
+fn primitive_literal_expr_node_handles_glyphs() {
 	let tree: SyntaxTree = "'a'".into();
 	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
@@ -474,7 +474,7 @@ fn literal_expr_node_handles_glyphs() {
 }
 
 #[test]
-fn literal_expr_node_handles_floats() {
+fn primitive_literal_expr_node_handles_floats() {
 	let tree: SyntaxTree = "3.14".into();
 	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
@@ -482,7 +482,7 @@ fn literal_expr_node_handles_floats() {
 }
 
 #[test]
-fn literal_expr_node_round_trips() {
+fn primitive_literal_expr_node_round_trips() {
 	let tree: SyntaxTree = "42".into();
 	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
