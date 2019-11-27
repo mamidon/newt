@@ -8,6 +8,7 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::rc::Rc;
+use std::collections::HashMap;
 
 #[repr(transparent)]
 #[derive(Clone)]
@@ -325,6 +326,20 @@ unsafe impl TransparentNewType for PrimitiveLiteralExprNode {
 impl PrimitiveLiteralExprNode {
     pub fn literal(&self) -> &SyntaxToken {
         self.0.nth_token(0)
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct ObjectLiteralExprNode(SyntaxNode);
+
+unsafe impl TransparentNewType for ObjectLiteralExprNode {
+    type Inner = SyntaxNode;
+}
+
+impl ObjectLiteralExprNode {
+    pub fn fields(&self) -> HashMap<String, ExprNode> {
+        HashMap::new()
     }
 }
 
