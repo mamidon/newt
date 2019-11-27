@@ -495,6 +495,18 @@ fn primitive_literal_expr_node_round_trips() {
 }
 
 #[test]
+fn object_literal_expr_node_handles_zero_fields() {
+	let tree: SyntaxTree = "let foo = {};".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+
+	assert_eq!(0, node.fields().len());
+}
+
+#[test]
 fn binary_expr_node_does_not_swap_operands() {
 	let tree: SyntaxTree = "2+foo()".into();
 	let node: &BinaryExprNode = expect_expr_node(&tree);
