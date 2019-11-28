@@ -10,6 +10,7 @@ use crate::featurez::tokens::tokenize;
 use crate::featurez::tokens::StrTokenSource;
 use crate::featurez::tokens::TokenKind;
 use crate::featurez::newtypes::TransparentNewType;
+use std::collections::HashMap;
 
 #[test]
 fn return_stmt_node_includes_result_expr() {
@@ -517,6 +518,69 @@ fn object_literal_expr_node_handles_one_field() {
 	};
 
 	assert_eq!(1, node.fields().len());
+	assert_eq!(Some(SyntaxKind::PrimitiveLiteralExpr), node.fields().get("bar").map(|e| e.to_inner().kind()));
+}
+
+#[test]
+fn object_literal_expr_node_handles_multiple_fields() {
+	let tree: SyntaxTree = "let foo = { bar: 42, fizz: 2+2, buzz: other_variable };".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+	let fields: HashMap<String, SyntaxKind> = node.fields()
+		.into_iter()
+		.map(|(k, v)| (k, v.to_inner().kind()))
+		.collect();
+
+	assert_eq!(3, fields.len());
+	assert_eq!(Some(&SyntaxKind::PrimitiveLiteralExpr), fields.get("bar"));
+	assert_eq!(Some(&SyntaxKind::BinaryExpr), fields.get("fizz"));
+	assert_eq!(Some(&SyntaxKind::VariableExpr), fields.get("buzz"));
+}
+
+#[test]
+fn object_literal_expr_node_handles_nested_fields() {
+	let tree: SyntaxTree = "let foo = { bar: { fizz: 2+2, buzz: other_variable } };".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let outer_node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+	let inner_fields = match outer_node.fields().get("bar") {
+		Some(expr) => match expr.kind() {
+			ExprKind::ObjectLiteralExpr(literal) => {
+				let bar_fields: HashMap<String, SyntaxKind> = literal.fields()
+					.into_iter()
+					.map(|(k, v)| (k, v.to_inner().kind()))
+					.collect();
+				bar_fields
+			},
+			_ => panic!("Could not parse object literal")
+		},
+		_ => panic!("Could not parse nested object literals")
+	};
+
+	assert_eq!(2, inner_fields.len());
+	assert_eq!(Some(&SyntaxKind::BinaryExpr), inner_fields.get("fizz"));
+	assert_eq!(Some(&SyntaxKind::VariableExpr), inner_fields.get("buzz"));
+}
+
+#[test]
+fn object_literal_expr_node_round_trips() {
+	let tree: SyntaxTree = "let x = {};".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::ObjectLiteralExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
 }
 
 #[test]
