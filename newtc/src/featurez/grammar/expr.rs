@@ -4,6 +4,7 @@ use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken
 use crate::featurez::{Token, TokenKind};
 use std::collections::HashMap;
 use crate::OutputMode::Tokens;
+use crate::featurez::tokens::TokenKind::TombStone;
 
 type PrecedenceTable = HashMap<TokenKind, (usize, bool)>;
 
@@ -139,11 +140,30 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
         }
     };
 
+	if p.current() == TokenKind::Dot {
+		completed = object_property_expr(p, completed);
+	}
+
     while p.current() != TokenKind::EndOfFile && p.current() == TokenKind::LeftParenthesis {
         completed = call_expr(p, completed);
     }
 
     completed
+}
+
+fn object_property_expr(p: &mut Parser, mut node: CompletedMarker) -> CompletedMarker {
+	let mut previous = node;
+	while p.current() == TokenKind::Dot {
+		let next = p.begin_node();
+		p.precede_node(&mut previous, &next);
+
+		p.token(TokenKind::Dot);
+		p.token(TokenKind::Identifier);
+
+		previous = p.end_node(next, SyntaxKind::ObjectPropertyExpr);
+	}
+
+	previous
 }
 
 fn object_literal_expr(p: &mut Parser, mut node: Marker) -> CompletedMarker {
