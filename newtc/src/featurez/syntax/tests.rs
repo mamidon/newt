@@ -584,6 +584,42 @@ fn object_literal_expr_node_round_trips() {
 }
 
 #[test]
+fn object_property_expr_handles_single_property_access() {
+	let tree: SyntaxTree = "fizz.buzz".into();
+	let expr: &ObjectPropertyExprNode = expect_expr_node(&tree);
+
+	assert_eq!("buzz", expr.identifier().lexeme());
+}
+
+#[test]
+fn object_property_expr_handles_multiple_property_access() {
+	let tree: SyntaxTree = "fizz.buzz.foo".into();
+	let foo_expr: &ObjectPropertyExprNode = expect_expr_node(&tree);
+	let buzz_expr: &ObjectPropertyExprNode = ObjectPropertyExprNode::from_inner(foo_expr.source_expr().to_inner());
+	let fizz_expr: &VariableExprNode = VariableExprNode::from_inner(buzz_expr.source_expr().to_inner());
+
+	assert_eq!("foo", foo_expr.identifier().lexeme());
+	assert_eq!("buzz", buzz_expr.identifier().lexeme());
+	assert_eq!("fizz", fizz_expr.identifier().lexeme());
+}
+
+#[test]
+fn object_property_expr_node_round_trips() {
+	let tree: SyntaxTree = "fizz.buzz".into();
+	let expr: &ExprNode = ExprNode::from_inner(tree.root().as_node().unwrap());
+	let node: &ObjectPropertyExprNode = match expr.kind() {
+		ExprKind::ObjectPropertyExpr(literal) => literal,
+		_ => panic!("Could not parse object property expression")
+	};
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::ObjectPropertyExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
+}
+
+#[test]
 fn binary_expr_node_does_not_swap_operands() {
 	let tree: SyntaxTree = "2+foo()".into();
 	let node: &BinaryExprNode = expect_expr_node(&tree);

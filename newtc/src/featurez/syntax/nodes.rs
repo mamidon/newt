@@ -404,8 +404,12 @@ unsafe impl TransparentNewType for ObjectPropertyExprNode {
 }
 
 impl ObjectPropertyExprNode {
+	pub fn source_expr(&self) -> &ExprNode {
+		ExprNode::cast(self.0.nth_node(0)).unwrap()
+	}
+
     pub fn identifier(&self) -> &SyntaxToken {
-        self.0.tokens().nth(0).unwrap()
+        self.0.nth_token(1)
     }
 }
 
