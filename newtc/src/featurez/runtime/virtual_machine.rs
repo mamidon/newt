@@ -60,6 +60,7 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
             ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
             ExprKind::PrimitiveLiteralExpr(node) => self.visit_primitive_literal_expr(node),
             ExprKind::ObjectLiteralExpr(node) => unimplemented!(),
+            ExprKind::ObjectPropertyExpr(node) => unimplemented!(),
             ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
             ExprKind::VariableExpr(node) => self.visit_variable_expr(node),
             ExprKind::FunctionCallExpr(node) => self.visit_function_call_expr(node),
