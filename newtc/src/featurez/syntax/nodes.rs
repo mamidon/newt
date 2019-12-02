@@ -259,7 +259,8 @@ impl AstNode for ExprNode {
             | SyntaxKind::GroupingExpr
             | SyntaxKind::VariableExpr
             | SyntaxKind::FunctionCallExpr
-            | SyntaxKind::ObjectLiteralExpr => Some(ExprNode::from_inner(node)),
+            | SyntaxKind::ObjectLiteralExpr
+            | SyntaxKind::ObjectPropertyExpr => Some(ExprNode::from_inner(node)),
             _ => None,
         }
     }
@@ -284,6 +285,9 @@ impl ExprNode {
 	        SyntaxKind::ObjectLiteralExpr => {
 		        ExprKind::ObjectLiteralExpr(ObjectLiteralExprNode::from_inner(self.to_inner()))
 	        }
+            SyntaxKind::ObjectPropertyExpr => {
+                ExprKind::ObjectPropertyExpr(ObjectPropertyExprNode::from_inner(self.to_inner()))
+            }
             SyntaxKind::GroupingExpr => {
                 ExprKind::GroupingExpr(GroupingExprNode::from_inner(self.to_inner()))
             }
@@ -388,6 +392,20 @@ impl ObjectLiteralExprNode {
             SyntaxElement::Token(token) => token.token_kind() == TokenKind::Identifier,
             SyntaxElement::Node(node) => ExprNode::cast(node).is_some()
         }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct ObjectPropertyExprNode(SyntaxNode);
+
+unsafe impl TransparentNewType for ObjectPropertyExprNode {
+    type Inner = SyntaxNode;
+}
+
+impl ObjectPropertyExprNode {
+    pub fn identifier(&self) -> &SyntaxToken {
+        self.0.tokens().nth(0).unwrap()
     }
 }
 

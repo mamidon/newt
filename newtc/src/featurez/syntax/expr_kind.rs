@@ -5,6 +5,7 @@ pub enum ExprKind<'a> {
     UnaryExpr(&'a UnaryExprNode),
     PrimitiveLiteralExpr(&'a PrimitiveLiteralExprNode),
     ObjectLiteralExpr(&'a ObjectLiteralExprNode),
+    ObjectPropertyExpr(&'a ObjectPropertyExprNode),
     GroupingExpr(&'a GroupingExprNode),
     VariableExpr(&'a VariableExprNode),
     FunctionCallExpr(&'a FunctionCallExprNode),
