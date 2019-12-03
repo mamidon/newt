@@ -278,6 +278,29 @@ fn variable_declaration_stmt_node_round_trips() {
 }
 
 #[test]
+fn variable_assignment_stmt_handles_right_variable_and_left_expr() {
+	let tree: SyntaxTree = "x = 42;".into();
+	let node: &VariableAssignmentStmtNode = expect_stmt_node(&tree);
+
+	assert_eq!("x", node.identifier().lexeme());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
+}
+
+#[test]
+fn variable_assignment_stmt_node_round_trips() {
+	let tree: SyntaxTree = "x = 42;".into();
+	let node: &VariableAssignmentStmtNode = expect_stmt_node(&tree);
+
+	let stmt_node = StmtNode::cast(node.to_inner())
+		.expect("Valid StmtNode");
+
+	match stmt_node.kind() {
+		StmtKind::VariableAssignmentStmt(_) => {},
+		_ => panic!("Could not round trip Stmt")
+	};
+}
+
+#[test]
 fn stmt_list_stmt_node_handles_zero_stmts() {
 	let tree: SyntaxTree = "{}".into();
 	let node: &StmtListStmtNode = expect_stmt_node(&tree);
