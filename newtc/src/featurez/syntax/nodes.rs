@@ -1,7 +1,5 @@
 use crate::featurez::newtypes::TransparentNewType;
-use crate::featurez::syntax::{
-    AstNode, ExprKind, StmtKind, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
-};
+use crate::featurez::syntax::{AstNode, ExprKind, StmtKind, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, RValKind};
 use crate::featurez::tokens::{Token, TokenKind};
 
 use std::fmt::Display;
@@ -480,3 +478,74 @@ impl VariableExprNode {
         self.0.nth_token(0)
     }
 }
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct RValNode(SyntaxNode);
+
+unsafe impl TransparentNewType for RValNode {
+    type Inner = SyntaxNode;
+}
+
+impl AstNode for RValNode {
+    fn cast(node: &SyntaxNode) -> Option<&Self> {
+        match node.kind() {
+            SyntaxKind::ObjectPropertyRVal
+            | SyntaxKind::VariableRval => {
+                Some(RValNode::from_inner(node))
+            }
+            _ => None
+        }
+    }
+
+    fn syntax(&self) -> &SyntaxNode {
+        &self.0
+    }
+}
+
+impl RValNode {
+    pub fn kind(&self) -> RValKind {
+        match self.0.kind() {
+            SyntaxKind::VariableRval
+                => RValKind::VariableRVal(VariableRValNode::from_inner(&self.0)),
+            SyntaxKind::ObjectPropertyRVal
+                => RValKind::ObjectPropertyRVal(ObjectPropertyRValNode::from_inner(&self.0)),
+            _ => unreachable!("Cannot construct an invalid RValKind from a properly constructed RValNode")
+        }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct VariableRValNode(SyntaxNode);
+
+unsafe impl TransparentNewType for VariableRValNode {
+    type Inner = SyntaxNode;
+}
+
+impl VariableRValNode {
+    pub fn identifier(&self) -> &SyntaxToken {
+        self.0.nth_token(0)
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct ObjectPropertyRValNode(SyntaxNode);
+
+unsafe impl TransparentNewType for ObjectPropertyRValNode {
+    type Inner = SyntaxNode;
+}
+
+impl ObjectPropertyRValNode {
+    pub fn source_expr(&self) -> &ExprNode {
+        ExprNode::cast(self.0.nth_node(0)).unwrap()
+    }
+
+    pub fn identifier(&self) -> &SyntaxToken {
+        self.0.nth_token(1)
+    }
+}
+
+
+
