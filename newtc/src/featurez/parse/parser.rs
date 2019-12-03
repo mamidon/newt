@@ -173,6 +173,21 @@ impl Parser {
         };
     }
 
+    pub fn remap_node(&mut self, marker: &CompletedMarker, kind: SyntaxKind) {
+        let mut event = &mut self.events[marker.start()];
+
+        match event {
+            ParseEvent::BeginNode {
+                kind: ref mut target_kind,
+                is_forward_parent: _,
+                forward_parent_offset: _
+            } => {
+                *target_kind = kind
+            },
+            _ => panic!("Did not expect a completed market to point to a different kind of ParseEvent")
+        }
+    }
+
     pub fn precede_node(&mut self, child: &mut CompletedMarker, parent: &Marker) {
         match self.events[child.start()] {
             ParseEvent::BeginNode {

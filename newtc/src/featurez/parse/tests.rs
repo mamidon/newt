@@ -339,3 +339,17 @@ fn parser_precede_node_can_precede_nodes() {
 
     let tree = SyntaxTree::from_parser(&parser.end_parsing(), "1+2+3");
 }
+
+#[test]
+fn parser_remap_node_changes_the_syntax_kind() {
+    let token_source = StrTokenSource::new(tokenize("1"));
+    let mut parser = Parser::new(token_source);
+
+    let mut outer = parser.begin_node();
+    parser.token_if(TokenKind::IntegerLiteral);
+    let marker = parser.end_node(outer, SyntaxKind::Error("Not an error, actually"));
+    parser.remap_node(&marker, SyntaxKind::PrimitiveLiteralExpr);
+    let tree: SyntaxTree = SyntaxTree::from_parser(&parser.end_parsing(), "1");
+
+    assert_eq!(SyntaxKind::PrimitiveLiteralExpr, tree.root().as_node().expect("A root node").kind());
+}
