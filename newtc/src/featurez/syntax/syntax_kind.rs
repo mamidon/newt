@@ -12,7 +12,7 @@ pub enum SyntaxKind {
     VariableExpr,
     FunctionCallExpr,
     VariableDeclarationStmt,
-    VariableAssignmentStmt,
+    AssignmentStmt,
     VariableRval,
     StmtListStmt,
     ExprStmt,

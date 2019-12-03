@@ -20,7 +20,7 @@ impl AstNode for StmtNode {
     fn cast(node: &SyntaxNode) -> Option<&Self> {
         match node.kind() {
             SyntaxKind::VariableDeclarationStmt
-            | SyntaxKind::VariableAssignmentStmt
+            | SyntaxKind::AssignmentStmt
             | SyntaxKind::ExprStmt
             | SyntaxKind::IfStmt
             | SyntaxKind::StmtListStmt
@@ -42,8 +42,8 @@ impl StmtNode {
             SyntaxKind::VariableDeclarationStmt => StmtKind::VariableDeclarationStmt(
                 VariableDeclarationStmtNode::from_inner(self.syntax()),
             ),
-            SyntaxKind::VariableAssignmentStmt => StmtKind::VariableAssignmentStmt(
-                VariableAssignmentStmtNode::from_inner(self.syntax()),
+            SyntaxKind::AssignmentStmt => StmtKind::AssignmentStmt(
+                AssignmentStmtNode::from_inner(self.syntax()),
             ),
             SyntaxKind::ExprStmt => StmtKind::ExprStmt(ExprStmtNode::from_inner(self.syntax())),
             SyntaxKind::IfStmt => StmtKind::IfStmt(IfStmtNode::from_inner(self.syntax())),
@@ -172,13 +172,13 @@ impl VariableDeclarationStmtNode {
 
 #[repr(transparent)]
 #[derive(Clone)]
-pub struct VariableAssignmentStmtNode(SyntaxNode);
+pub struct AssignmentStmtNode(SyntaxNode);
 
-unsafe impl TransparentNewType for VariableAssignmentStmtNode {
+unsafe impl TransparentNewType for AssignmentStmtNode {
     type Inner = SyntaxNode;
 }
 
-impl VariableAssignmentStmtNode {
+impl AssignmentStmtNode {
     pub fn identifier(&self) -> &SyntaxToken {
         self.0.nth_token(0)
     }

@@ -103,7 +103,7 @@ fn stmt_assignment(p: &mut Parser, node: Marker) {
     expr(p);
 
     p.expect_token_kind(TokenKind::SemiColon, "Expected ';'");
-    p.end_node(node, SyntaxKind::VariableAssignmentStmt);
+    p.end_node(node, SyntaxKind::AssignmentStmt);
 }
 
 fn stmt_expr(p: &mut Parser, node: Marker) {

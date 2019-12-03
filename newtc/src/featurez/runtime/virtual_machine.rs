@@ -140,7 +140,7 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
     fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
         match node.kind() {
             StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node)?,
-            StmtKind::VariableAssignmentStmt(node) => self.visit_variable_assignment_stmt(node)?,
+            StmtKind::AssignmentStmt(node) => self.visit_assignment_stmt(node)?,
             StmtKind::StmtListStmt(node) => self.visit_stmt_list_stmt(node)?,
             StmtKind::ExprStmt(node) => self.visit_expr_stmt(node)?,
             StmtKind::IfStmt(node) => self.visit_if_stmt(node)?,
@@ -165,9 +165,9 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
         Ok(())
     }
 
-    fn visit_variable_assignment_stmt(
+    fn visit_assignment_stmt(
         &mut self,
-        node: &VariableAssignmentStmtNode,
+        node: &AssignmentStmtNode,
     ) -> Result<(), NewtRuntimeError> {
         let identifier = node.identifier().lexeme();
         let value = self.visit_expr(node.expr())?;

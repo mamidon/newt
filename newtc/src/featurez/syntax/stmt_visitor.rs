@@ -3,7 +3,7 @@ use super::*;
 pub trait StmtVisitor<T> {
     fn visit_stmt(&mut self, stmt: &StmtNode) -> T;
     fn visit_variable_declaration_stmt(&mut self, node: &VariableDeclarationStmtNode) -> T;
-    fn visit_variable_assignment_stmt(&mut self, node: &VariableAssignmentStmtNode) -> T;
+    fn visit_assignment_stmt(&mut self, node: &AssignmentStmtNode) -> T;
     fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> T;
     fn visit_expr_stmt(&mut self, node: &ExprStmtNode) -> T;
     fn visit_if_stmt(&mut self, node: &IfStmtNode) -> T;
