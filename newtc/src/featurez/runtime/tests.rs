@@ -294,6 +294,104 @@ fn variable_declaration_statement_does_not_effect_scope_prior_to_declaration() {
 }
 
 #[test]
+fn object_literals_are_correctly_evaluated_when_empty() {
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
+	fn empty_object() {
+		return {};
+	}"#);
+	let object = match vm.interpret("empty_object()") {
+		Ok(NewtValue::Object(object)) => object,
+		_ => panic!("Did not get an object")
+	};
+
+	assert_eq!(true, object.is_empty());
+}
+
+#[test]
+fn object_literals_are_correctly_evaluated_with_one_property() {
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
+	fn object1() {
+		return { x: 42 };
+	}"#);
+	let object = match vm.interpret("object1()") {
+		Ok(NewtValue::Object(object)) => object,
+		_ => panic!("Did not get an object")
+	};
+
+	assert_eq!(1, object.len());
+	assert_eq!(Some(&NewtValue::Int(42)), object.get("x"));
+}
+
+
+#[test]
+fn object_literals_are_correctly_evaluated_with_multiple_properties() {
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
+	fn object_many() {
+		return {
+			x: 42,
+			y: "hello, world",
+			z: 3.14f
+		};
+	}"#);
+	let object = match vm.interpret("object_many()") {
+		Ok(NewtValue::Object(object)) => object,
+		_ => panic!("Did not get an object")
+	};
+
+	assert_eq!(3, object.len());
+	assert_eq!(Some(&NewtValue::Int(42)), object.get("x"));
+	assert_eq!(Some(&NewtValue::String(Rc::new("hello, world".to_string()))), object.get("y"));
+	assert_eq!(Some(&NewtValue::Float(3.14)), object.get("z"));
+}
+
+#[test]
+fn object_property_get_fails_with_type_error_for_invalid_property() {
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
+	fn object() {
+		return {};
+	}
+	let instance = object();"#);
+
+	assert_eq!(Err(NewtRuntimeError::TypeError), vm.interpret("instance.foo"));
+}
+
+#[test]
+fn object_property_get_returns_expected_value() {
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
+	fn object() {
+		return {
+			x: 42,
+			y: 0
+		};
+	}
+	let instance = object();"#);
+
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("instance.x"));
+}
+
+#[test]
+fn object_property_set_saves_expected_value_in_expected_property() {
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
+	fn object() {
+		return {
+			x: 42,
+			y: 0
+		};
+	}
+	let instance = object();
+	instance.y = 1;"#);
+
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("instance.x"));
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("instance.y"));
+}
+
+#[test]
 fn virtual_machine_correctly_computes_fibonacci_5() {
 	let mut vm = VirtualMachine::new();
 	vm.interpret(r#"

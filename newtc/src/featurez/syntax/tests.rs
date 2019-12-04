@@ -450,6 +450,24 @@ fn function_call_expr_node_handles_multiple_arguments() {
 }
 
 #[test]
+fn function_call_expr_node_can_be_chained() {
+	let tree: SyntaxTree = "foo().x".into();
+	let object_expr: &ObjectPropertyExprNode = expect_expr_node(&tree);
+	let call_expr = match object_expr.source_expr().kind() {
+		ExprKind::FunctionCallExpr(call) => call,
+		_ => panic!("Expected a function call expression")
+	};
+	let variable_expr = match call_expr.callee().kind() {
+		ExprKind::VariableExpr(variable) => variable,
+		_ => panic!("Expected a function call expression")
+	};
+
+	assert_eq!("x", object_expr.identifier().lexeme());
+	assert_eq!(0, call_expr.arguments().count());
+	assert_eq!("foo", variable_expr.identifier().lexeme());
+}
+
+#[test]
 fn function_call_expr_node_properly_orders_arguments() {
 	let tree: SyntaxTree = "foo(x, 2+2, bar())".into();
 	let node: &FunctionCallExprNode = expect_expr_node(&tree);
