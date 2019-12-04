@@ -71,7 +71,7 @@ fn lookahead_binary(token: TokenKind) -> bool {
     PRECEDENCE_TABLE[&token].1
 }
 
-fn primary_expr(p: &mut Parser) -> CompletedMarker {
+pub fn primary_expr(p: &mut Parser) -> CompletedMarker {
     let mut node = p.begin_node();
 
     let mut completed = match p.current() {

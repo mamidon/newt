@@ -169,10 +169,16 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
         &mut self,
         node: &AssignmentStmtNode,
     ) -> Result<(), NewtRuntimeError> {
-        let identifier = node.identifier().lexeme();
         let value = self.visit_expr(node.expr())?;
 
-        self.scope.assign(identifier, value)
+        match node.rval().kind() {
+            RValKind::VariableRVal(variable) => {
+                self.scope.assign(variable.identifier().lexeme(), value)
+            }
+            RValKind::ObjectPropertyRVal(property) => {
+                unimplemented!()
+            }
+        }
     }
 
     fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError> {

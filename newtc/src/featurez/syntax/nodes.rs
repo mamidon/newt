@@ -179,13 +179,12 @@ unsafe impl TransparentNewType for AssignmentStmtNode {
 }
 
 impl AssignmentStmtNode {
-    pub fn identifier(&self) -> &SyntaxToken {
-        self.0.nth_token(0)
+    pub fn rval(&self) -> &RValNode {
+        RValNode::from_inner(self.0.nth_node(0))
     }
 
     pub fn expr(&self) -> &ExprNode {
-        ExprNode::cast(self.0.nth_node(0))
-            .expect("Expected an expression node in variable declaration statement")
+        ExprNode::from_inner(self.0.nth_node(1))
     }
 }
 
@@ -510,7 +509,7 @@ impl RValNode {
                 => RValKind::VariableRVal(VariableRValNode::from_inner(&self.0)),
             SyntaxKind::ObjectPropertyRVal
                 => RValKind::ObjectPropertyRVal(ObjectPropertyRValNode::from_inner(&self.0)),
-            _ => unreachable!("Cannot construct an invalid RValKind from a properly constructed RValNode")
+            kind => unreachable!("An RValNode should not contain an {:?} node", kind)
         }
     }
 }

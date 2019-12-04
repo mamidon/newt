@@ -1,9 +1,11 @@
 use crate::featurez::parse::CompletedMarker;
 use crate::featurez::parse::{CompletedParsing, Marker, Parser};
-use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
+use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, RValNode};
 use crate::featurez::{Token, TokenKind};
 
 use super::expr;
+use crate::featurez::grammar::root_expr;
+use crate::featurez::grammar::expr::primary_expr;
 
 pub fn stmt(p: &mut Parser) {
     let starting_stmt_tokens = &[
@@ -97,7 +99,8 @@ fn variable_stmt(p: &mut Parser, node: Marker) {
 }
 
 fn stmt_assignment(p: &mut Parser, node: Marker) {
-    p.token(TokenKind::Identifier);
+    rval(p);
+
     p.token(TokenKind::Equals);
 
     expr(p);
@@ -141,4 +144,16 @@ fn stmt_let(p: &mut Parser, node: Marker) {
 
     p.expect_token_kind(TokenKind::SemiColon, "Expected semi-colon");
     p.end_node(node, SyntaxKind::VariableDeclarationStmt);
+}
+
+fn rval(p: &mut Parser) {
+    let marker = primary_expr(p);
+
+    let remap_target = match marker.kind() {
+        SyntaxKind::ObjectPropertyExpr => SyntaxKind::ObjectPropertyRVal,
+        SyntaxKind::VariableExpr => SyntaxKind::VariableRval,
+        _ => SyntaxKind::Error("Expected an acceptable r-val")
+    };
+
+    p.remap_node(&marker, remap_target);
 }

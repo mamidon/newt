@@ -281,8 +281,26 @@ fn variable_declaration_stmt_node_round_trips() {
 fn assignment_stmt_node_handles_right_variable_and_left_expr() {
 	let tree: SyntaxTree = "x = 42;".into();
 	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+	let variable = match node.rval().kind() {
+		RValKind::VariableRVal(variable) => variable,
+		_ => panic!("Expected a variable node")
+	};
 
-	assert_eq!("x", node.identifier().lexeme());
+	assert_eq!("x", variable.identifier().lexeme());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
+}
+
+#[test]
+fn assignment_stmt_node_handles_right_object_property_and_left_expr() {
+	let tree: SyntaxTree = "foo.bar = 42;".into();
+	println!("{:?}", tree);
+	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+	let property = match node.rval().kind() {
+		RValKind::ObjectPropertyRVal(property) => property,
+		_ => panic!("Expected an object property node")
+	};
+
+	assert_eq!("bar", property.identifier().lexeme());
 	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
 }
 
