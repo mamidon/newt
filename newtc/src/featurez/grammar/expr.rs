@@ -26,10 +26,10 @@ lazy_static! {
     .collect::<HashMap<_, _>>();
 }
 
-pub fn expr(p: &mut Parser) {
+pub fn expr(p: &mut Parser) -> CompletedMarker {
     let lhs = primary_expr(p);
 
-    expr_core(p, lhs, 4);
+    expr_core(p, lhs, 4)
 }
 
 // https://en.wikipedia.org/wiki/Operator-precedence_parser#Example_execution_of_the_algorithm
@@ -71,7 +71,7 @@ fn lookahead_binary(token: TokenKind) -> bool {
     PRECEDENCE_TABLE[&token].1
 }
 
-pub fn primary_expr(p: &mut Parser) -> CompletedMarker {
+fn primary_expr(p: &mut Parser) -> CompletedMarker {
     let mut node = p.begin_node();
 
     let mut completed = match p.current() {

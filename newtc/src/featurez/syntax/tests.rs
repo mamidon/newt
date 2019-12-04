@@ -293,7 +293,6 @@ fn assignment_stmt_node_handles_right_variable_and_left_expr() {
 #[test]
 fn assignment_stmt_node_handles_right_object_property_and_left_expr() {
 	let tree: SyntaxTree = "foo.bar = 42;".into();
-	println!("{:?}", tree);
 	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
 	let property = match node.rval().kind() {
 		RValKind::ObjectPropertyRVal(property) => property,

@@ -1,11 +1,10 @@
 use crate::featurez::parse::CompletedMarker;
 use crate::featurez::parse::{CompletedParsing, Marker, Parser};
-use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, RValNode};
+use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, RValNode, ExprNode};
 use crate::featurez::{Token, TokenKind};
 
 use super::expr;
 use crate::featurez::grammar::root_expr;
-use crate::featurez::grammar::expr::primary_expr;
 
 pub fn stmt(p: &mut Parser) {
     let starting_stmt_tokens = &[
@@ -27,7 +26,7 @@ pub fn stmt(p: &mut Parser) {
         TokenKind::While => stmt_while(p, node),
         TokenKind::Fn => stmt_fn(p, node),
         TokenKind::Return => stmt_return(p, node),
-        _ => variable_stmt(p, node),
+        _ => stmt_assignment_or_expr(p, node),
     }
 }
 
@@ -88,16 +87,36 @@ fn stmt_if(p: &mut Parser, node: Marker) {
     p.end_node(node, SyntaxKind::IfStmt);
 }
 
-fn variable_stmt(p: &mut Parser, node: Marker) {
-    if p.current2() == Some((TokenKind::Identifier, TokenKind::Equals)) {
-        stmt_assignment(p, node);
-    } else {
-        stmt_expr(p, node);
+/**
+This function needs to parse a node which could be either an
+    assignment to a variable 'x = 42;'
+    an assignment to a property 'x.y = 42;'
+    an expression statement 'x.y();'
+
+    We start by parsing an expression.
+    If it's a variable or property expression and the next token is an equals then
+        we parse an assignment statement
+    If it's any expression and followed by an equals token then
+        it's a error -- assignment to a non-rval
+    If it's any expression and followed by a semi-colon then
+        it's an expression statement
+    Otherwise it's an error
+*/
+fn stmt_assignment_or_expr(p: &mut Parser, node: Marker) {
+    let expr = expr(p);
+
+    match p.current() {
+        TokenKind::Equals => stmt_assignment(p, node, expr),
+        TokenKind::SemiColon => stmt_expr(p, node),
+        _ => {
+            p.expect_token_kind(TokenKind::SemiColon, "Expected ';'");
+            p.end_node(node, SyntaxKind::Error("Expected a valid statement"));
+        }
     }
 }
 
-fn stmt_assignment(p: &mut Parser, node: Marker) {
-    rval(p);
+fn stmt_assignment(p: &mut Parser, node: Marker, rval_expr: CompletedMarker) {
+    rval(p, rval_expr);
 
     p.token(TokenKind::Equals);
 
@@ -108,8 +127,6 @@ fn stmt_assignment(p: &mut Parser, node: Marker) {
 }
 
 fn stmt_expr(p: &mut Parser, node: Marker) {
-    expr(p);
-
     p.expect_token_kind(TokenKind::SemiColon, "Expected ';'");
     p.end_node(node, SyntaxKind::ExprStmt);
 }
@@ -144,14 +161,12 @@ fn stmt_let(p: &mut Parser, node: Marker) {
     p.end_node(node, SyntaxKind::VariableDeclarationStmt);
 }
 
-fn rval(p: &mut Parser) {
-    let marker = primary_expr(p);
-
-    let remap_target = match marker.kind() {
+fn rval(p: &mut Parser, rval: CompletedMarker) {
+    let remap_target = match rval.kind() {
         SyntaxKind::ObjectPropertyExpr => SyntaxKind::ObjectPropertyRVal,
         SyntaxKind::VariableExpr => SyntaxKind::VariableRval,
         _ => SyntaxKind::Error("Expected an acceptable r-val")
     };
 
-    p.remap_node(&marker, remap_target);
+    p.remap_node(&rval, remap_target);
 }
