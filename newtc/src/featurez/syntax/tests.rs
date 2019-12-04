@@ -660,6 +660,47 @@ fn object_property_expr_node_round_trips() {
 }
 
 #[test]
+fn object_property_rval_handles_source_expr_and_identifier() {
+	let tree: SyntaxTree = "foo.bar = 42;".into();
+	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+	let property = match node.rval().kind() {
+		RValKind::ObjectPropertyRVal(property) => property,
+		_ => panic!("Expected an object property node")
+	};
+	let object = match property.source_expr().kind() {
+		ExprKind::VariableExpr(variable) => variable,
+		_ => panic!("Expected a variable at the source of getter")
+	};
+
+	assert_eq!("foo", object.identifier().lexeme());
+	assert_eq!("bar", property.identifier().lexeme());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
+}
+
+#[test]
+fn object_property_rval_handles_multiple_source_expr_and_identifier() {
+	let tree: SyntaxTree = "foo.buzz.bar = 42;".into();
+	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+	let bar = match node.rval().kind() {
+		RValKind::ObjectPropertyRVal(property) => property,
+		_ => panic!("Expected an object property node")
+	};
+	let buzz = match bar.source_expr().kind() {
+		ExprKind::ObjectPropertyExpr(expr) => expr,
+		_ => panic!("Expected a property at the source of getter")
+	};
+	let foo = match buzz.source_expr().kind() {
+		ExprKind::VariableExpr(variable) => variable,
+		_ => panic!("Expected a variable at the source of getter")
+	};
+
+	assert_eq!("foo", foo.identifier().lexeme());
+	assert_eq!("buzz", buzz.identifier().lexeme());
+	assert_eq!("bar", bar.identifier().lexeme());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
+}
+
+#[test]
 fn binary_expr_node_does_not_swap_operands() {
 	let tree: SyntaxTree = "2+foo()".into();
 	let node: &BinaryExprNode = expect_expr_node(&tree);
