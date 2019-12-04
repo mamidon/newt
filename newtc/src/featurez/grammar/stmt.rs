@@ -89,9 +89,7 @@ fn stmt_if(p: &mut Parser, node: Marker) {
 }
 
 fn variable_stmt(p: &mut Parser, node: Marker) {
-    if p.current() == TokenKind::Let {
-        stmt_let(p, node);
-    } else if p.current2() == Some((TokenKind::Identifier, TokenKind::Equals)) {
+    if p.current2() == Some((TokenKind::Identifier, TokenKind::Equals)) {
         stmt_assignment(p, node);
     } else {
         stmt_expr(p, node);
