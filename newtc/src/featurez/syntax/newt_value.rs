@@ -14,8 +14,9 @@ use crate::featurez::syntax::{
 use crate::featurez::TokenKind;
 use std::rc::Rc;
 use std::collections::HashMap;
+use std::cell::RefCell;
 
-type NewtObject = HashMap<String, NewtValue>;
+type NewtObject = RefCell<HashMap<String, NewtValue>>;
 
 #[derive(Debug, Clone)]
 pub enum NewtValue {
@@ -54,7 +55,7 @@ impl NewtValue {
             TokenKind::FloatLiteral => {
                 NewtValue::Float(lexeme.parse().expect("unparsable literal token"))
             }
-            TokenKind::StringLiteral => NewtValue::String(Rc::new(lexeme.to_string())),
+            TokenKind::StringLiteral => NewtValue::String(Rc::new(lexeme[1..lexeme.len()-1].to_string())),
             TokenKind::GlyphLiteral => {
                 NewtValue::Glyph(lexeme[1..2].parse().expect("unparsable literal token"))
             }

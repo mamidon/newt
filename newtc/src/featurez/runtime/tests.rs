@@ -305,7 +305,7 @@ fn object_literals_are_correctly_evaluated_when_empty() {
 		_ => panic!("Did not get an object")
 	};
 
-	assert_eq!(true, object.is_empty());
+	assert_eq!(true, object.borrow().is_empty());
 }
 
 #[test]
@@ -320,8 +320,8 @@ fn object_literals_are_correctly_evaluated_with_one_property() {
 		_ => panic!("Did not get an object")
 	};
 
-	assert_eq!(1, object.len());
-	assert_eq!(Some(&NewtValue::Int(42)), object.get("x"));
+	assert_eq!(1, object.borrow().len());
+	assert_eq!(Some(&NewtValue::Int(42)), object.borrow().get("x"));
 }
 
 
@@ -341,10 +341,10 @@ fn object_literals_are_correctly_evaluated_with_multiple_properties() {
 		_ => panic!("Did not get an object")
 	};
 
-	assert_eq!(3, object.len());
-	assert_eq!(Some(&NewtValue::Int(42)), object.get("x"));
-	assert_eq!(Some(&NewtValue::String(Rc::new("hello, world".to_string()))), object.get("y"));
-	assert_eq!(Some(&NewtValue::Float(3.14)), object.get("z"));
+	assert_eq!(3, object.borrow().len());
+	assert_eq!(Some(&NewtValue::Int(42)), object.borrow().get("x"));
+	assert_eq!(Some(&NewtValue::String(Rc::new("hello, world".to_string()))), object.borrow().get("y"));
+	assert_eq!(Some(&NewtValue::Float(3.14)), object.borrow().get("z"));
 }
 
 #[test]
