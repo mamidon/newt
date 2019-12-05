@@ -2,7 +2,6 @@
 
 use super::*;
 
-use insta::assert_snapshot_matches;
 use std::string::ToString;
 
 use crate::featurez::syntax::TokenSource;
@@ -78,25 +77,7 @@ single_token_tests! {
     true_keyword: ("true", TokenKind::True),
     false_keyword: ("false", TokenKind::False),
 }
-
-macro_rules! token_sequence_tests {
-	($($name:ident: $value:expr,)*) => {
-	$(
-		#[test]
-		fn $name() {
-			let input_text = $value;
-			let tokens = tokenize(input_text)
-				.iter()
-				.map(|t| t.to_string())
-				.collect::<Vec<String>>();
-
-			let document = format!("{}\n\n===\n\n{}", input_text, tokens.join("\n"));
-
-			assert_snapshot_matches!(stringify!($name), document);
-		}
-	)*
-	}
-}
+/*
 
 token_sequence_tests! {
     identifiers_can_start_with_underscore: "_foo123",
@@ -145,7 +126,7 @@ let c=4>=2;
 let d=2;",
     starting_whitespace: r#"
     let x=1+2;"#,
-}
+}*/
 
 fn assert_single_token(value: &str, expected_type: TokenKind) {
     let tokens = tokenize(value);

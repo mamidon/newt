@@ -2,8 +2,6 @@
 
 use super::*;
 
-use insta::assert_snapshot_matches;
-
 use crate::featurez::grammar::{root_expr, root_stmt};
 use crate::featurez::parse::Parser;
 use crate::featurez::tokens::tokenize;

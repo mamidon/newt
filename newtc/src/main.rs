@@ -3,9 +3,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-#[cfg(test)]
-extern crate insta;
-
 mod featurez;
 
 use crate::featurez::*;
