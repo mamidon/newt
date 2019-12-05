@@ -356,7 +356,7 @@ fn object_property_get_fails_with_type_error_for_invalid_property() {
 	}
 	let instance = object();"#);
 
-	assert_eq!(Err(NewtRuntimeError::TypeError), vm.interpret("instance.foo"));
+	assert_eq!(Err(NewtRuntimeError::UndefinedVariable), vm.interpret("instance.foo"));
 }
 
 #[test]
