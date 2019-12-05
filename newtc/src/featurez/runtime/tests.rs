@@ -333,7 +333,7 @@ fn object_literals_are_correctly_evaluated_with_multiple_properties() {
 		return {
 			x: 42,
 			y: "hello, world",
-			z: 3.14f
+			z: 3.14
 		};
 	}"#);
 	let object = match vm.interpret("object_many()") {
