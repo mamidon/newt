@@ -1,5 +1,5 @@
 ---
-created: "2019-11-21T15:42:55.418397Z"
+created: "2019-11-27T15:12:55.012175Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -105,7 +105,7 @@ expression: approval_document
         length: 1
     },
     BeginNode {
-        kind: LiteralExpr,
+        kind: PrimitiveLiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: None
     },
@@ -153,7 +153,7 @@ expression: approval_document
         length: 1
     },
     BeginNode {
-        kind: LiteralExpr,
+        kind: PrimitiveLiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: None
     },
@@ -232,7 +232,7 @@ expression: approval_document
         length: 1
     },
     BeginNode {
-        kind: LiteralExpr,
+        kind: PrimitiveLiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: None
     },
@@ -300,7 +300,7 @@ expression: approval_document
     ┃ ┠ WhiteSpace ' '
     ┃ ┠ Equals '='
     ┃ ┠ WhiteSpace ' '
-    ┃ ┠ LiteralExpr
+    ┃ ┠ PrimitiveLiteralExpr
     ┃ ┃ ┗ IntegerLiteral '1'
     ┃ ┠ SemiColon ';'
     ┃ ┗ WhiteSpace '
@@ -312,7 +312,7 @@ expression: approval_document
     ┃ ┠ WhiteSpace ' '
     ┃ ┠ Equals '='
     ┃ ┠ WhiteSpace ' '
-    ┃ ┠ LiteralExpr
+    ┃ ┠ PrimitiveLiteralExpr
     ┃ ┃ ┗ IntegerLiteral '2'
     ┃ ┠ SemiColon ';'
     ┃ ┗ WhiteSpace '
@@ -331,7 +331,7 @@ expression: approval_document
     ┃ ┃ ┃ ┃ ┗ WhiteSpace ' '
     ┃ ┃ ┃ ┠ Star '*'
     ┃ ┃ ┃ ┠ WhiteSpace ' '
-    ┃ ┃ ┃ ┗ LiteralExpr
+    ┃ ┃ ┃ ┗ PrimitiveLiteralExpr
     ┃ ┃ ┃   ┠ IntegerLiteral '2'
     ┃ ┃ ┃   ┗ WhiteSpace ' '
     ┃ ┃ ┠ Plus '+'

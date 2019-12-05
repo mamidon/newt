@@ -261,7 +261,7 @@ fn parser_begin_node_can_nest_nodes() {
     parser.end_node(inner, SyntaxKind::UnaryExpr);
 
     parser.token_if(TokenKind::Slash);
-    parser.end_node(outer, SyntaxKind::LiteralExpr);
+    parser.end_node(outer, SyntaxKind::PrimitiveLiteralExpr);
 
     let events = parser.end_parsing().events;
 
@@ -280,7 +280,7 @@ fn parser_begin_node_can_nest_nodes() {
     assert_eq!(
         expected_outer_node_start,
         &ParseEvent::BeginNode {
-            kind: SyntaxKind::LiteralExpr,
+            kind: SyntaxKind::PrimitiveLiteralExpr,
             is_forward_parent: false,
             forward_parent_offset: None
         }
@@ -338,4 +338,18 @@ fn parser_precede_node_can_precede_nodes() {
     parser.end_node(three_plus_three, SyntaxKind::BinaryExpr);
 
     let tree = SyntaxTree::from_parser(&parser.end_parsing(), "1+2+3");
+}
+
+#[test]
+fn parser_remap_node_changes_the_syntax_kind() {
+    let token_source = StrTokenSource::new(tokenize("1"));
+    let mut parser = Parser::new(token_source);
+
+    let mut outer = parser.begin_node();
+    parser.token_if(TokenKind::IntegerLiteral);
+    let marker = parser.end_node(outer, SyntaxKind::Error("Not an error, actually"));
+    parser.remap_node(&marker, SyntaxKind::PrimitiveLiteralExpr);
+    let tree: SyntaxTree = SyntaxTree::from_parser(&parser.end_parsing(), "1");
+
+    assert_eq!(SyntaxKind::PrimitiveLiteralExpr, tree.root().as_node().expect("A root node").kind());
 }

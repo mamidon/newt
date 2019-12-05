@@ -1,13 +1,12 @@
 use crate::featurez::newtypes::TransparentNewType;
-use crate::featurez::syntax::{
-    AstNode, ExprKind, StmtKind, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
-};
+use crate::featurez::syntax::{AstNode, ExprKind, StmtKind, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, RValKind};
 use crate::featurez::tokens::{Token, TokenKind};
 
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::rc::Rc;
+use std::collections::HashMap;
 
 #[repr(transparent)]
 #[derive(Clone)]
@@ -21,7 +20,7 @@ impl AstNode for StmtNode {
     fn cast(node: &SyntaxNode) -> Option<&Self> {
         match node.kind() {
             SyntaxKind::VariableDeclarationStmt
-            | SyntaxKind::VariableAssignmentStmt
+            | SyntaxKind::AssignmentStmt
             | SyntaxKind::ExprStmt
             | SyntaxKind::IfStmt
             | SyntaxKind::StmtListStmt
@@ -43,8 +42,8 @@ impl StmtNode {
             SyntaxKind::VariableDeclarationStmt => StmtKind::VariableDeclarationStmt(
                 VariableDeclarationStmtNode::from_inner(self.syntax()),
             ),
-            SyntaxKind::VariableAssignmentStmt => StmtKind::VariableAssignmentStmt(
-                VariableAssignmentStmtNode::from_inner(self.syntax()),
+            SyntaxKind::AssignmentStmt => StmtKind::AssignmentStmt(
+                AssignmentStmtNode::from_inner(self.syntax()),
             ),
             SyntaxKind::ExprStmt => StmtKind::ExprStmt(ExprStmtNode::from_inner(self.syntax())),
             SyntaxKind::IfStmt => StmtKind::IfStmt(IfStmtNode::from_inner(self.syntax())),
@@ -173,20 +172,19 @@ impl VariableDeclarationStmtNode {
 
 #[repr(transparent)]
 #[derive(Clone)]
-pub struct VariableAssignmentStmtNode(SyntaxNode);
+pub struct AssignmentStmtNode(SyntaxNode);
 
-unsafe impl TransparentNewType for VariableAssignmentStmtNode {
+unsafe impl TransparentNewType for AssignmentStmtNode {
     type Inner = SyntaxNode;
 }
 
-impl VariableAssignmentStmtNode {
-    pub fn identifier(&self) -> &SyntaxToken {
-        self.0.nth_token(0)
+impl AssignmentStmtNode {
+    pub fn rval(&self) -> &RValNode {
+        RValNode::from_inner(self.0.nth_node(0))
     }
 
     pub fn expr(&self) -> &ExprNode {
-        ExprNode::cast(self.0.nth_node(0))
-            .expect("Expected an expression node in variable declaration statement")
+        ExprNode::from_inner(self.0.nth_node(1))
     }
 }
 
@@ -254,10 +252,12 @@ impl AstNode for ExprNode {
         match node.kind() {
             SyntaxKind::BinaryExpr
             | SyntaxKind::UnaryExpr
-            | SyntaxKind::LiteralExpr
+            | SyntaxKind::PrimitiveLiteralExpr
             | SyntaxKind::GroupingExpr
             | SyntaxKind::VariableExpr
-            | SyntaxKind::FunctionCallExpr => Some(ExprNode::from_inner(node)),
+            | SyntaxKind::FunctionCallExpr
+            | SyntaxKind::ObjectLiteralExpr
+            | SyntaxKind::ObjectPropertyExpr => Some(ExprNode::from_inner(node)),
             _ => None,
         }
     }
@@ -276,8 +276,14 @@ impl ExprNode {
             SyntaxKind::UnaryExpr => {
                 ExprKind::UnaryExpr(UnaryExprNode::from_inner(self.to_inner()))
             }
-            SyntaxKind::LiteralExpr => {
-                ExprKind::LiteralExpr(LiteralExprNode::from_inner(self.to_inner()))
+            SyntaxKind::PrimitiveLiteralExpr => {
+                ExprKind::PrimitiveLiteralExpr(PrimitiveLiteralExprNode::from_inner(self.to_inner()))
+            }
+	        SyntaxKind::ObjectLiteralExpr => {
+		        ExprKind::ObjectLiteralExpr(ObjectLiteralExprNode::from_inner(self.to_inner()))
+	        }
+            SyntaxKind::ObjectPropertyExpr => {
+                ExprKind::ObjectPropertyExpr(ObjectPropertyExprNode::from_inner(self.to_inner()))
             }
             SyntaxKind::GroupingExpr => {
                 ExprKind::GroupingExpr(GroupingExprNode::from_inner(self.to_inner()))
@@ -316,15 +322,91 @@ impl FunctionCallExprNode {
 
 #[repr(transparent)]
 #[derive(Clone)]
-pub struct LiteralExprNode(SyntaxNode);
+pub struct PrimitiveLiteralExprNode(SyntaxNode);
 
-unsafe impl TransparentNewType for LiteralExprNode {
+unsafe impl TransparentNewType for PrimitiveLiteralExprNode {
     type Inner = SyntaxNode;
 }
 
-impl LiteralExprNode {
+impl PrimitiveLiteralExprNode {
     pub fn literal(&self) -> &SyntaxToken {
         self.0.nth_token(0)
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct ObjectLiteralExprNode(SyntaxNode);
+
+unsafe impl TransparentNewType for ObjectLiteralExprNode {
+    type Inner = SyntaxNode;
+}
+
+impl ObjectLiteralExprNode {
+    pub fn fields(&self) -> HashMap<String, ExprNode> {
+        let relevant_children: Vec<_> = self.0
+            .children()
+            .iter()
+            .filter(ObjectLiteralExprNode::is_identifier_token_or_expr_node)
+            .collect();
+        let pairs = relevant_children.chunks_exact(2);
+        let mut map: HashMap<String, ExprNode> = HashMap::new();
+
+        if !pairs.remainder().is_empty() {
+            panic!("Object literal did not have fully formed pairs");
+        }
+
+        for slice in pairs {
+            match slice {
+                [key_element, value_element] => {
+                    let key = ObjectLiteralExprNode::as_identifier(key_element).unwrap().lexeme().to_string();
+                    let value = ObjectLiteralExprNode::as_expr_node(value_element).unwrap().clone();
+                    map.insert(key, value);
+                }
+                _ => unreachable!("Shouldn't happen with chunks_exact of 2")
+            }
+        }
+
+        map
+    }
+
+    fn as_identifier(element: &&SyntaxElement) -> Option<SyntaxToken> {
+        match element {
+            SyntaxElement::Token(token) => Some(token.clone()),
+            _ => None
+        }
+    }
+
+    fn as_expr_node(element: &SyntaxElement) -> Option<&ExprNode> {
+        match element {
+            SyntaxElement::Node(node) => ExprNode::cast(node),
+            _ => None
+        }
+    }
+
+    fn is_identifier_token_or_expr_node(element: &&SyntaxElement) -> bool {
+        match element {
+            SyntaxElement::Token(token) => token.token_kind() == TokenKind::Identifier,
+            SyntaxElement::Node(node) => ExprNode::cast(node).is_some()
+        }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct ObjectPropertyExprNode(SyntaxNode);
+
+unsafe impl TransparentNewType for ObjectPropertyExprNode {
+    type Inner = SyntaxNode;
+}
+
+impl ObjectPropertyExprNode {
+	pub fn source_expr(&self) -> &ExprNode {
+		ExprNode::cast(self.0.nth_node(0)).unwrap()
+	}
+
+    pub fn identifier(&self) -> &SyntaxToken {
+        self.0.nth_token(1)
     }
 }
 
@@ -395,3 +477,74 @@ impl VariableExprNode {
         self.0.nth_token(0)
     }
 }
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct RValNode(SyntaxNode);
+
+unsafe impl TransparentNewType for RValNode {
+    type Inner = SyntaxNode;
+}
+
+impl AstNode for RValNode {
+    fn cast(node: &SyntaxNode) -> Option<&Self> {
+        match node.kind() {
+            SyntaxKind::ObjectPropertyRVal
+            | SyntaxKind::VariableRval => {
+                Some(RValNode::from_inner(node))
+            }
+            _ => None
+        }
+    }
+
+    fn syntax(&self) -> &SyntaxNode {
+        &self.0
+    }
+}
+
+impl RValNode {
+    pub fn kind(&self) -> RValKind {
+        match self.0.kind() {
+            SyntaxKind::VariableRval
+                => RValKind::VariableRVal(VariableRValNode::from_inner(&self.0)),
+            SyntaxKind::ObjectPropertyRVal
+                => RValKind::ObjectPropertyRVal(ObjectPropertyRValNode::from_inner(&self.0)),
+            kind => unreachable!("An RValNode should not contain an {:?} node", kind)
+        }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct VariableRValNode(SyntaxNode);
+
+unsafe impl TransparentNewType for VariableRValNode {
+    type Inner = SyntaxNode;
+}
+
+impl VariableRValNode {
+    pub fn identifier(&self) -> &SyntaxToken {
+        self.0.nth_token(0)
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone)]
+pub struct ObjectPropertyRValNode(SyntaxNode);
+
+unsafe impl TransparentNewType for ObjectPropertyRValNode {
+    type Inner = SyntaxNode;
+}
+
+impl ObjectPropertyRValNode {
+    pub fn source_expr(&self) -> &ExprNode {
+        ExprNode::cast(self.0.nth_node(0)).unwrap()
+    }
+
+    pub fn identifier(&self) -> &SyntaxToken {
+        self.0.nth_token(1)
+    }
+}
+
+
+

@@ -1,9 +1,10 @@
-use crate::featurez::parse::CompletedMarker;
+use crate::featurez::parse::{CompletedMarker, Marker};
 use crate::featurez::parse::Parser;
 use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, SyntaxTree};
 use crate::featurez::{Token, TokenKind};
 use std::collections::HashMap;
 use crate::OutputMode::Tokens;
+use crate::featurez::tokens::TokenKind::TombStone;
 
 type PrecedenceTable = HashMap<TokenKind, (usize, bool)>;
 
@@ -25,10 +26,10 @@ lazy_static! {
     .collect::<HashMap<_, _>>();
 }
 
-pub fn expr(p: &mut Parser) {
+pub fn expr(p: &mut Parser) -> CompletedMarker {
     let lhs = primary_expr(p);
 
-    expr_core(p, lhs, 4);
+    expr_core(p, lhs, 4)
 }
 
 // https://en.wikipedia.org/wiki/Operator-precedence_parser#Example_execution_of_the_algorithm
@@ -89,30 +90,30 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
         TokenKind::IntegerLiteral => {
             p.token_if(TokenKind::IntegerLiteral);
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::FloatLiteral => {
             p.token_if(TokenKind::FloatLiteral);
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::GlyphLiteral => {
             p.token_if(TokenKind::GlyphLiteral);
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::StringLiteral => {
             p.token_if(TokenKind::StringLiteral);
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::True => {
             p.token_if(TokenKind::True);
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::False => {
             p.token_if(TokenKind::False);
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
         TokenKind::LeftParenthesis => {
             p.token_if(TokenKind::LeftParenthesis);
@@ -129,18 +130,61 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
 
             p.end_node(node, SyntaxKind::VariableExpr)
         }
+        TokenKind::LeftBrace => {
+            object_literal_expr(p, node)
+        }
         _ => {
             p.expect_token_kind_in(&[], "Expected a primary expression");
 
-            p.end_node(node, SyntaxKind::LiteralExpr)
+            p.end_node(node, SyntaxKind::PrimitiveLiteralExpr)
         }
     };
+
+	if p.current() == TokenKind::Dot {
+		completed = object_property_expr(p, completed);
+	}
 
     while p.current() != TokenKind::EndOfFile && p.current() == TokenKind::LeftParenthesis {
         completed = call_expr(p, completed);
     }
 
     completed
+}
+
+fn object_property_expr(p: &mut Parser, mut node: CompletedMarker) -> CompletedMarker {
+	let mut previous = node;
+	while p.current() == TokenKind::Dot {
+		let next = p.begin_node();
+		p.precede_node(&mut previous, &next);
+
+		p.token(TokenKind::Dot);
+		p.token(TokenKind::Identifier);
+
+		previous = p.end_node(next, SyntaxKind::ObjectPropertyExpr);
+	}
+
+	previous
+}
+
+fn object_literal_expr(p: &mut Parser, mut node: Marker) -> CompletedMarker {
+    p.token(TokenKind::LeftBrace);
+
+    if p.current() == TokenKind::Identifier {
+        p.token(TokenKind::Identifier);
+        p.token(TokenKind::Colon);
+        expr(p);
+    }
+
+    while p.current() == TokenKind::Comma && p.current() != TokenKind::EndOfFile {
+        p.token(TokenKind::Comma);
+        p.token(TokenKind::Identifier);
+        p.token(TokenKind::Colon);
+        expr(p);
+    }
+
+    p.token(TokenKind::RightBrace);
+
+    p.end_node(node, SyntaxKind::ObjectLiteralExpr)
 }
 
 fn call_expr(p: &mut Parser, mut lhs: CompletedMarker) -> CompletedMarker {

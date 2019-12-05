@@ -1,5 +1,5 @@
 ---
-created: "2019-11-08T15:26:37.010728Z"
+created: "2019-11-27T15:12:55.011903Z"
 creator: insta@0.8.1
 source: newtc/src/featurez/syntax/tests.rs
 expression: approval_document
@@ -32,7 +32,7 @@ expression: approval_document
         length: 1
     },
     BeginNode {
-        kind: LiteralExpr,
+        kind: PrimitiveLiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: Some(
             3
@@ -55,7 +55,7 @@ expression: approval_document
         length: 1
     },
     BeginNode {
-        kind: LiteralExpr,
+        kind: PrimitiveLiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: None
     },
@@ -84,7 +84,7 @@ expression: approval_document
         length: 1
     },
     BeginNode {
-        kind: LiteralExpr,
+        kind: PrimitiveLiteralExpr,
         is_forward_parent: false,
         forward_parent_offset: None
     },
@@ -103,14 +103,14 @@ expression: approval_document
   ┠ Minus '-'
   ┗ BinaryExpr
     ┠ BinaryExpr
-    ┃ ┠ LiteralExpr
+    ┃ ┠ PrimitiveLiteralExpr
     ┃ ┃ ┗ IntegerLiteral '1'
     ┃ ┠ Star '*'
-    ┃ ┗ LiteralExpr
+    ┃ ┗ PrimitiveLiteralExpr
     ┃   ┗ IntegerLiteral '2'
     ┠ Plus '+'
     ┗ UnaryExpr
       ┠ Minus '-'
-      ┗ LiteralExpr
+      ┗ PrimitiveLiteralExpr
         ┗ IntegerLiteral '3'
 

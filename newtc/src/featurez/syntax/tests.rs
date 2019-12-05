@@ -2,14 +2,13 @@
 
 use super::*;
 
-use insta::assert_snapshot_matches;
-
 use crate::featurez::grammar::{root_expr, root_stmt};
 use crate::featurez::parse::Parser;
 use crate::featurez::tokens::tokenize;
 use crate::featurez::tokens::StrTokenSource;
 use crate::featurez::tokens::TokenKind;
 use crate::featurez::newtypes::TransparentNewType;
+use std::collections::HashMap;
 
 #[test]
 fn return_stmt_node_includes_result_expr() {
@@ -137,7 +136,7 @@ fn while_stmt_node_handles_conditional() {
 		.nth_node(0)
 		.kind();
 
-	assert_eq!(SyntaxKind::LiteralExpr, conditional_kind);
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, conditional_kind);
 }
 
 #[test]
@@ -176,7 +175,7 @@ fn if_stmt_node_handles_conditional() {
 		.nth_node(0)
 		.kind();
 
-	assert_eq!(SyntaxKind::LiteralExpr, conditional_kind);
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, conditional_kind);
 }
 
 #[test]
@@ -259,7 +258,7 @@ fn variable_declaration_stmt_node_handles_expr() {
 	let tree: SyntaxTree = "let x = 42;".into();
 	let node: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.expr().syntax().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
 }
 
 #[test]
@@ -272,6 +271,46 @@ fn variable_declaration_stmt_node_round_trips() {
 
 	match stmt_node.kind() {
 		StmtKind::VariableDeclarationStmt(_) => {},
+		_ => panic!("Could not round trip Stmt")
+	};
+}
+
+#[test]
+fn assignment_stmt_node_handles_right_variable_and_left_expr() {
+	let tree: SyntaxTree = "x = 42;".into();
+	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+	let variable = match node.rval().kind() {
+		RValKind::VariableRVal(variable) => variable,
+		_ => panic!("Expected a variable node")
+	};
+
+	assert_eq!("x", variable.identifier().lexeme());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
+}
+
+#[test]
+fn assignment_stmt_node_handles_right_object_property_and_left_expr() {
+	let tree: SyntaxTree = "foo.bar = 42;".into();
+	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+	let property = match node.rval().kind() {
+		RValKind::ObjectPropertyRVal(property) => property,
+		_ => panic!("Expected an object property node")
+	};
+
+	assert_eq!("bar", property.identifier().lexeme());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
+}
+
+#[test]
+fn assignment_stmt_node_round_trips() {
+	let tree: SyntaxTree = "x = 42;".into();
+	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+
+	let stmt_node = StmtNode::cast(node.to_inner())
+		.expect("Valid StmtNode");
+
+	match stmt_node.kind() {
+		StmtKind::AssignmentStmt(_) => {},
 		_ => panic!("Could not round trip Stmt")
 	};
 }
@@ -319,7 +358,7 @@ fn expr_stmt_node_handles_literal_expr() {
 	let tree: SyntaxTree = "42;".into();
 	let node: &ExprStmtNode = expect_stmt_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.expr().syntax().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
 }
 
 #[test]
@@ -409,6 +448,25 @@ fn function_call_expr_node_handles_multiple_arguments() {
 }
 
 #[test]
+#[ignore = "Dot & call operators should be folded into order-of-operations"]
+fn function_call_expr_node_can_be_chained() {
+	let tree: SyntaxTree = "foo().x".into();
+	let object_expr: &ObjectPropertyExprNode = expect_expr_node(&tree);
+	let call_expr = match object_expr.source_expr().kind() {
+		ExprKind::FunctionCallExpr(call) => call,
+		_ => panic!("Expected a function call expression")
+	};
+	let variable_expr = match call_expr.callee().kind() {
+		ExprKind::VariableExpr(variable) => variable,
+		_ => panic!("Expected a function call expression")
+	};
+
+	assert_eq!("x", object_expr.identifier().lexeme());
+	assert_eq!(0, call_expr.arguments().count());
+	assert_eq!("foo", variable_expr.identifier().lexeme());
+}
+
+#[test]
 fn function_call_expr_node_properly_orders_arguments() {
 	let tree: SyntaxTree = "foo(x, 2+2, bar())".into();
 	let node: &FunctionCallExprNode = expect_expr_node(&tree);
@@ -434,64 +492,229 @@ fn function_call_expr_node_round_trips() {
 }
 
 #[test]
-fn literal_expr_node_handles_integers() {
+fn primitive_literal_expr_node_handles_integers() {
 	let tree: SyntaxTree = "42".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
-fn literal_expr_node_handles_true_booleans() {
+fn primitive_literal_expr_node_handles_true_booleans() {
 	let tree: SyntaxTree = "true".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
-fn literal_expr_node_handles_false_booleans() {
+fn primitive_literal_expr_node_handles_false_booleans() {
 	let tree: SyntaxTree = "false".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
-fn literal_expr_node_handles_string_booleans() {
+fn primitive_literal_expr_node_handles_string_booleans() {
 	let tree: SyntaxTree = "\"hello, world!\"".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
-fn literal_expr_node_handles_glyphs() {
+fn primitive_literal_expr_node_handles_glyphs() {
 	let tree: SyntaxTree = "'a'".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
-fn literal_expr_node_handles_floats() {
+fn primitive_literal_expr_node_handles_floats() {
 	let tree: SyntaxTree = "3.14".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.to_inner().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.to_inner().kind());
 }
 
 #[test]
-fn literal_expr_node_round_trips() {
+fn primitive_literal_expr_node_round_trips() {
 	let tree: SyntaxTree = "42".into();
-	let node: &LiteralExprNode = expect_expr_node(&tree);
+	let node: &PrimitiveLiteralExprNode = expect_expr_node(&tree);
 
 	let expr = ExprNode::cast(node.to_inner()).unwrap();
 
 	match expr.kind() {
-		ExprKind::LiteralExpr(_) => {},
+		ExprKind::PrimitiveLiteralExpr(_) => {},
 		_ => panic!("Could not round trip Expr")
 	};
+}
+
+#[test]
+fn object_literal_expr_node_handles_zero_fields() {
+	let tree: SyntaxTree = "let foo = {};".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+
+	assert_eq!(0, node.fields().len());
+}
+
+
+#[test]
+fn object_literal_expr_node_handles_one_field() {
+	let tree: SyntaxTree = "let foo = { bar: 42 };".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+
+	assert_eq!(1, node.fields().len());
+	assert_eq!(Some(SyntaxKind::PrimitiveLiteralExpr), node.fields().get("bar").map(|e| e.to_inner().kind()));
+}
+
+#[test]
+fn object_literal_expr_node_handles_multiple_fields() {
+	let tree: SyntaxTree = "let foo = { bar: 42, fizz: 2+2, buzz: other_variable };".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+	let fields: HashMap<String, SyntaxKind> = node.fields()
+		.into_iter()
+		.map(|(k, v)| (k, v.to_inner().kind()))
+		.collect();
+
+	assert_eq!(3, fields.len());
+	assert_eq!(Some(&SyntaxKind::PrimitiveLiteralExpr), fields.get("bar"));
+	assert_eq!(Some(&SyntaxKind::BinaryExpr), fields.get("fizz"));
+	assert_eq!(Some(&SyntaxKind::VariableExpr), fields.get("buzz"));
+}
+
+#[test]
+fn object_literal_expr_node_handles_nested_fields() {
+	let tree: SyntaxTree = "let foo = { bar: { fizz: 2+2, buzz: other_variable } };".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let outer_node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+	let inner_fields = match outer_node.fields().get("bar") {
+		Some(expr) => match expr.kind() {
+			ExprKind::ObjectLiteralExpr(literal) => {
+				let bar_fields: HashMap<String, SyntaxKind> = literal.fields()
+					.into_iter()
+					.map(|(k, v)| (k, v.to_inner().kind()))
+					.collect();
+				bar_fields
+			},
+			_ => panic!("Could not parse object literal")
+		},
+		_ => panic!("Could not parse nested object literals")
+	};
+
+	assert_eq!(2, inner_fields.len());
+	assert_eq!(Some(&SyntaxKind::BinaryExpr), inner_fields.get("fizz"));
+	assert_eq!(Some(&SyntaxKind::VariableExpr), inner_fields.get("buzz"));
+}
+
+#[test]
+fn object_literal_expr_node_round_trips() {
+	let tree: SyntaxTree = "let x = {};".into();
+	let stmt: &VariableDeclarationStmtNode = expect_stmt_node(&tree);
+	let node: &ObjectLiteralExprNode = match stmt.expr().kind() {
+		ExprKind::ObjectLiteralExpr(literal) => literal,
+		_ => panic!("Could not parse object literal")
+	};
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::ObjectLiteralExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
+}
+
+#[test]
+fn object_property_expr_handles_single_property_access() {
+	let tree: SyntaxTree = "fizz.buzz".into();
+	let expr: &ObjectPropertyExprNode = expect_expr_node(&tree);
+
+	assert_eq!("buzz", expr.identifier().lexeme());
+}
+
+#[test]
+fn object_property_expr_handles_multiple_property_access() {
+	let tree: SyntaxTree = "fizz.buzz.foo".into();
+	let foo_expr: &ObjectPropertyExprNode = expect_expr_node(&tree);
+	let buzz_expr: &ObjectPropertyExprNode = ObjectPropertyExprNode::from_inner(foo_expr.source_expr().to_inner());
+	let fizz_expr: &VariableExprNode = VariableExprNode::from_inner(buzz_expr.source_expr().to_inner());
+
+	assert_eq!("foo", foo_expr.identifier().lexeme());
+	assert_eq!("buzz", buzz_expr.identifier().lexeme());
+	assert_eq!("fizz", fizz_expr.identifier().lexeme());
+}
+
+#[test]
+fn object_property_expr_node_round_trips() {
+	let tree: SyntaxTree = "fizz.buzz".into();
+	let expr: &ExprNode = ExprNode::from_inner(tree.root().as_node().unwrap());
+	let node: &ObjectPropertyExprNode = match expr.kind() {
+		ExprKind::ObjectPropertyExpr(literal) => literal,
+		_ => panic!("Could not parse object property expression")
+	};
+	let expr = ExprNode::cast(node.to_inner()).unwrap();
+
+	match expr.kind() {
+		ExprKind::ObjectPropertyExpr(_) => {},
+		_ => panic!("Could not round trip Expr")
+	};
+}
+
+#[test]
+fn object_property_rval_handles_source_expr_and_identifier() {
+	let tree: SyntaxTree = "foo.bar = 42;".into();
+	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+	let property = match node.rval().kind() {
+		RValKind::ObjectPropertyRVal(property) => property,
+		_ => panic!("Expected an object property node")
+	};
+	let object = match property.source_expr().kind() {
+		ExprKind::VariableExpr(variable) => variable,
+		_ => panic!("Expected a variable at the source of getter")
+	};
+
+	assert_eq!("foo", object.identifier().lexeme());
+	assert_eq!("bar", property.identifier().lexeme());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
+}
+
+#[test]
+fn object_property_rval_handles_multiple_source_expr_and_identifier() {
+	let tree: SyntaxTree = "foo.buzz.bar = 42;".into();
+	let node: &AssignmentStmtNode = expect_stmt_node(&tree);
+	let bar = match node.rval().kind() {
+		RValKind::ObjectPropertyRVal(property) => property,
+		_ => panic!("Expected an object property node")
+	};
+	let buzz = match bar.source_expr().kind() {
+		ExprKind::ObjectPropertyExpr(expr) => expr,
+		_ => panic!("Expected a property at the source of getter")
+	};
+	let foo = match buzz.source_expr().kind() {
+		ExprKind::VariableExpr(variable) => variable,
+		_ => panic!("Expected a variable at the source of getter")
+	};
+
+	assert_eq!("foo", foo.identifier().lexeme());
+	assert_eq!("buzz", buzz.identifier().lexeme());
+	assert_eq!("bar", bar.identifier().lexeme());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.expr().syntax().kind());
 }
 
 #[test]
@@ -499,7 +722,7 @@ fn binary_expr_node_does_not_swap_operands() {
 	let tree: SyntaxTree = "2+foo()".into();
 	let node: &BinaryExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.lhs().syntax().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.lhs().syntax().kind());
 	assert_eq!(SyntaxKind::FunctionCallExpr, node.rhs().syntax().kind());
 }
 
@@ -549,7 +772,7 @@ fn unary_expr_node_handles_operand() {
 	let tree: SyntaxTree = "-2".into();
 	let node: &UnaryExprNode = expect_expr_node(&tree);
 
-	assert_eq!(SyntaxKind::LiteralExpr, node.rhs().syntax().kind());
+	assert_eq!(SyntaxKind::PrimitiveLiteralExpr, node.rhs().syntax().kind());
 }
 
 #[test]
@@ -642,67 +865,3 @@ fn expect_expr_node<N: TransparentNewType<Inner=SyntaxNode>>(tree: &SyntaxTree) 
 		.map(|n| N::from_inner(n.to_inner()))
 		.expect("Expected a root node with a valid type")
 }
-
-macro_rules! syntax_tree_expr_tests {
-	($($name:ident: $test_source:expr,)*) => {
-	$(
-		#[test]
-		fn $name() {
-			let text: &str = $test_source;
-			let tokens = tokenize(text);
-			let parser = Parser::new(StrTokenSource::new(tokens.clone()));
-			let completed_parsing = root_expr(parser);
-			let tree = SyntaxTree::from_parser(&completed_parsing, text);
-
-			let approval_document = format!("====text====\n============\n{}\n\
-				====tokens====\n============\n{:#?}\n\
-				====events====\n============\n{:#?}\n\
-				====tree====\n============\n{:#?}", text, tokens, completed_parsing.events, tree);
-	assert_snapshot_matches!(stringify!($name), approval_document);
-		}
-	)*
-	}
-}
-
-macro_rules! syntax_tree_stmt_tests {
-	($($name:ident: $test_source:expr,)*) => {
-	$(
-		#[test]
-		fn $name() {
-			let text: &str = $test_source;
-			let tokens = tokenize(text);
-			let mut parser = Parser::new(StrTokenSource::new(tokens.clone()));
-			let completed_parsing = root_stmt(parser);
-			let tree = SyntaxTree::from_parser(&completed_parsing, text);
-
-			let approval_document = format!("====text====\n============\n{}\n\
-				====tokens====\n============\n{:#?}\n\
-				====events====\n============\n{:#?}\n\
-				====tree====\n============\n{:#?}", text, tokens, completed_parsing.events, tree);
-	assert_snapshot_matches!(stringify!($name), approval_document);
-		}
-	)*
-	}
-}
-
-// associativity & precedence
-syntax_tree_expr_tests! {
-    left_associativity_is_deeply_nested: "1+2+3",
-    higher_precedence_is_evaluated_first: "1+2*3",
-    higher_precedence_is_noop_when_first: "1*2+3",
-    unary_operators_are_properly_grouped: "-1*2+-3",
-    nested_unary_operators: "1*--2.12",
-    grouping_is_highest_precedence: "(1+2)*3",
-    expr_starting_whitespace_is_fine: r#"
-    1*2"#,
-}
-
-syntax_tree_stmt_tests! {
-    stmt_starting_whitespace_is_fine: r#"
-    {let x = 1;
-	let y = 2;
-	let c = x * 2 + y;}
-	"#,
-}
-
-
