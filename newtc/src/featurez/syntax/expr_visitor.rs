@@ -8,4 +8,6 @@ pub trait ExprVisitor<R> {
     fn visit_grouping_expr(&mut self, node: &GroupingExprNode) -> R;
     fn visit_variable_expr(&mut self, node: &VariableExprNode) -> R;
     fn visit_function_call_expr(&mut self, node: &FunctionCallExprNode) -> R;
+    fn visit_object_literal_expr(&mut self, node: &ObjectLiteralExprNode) -> R;
+    fn visit_object_property_expr(&mut self, node: &ObjectPropertyExprNode) -> R;
 }

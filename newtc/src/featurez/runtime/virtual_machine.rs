@@ -6,6 +6,7 @@ use crate::featurez::newtypes::TransparentNewType;
 use crate::featurez::runtime::scope::{ScopeNode, Environment};
 use crate::featurez::runtime::callable::NewtCallable;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct VirtualMachine {
@@ -59,8 +60,8 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
             ExprKind::BinaryExpr(node) => self.visit_binary_expr(node),
             ExprKind::UnaryExpr(node) => self.visit_unary_expr(node),
             ExprKind::PrimitiveLiteralExpr(node) => self.visit_primitive_literal_expr(node),
-            ExprKind::ObjectLiteralExpr(node) => unimplemented!(),
-            ExprKind::ObjectPropertyExpr(node) => unimplemented!(),
+            ExprKind::ObjectLiteralExpr(node) => self.visit_object_literal_expr(node),
+            ExprKind::ObjectPropertyExpr(node) => self.visit_object_property_expr(node),
             ExprKind::GroupingExpr(node) => self.visit_grouping_expr(node),
             ExprKind::VariableExpr(node) => self.visit_variable_expr(node),
             ExprKind::FunctionCallExpr(node) => self.visit_function_call_expr(node),
@@ -134,6 +135,25 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
 
         callable.call(self, &arguments)
     }
+
+    fn visit_object_literal_expr(&mut self, node: &ObjectLiteralExprNode) -> Result<NewtValue, NewtRuntimeError> {
+        let mut map: HashMap<String, NewtValue> = HashMap::new();
+
+        for pair in node.fields().iter() {
+            map.insert(pair.0.clone(), self.visit_expr(pair.1)?);
+        }
+
+        Ok(NewtValue::Object(Rc::new(RefCell::new(map))))
+    }
+
+    fn visit_object_property_expr(&mut self, node: &ObjectPropertyExprNode) -> Result<NewtValue, NewtRuntimeError> {
+        match self.visit_expr(node.source_expr())? {
+            NewtValue::Object(map) => map.borrow().get(node.identifier().lexeme())
+                .map(|reference| reference.clone())
+                .ok_or(NewtRuntimeError::UndefinedVariable),
+            _ => Err(NewtRuntimeError::TypeError)
+        }
+    }
 }
 
 impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
@@ -176,7 +196,14 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
                 self.scope.assign(variable.identifier().lexeme(), value)
             }
             RValKind::ObjectPropertyRVal(property) => {
-                unimplemented!()
+                let mut destination = self.visit_expr(property.source_expr())?;
+                match destination {
+                    NewtValue::Object(object) => {
+                        object.borrow_mut().insert(property.identifier().lexeme().to_string(), value);
+                        Ok(())
+                    }
+                    _ => Err(NewtRuntimeError::TypeError)
+                }
             }
         }
     }
