@@ -450,6 +450,7 @@ fn function_call_expr_node_handles_multiple_arguments() {
 }
 
 #[test]
+#[ignore = "Dot & call operators should be folded into order-of-operations"]
 fn function_call_expr_node_can_be_chained() {
 	let tree: SyntaxTree = "foo().x".into();
 	let object_expr: &ObjectPropertyExprNode = expect_expr_node(&tree);
