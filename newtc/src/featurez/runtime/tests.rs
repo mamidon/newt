@@ -1,4 +1,4 @@
-use crate::featurez::syntax::{SyntaxTree, NewtResult, NewtValue, NewtRuntimeError};
+use crate::featurez::syntax::{SyntaxTree, NewtResult, NewtValue, NewtRuntimeError, SyntaxKind};
 use crate::featurez::runtime::scope::Environment;
 use crate::featurez::{VirtualMachine, StrTokenSource};
 use crate::featurez::grammar::root_expr;
@@ -348,6 +348,33 @@ fn object_literals_are_correctly_evaluated_with_multiple_properties() {
 }
 
 #[test]
+fn object_literals_are_correctly_evaluated_with_complex_properties() {
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
+	fn number() {
+		return 42;
+	}
+
+	fn object_function() {
+		return {
+			x: number
+		};
+	}"#);
+	let tree: SyntaxTree = r#"
+	fn number() {
+		return 42;
+	}
+
+	fn object_function() {
+		return {
+			x: number
+		};
+	}"#.into();
+
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("object_function().x()"));
+}
+
+#[test]
 fn object_property_get_fails_with_type_error_for_invalid_property() {
 	let mut vm = VirtualMachine::new();
 	vm.interpret(r#"
@@ -410,6 +437,46 @@ fn virtual_machine_correctly_computes_fibonacci_5() {
 		}"#);
 
 	assert_eq!(Ok(NewtValue::Int(8)), vm.interpret("fibonacci(6)"));
+}
+
+#[test]
+fn virtual_machine_precedence_calculates_higher_precedence_expressions_first() {
+	let mut vm = VirtualMachine::new();
+
+	assert_eq!(Ok(NewtValue::Int(7)), vm.interpret("1+3*4/2"));
+	assert_eq!(Ok(NewtValue::Bool(true)), vm.interpret("2 + 2 == 4"));
+}
+
+#[test]
+fn virtual_machine_precedence_computes_prefix_unary_operators() {
+	let mut vm = VirtualMachine::new();
+
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("-1+2"));
+	assert_eq!(Ok(NewtValue::Int(1)), vm.interpret("2+-1"));
+	assert_eq!(Ok(NewtValue::Int(2)), vm.interpret("--2"));
+}
+
+#[test]
+fn virtual_machine_precedence_computes_suffix_unary_operators() {
+	let mut vm = VirtualMachine::new();
+	vm.interpret(r#"
+		fn fibonacci(x) {
+			if (x == 2) {
+				return 1;
+			}
+			if (x == 1) {
+				return 1;
+			}
+			if (x == 0) {
+				return 0;
+			}
+
+			return fibonacci(x-2) + fibonacci(x-1);
+		}
+		let instance = { property: 42 };"#);
+
+	assert_eq!(Ok(NewtValue::Int(2)), vm.interpret("fibonacci(3)"));
+	assert_eq!(Ok(NewtValue::Int(42)), vm.interpret("instance.property"));
 }
 
 #[test]
