@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter, Error};
+
 #[derive(PartialOrd, PartialEq, Debug, Copy, Clone)]
 pub enum SyntaxKind {
     TombStone,
@@ -20,4 +22,13 @@ pub enum SyntaxKind {
     WhileStmt,
     FunctionDeclarationStmt,
     ReturnStmt,
+}
+
+impl Display for SyntaxKind {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match self {
+            SyntaxKind::Error(_) => write!(f, "Error"),
+            syntax_kind => write!(f, "{:?}", syntax_kind)
+        }
+    }
 }

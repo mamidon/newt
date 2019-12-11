@@ -1,5 +1,6 @@
 use crate::featurez::syntax::{SyntaxNode, SyntaxToken};
 use crate::featurez::TokenKind;
+use std::fmt::{Display, Formatter, Error};
 
 #[derive(Debug, Clone)]
 pub enum SyntaxElement {
@@ -40,6 +41,22 @@ impl SyntaxElement {
         match self {
             SyntaxElement::Token(t) if !t.token_kind().is_trivia() => Some(t),
             _ => None,
+        }
+    }
+}
+
+impl Display for SyntaxElement {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match self {
+            SyntaxElement::Token(token) => write!(f, "{}", token),
+            SyntaxElement::Node(node) => {
+                write!(f, "({}", node.kind())?;
+                for child in node.children() {
+                    write!(f, " {}", child)?;
+                }
+
+                write!(f, ")")
+            }
         }
     }
 }
