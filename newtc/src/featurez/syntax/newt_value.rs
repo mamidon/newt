@@ -5,6 +5,7 @@ use std::str::FromStr;
 use super::NewtResult;
 use super::NewtRuntimeError;
 use crate::featurez::runtime::Callable;
+use crate::featurez::syntax::{NewtObject, NewtString};
 
 use crate::featurez::syntax::{
     AstNode, BinaryExprNode, ExprKind, ExprNode, GroupingExprNode, PrimitiveLiteralExprNode, SyntaxElement,
@@ -16,17 +17,15 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::cell::RefCell;
 
-type NewtObject = RefCell<HashMap<String, NewtValue>>;
-
 #[derive(Debug, Clone)]
 pub enum NewtValue {
     Int(i64),
     Float(f64),
     Glyph(char),
-    String(Rc<String>),
+    String(NewtString),
     Bool(bool),
     Callable(Rc<dyn Callable>),
-    Object(Rc<NewtObject>),
+    Object(NewtObject),
     Null
 }
 
@@ -55,7 +54,7 @@ impl NewtValue {
             TokenKind::FloatLiteral => {
                 NewtValue::Float(lexeme.parse().expect("unparsable literal token"))
             }
-            TokenKind::StringLiteral => NewtValue::String(Rc::new(lexeme[1..lexeme.len()-1].to_string())),
+            TokenKind::StringLiteral => NewtValue::String(NewtString::new(&lexeme[1..lexeme.len()-1])),
             TokenKind::GlyphLiteral => {
                 NewtValue::Glyph(lexeme[1..2].parse().expect("unparsable literal token"))
             }
@@ -186,7 +185,7 @@ impl PartialEq for NewtValue {
 
 impl From<&str> for NewtValue {
     fn from(s: &str) -> Self {
-        NewtValue::String(Rc::new(s.to_string()))
+        NewtValue::String(NewtString::new(s))
     }
 }
 
@@ -229,6 +228,18 @@ impl From<f64> for NewtValue {
 impl From<f32> for NewtValue {
     fn from(f: f32) -> Self {
         NewtValue::Float(f.into())
+    }
+}
+
+impl From<NewtObject> for NewtValue {
+    fn from(o: NewtObject) -> Self {
+        NewtValue::Object(o)
+    }
+}
+
+impl From<NewtString> for NewtValue {
+    fn from(s: NewtString) -> Self {
+        NewtValue::String(s)
     }
 }
 

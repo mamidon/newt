@@ -17,6 +17,8 @@ mod tests;
 mod text_tree_sink;
 mod token_source;
 mod tree_sink;
+mod newt_object;
+mod newt_string;
 
 pub use self::ast_node::AstNode;
 pub use self::expr_kind::ExprKind;
@@ -36,4 +38,6 @@ pub use self::syntax_tree::SyntaxTree;
 pub use self::text_tree_sink::TextTreeSink;
 pub use self::token_source::TokenSource;
 pub use self::tree_sink::TreeSink;
+pub use self::newt_object::NewtObject;
+pub use self::newt_string::NewtString;
 pub type NewtResult = Result<NewtValue, NewtRuntimeError>;
