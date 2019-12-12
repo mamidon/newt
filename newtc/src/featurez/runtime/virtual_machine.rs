@@ -1,12 +1,10 @@
 use crate::featurez::syntax::*;
 use crate::featurez::TokenKind;
-use std::collections::HashMap;
 use crate::featurez::runtime::{Callable};
 use crate::featurez::newtypes::TransparentNewType;
 use crate::featurez::runtime::scope::{ScopeNode, Environment};
 use crate::featurez::runtime::callable::NewtCallable;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct VirtualMachine {
@@ -137,18 +135,18 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
     }
 
     fn visit_object_literal_expr(&mut self, node: &ObjectLiteralExprNode) -> Result<NewtValue, NewtRuntimeError> {
-        let mut map: HashMap<String, NewtValue> = HashMap::new();
+        let mut object = NewtObject::new();
 
         for pair in node.fields().iter() {
-            map.insert(pair.0.clone(), self.visit_expr(pair.1)?);
+            object.set(pair.0, &self.visit_expr(pair.1)?);
         }
 
-        Ok(NewtValue::Object(Rc::new(RefCell::new(map))))
+        Ok(object.into())
     }
 
     fn visit_object_property_expr(&mut self, node: &ObjectPropertyExprNode) -> Result<NewtValue, NewtRuntimeError> {
         match self.visit_expr(node.source_expr())? {
-            NewtValue::Object(map) => map.borrow().get(node.identifier().lexeme())
+            NewtValue::Object(object) => object.get(node.identifier().lexeme())
                 .map(|reference| reference.clone())
                 .ok_or(NewtRuntimeError::UndefinedVariable),
             _ => Err(NewtRuntimeError::TypeError)
@@ -198,8 +196,8 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
             RValKind::ObjectPropertyRVal(property) => {
                 let mut destination = self.visit_expr(property.source_expr())?;
                 match destination {
-                    NewtValue::Object(object) => {
-                        object.borrow_mut().insert(property.identifier().lexeme().to_string(), value);
+                    NewtValue::Object(mut object) => {
+                        object.set(property.identifier().lexeme(), &value);
                         Ok(())
                     }
                     _ => Err(NewtRuntimeError::TypeError)

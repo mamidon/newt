@@ -1,10 +1,9 @@
-use crate::featurez::syntax::{SyntaxTree, NewtResult, NewtValue, NewtRuntimeError, SyntaxKind};
+use crate::featurez::syntax::{SyntaxTree, NewtResult, NewtValue, NewtRuntimeError, SyntaxKind, NewtString};
 use crate::featurez::runtime::scope::Environment;
 use crate::featurez::{VirtualMachine, StrTokenSource};
 use crate::featurez::grammar::root_expr;
 use crate::featurez::parse::Parser;
 use crate::featurez::tokenize;
-use std::rc::Rc;
 
 #[test]
 fn return_statement_returns_value() {
@@ -305,7 +304,7 @@ fn object_literals_are_correctly_evaluated_when_empty() {
 		_ => panic!("Did not get an object")
 	};
 
-	assert_eq!(true, object.borrow().is_empty());
+	assert_eq!(true, object.keys().is_empty());
 }
 
 #[test]
@@ -320,8 +319,8 @@ fn object_literals_are_correctly_evaluated_with_one_property() {
 		_ => panic!("Did not get an object")
 	};
 
-	assert_eq!(1, object.borrow().len());
-	assert_eq!(Some(&NewtValue::Int(42)), object.borrow().get("x"));
+	assert_eq!(1, object.keys().len());
+	assert_eq!(Some(NewtValue::Int(42)), object.get("x"));
 }
 
 
@@ -341,10 +340,10 @@ fn object_literals_are_correctly_evaluated_with_multiple_properties() {
 		_ => panic!("Did not get an object")
 	};
 
-	assert_eq!(3, object.borrow().len());
-	assert_eq!(Some(&NewtValue::Int(42)), object.borrow().get("x"));
-	assert_eq!(Some(&NewtValue::String(Rc::new("hello, world".to_string()))), object.borrow().get("y"));
-	assert_eq!(Some(&NewtValue::Float(3.14)), object.borrow().get("z"));
+	assert_eq!(3, object.keys().len());
+	assert_eq!(Some(NewtValue::Int(42)), object.get("x"));
+	assert_eq!(Some(NewtValue::String(NewtString::new("hello, world"))), object.get("y"));
+	assert_eq!(Some(NewtValue::Float(3.14)), object.get("z"));
 }
 
 #[test]
