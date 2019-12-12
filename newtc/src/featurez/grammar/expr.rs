@@ -3,7 +3,6 @@ use crate::featurez::parse::Parser;
 use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, SyntaxTree};
 use crate::featurez::{Token, TokenKind};
 use std::collections::HashMap;
-use crate::OutputMode::Tokens;
 use crate::featurez::tokens::TokenKind::TombStone;
 
 type RhsParseFunction = fn(&mut Parser, CompletedMarker) -> CompletedMarker;
