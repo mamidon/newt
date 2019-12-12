@@ -116,49 +116,49 @@ impl SyntaxTree {
         }
     }
 
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        print_tree_element(f, &self.root, "",true);
-        return Ok(());
-
-        fn print_tree_element(
-            f: &mut Formatter,
-            element: &SyntaxElement,
-            prefix: &str,
-            last: bool,
-        ) -> usize {
-            write!(f, "{}", prefix);
-            let next_prefix = if last {
-                write!(f, "┗ ");
-                prefix.to_owned() + "  "
-            } else {
-                write!(f, "┠ ");
-                prefix.to_owned() + "┃ "
-            };
-
-            match element {
-                SyntaxElement::Node(node) => {
-                    writeln!(f, "{:?}", node.kind());
-
-                    let mut children_length = 0;
-                    for (index, child) in node.children().iter().enumerate() {
-                        let last_child = node.children().len() - 1 == index;
-
-                        children_length += print_tree_element(
-                            f,
-                            child,
-                            &next_prefix,
-                            last_child,
-                        );
-                    }
-                    return children_length;
-                }
-                SyntaxElement::Token(token) => {
-                    writeln!(f, "{:?} '{}'", token.token_kind(), token.lexeme());
-
-                    return token.length();
-                }
-            }
+    fn pretty_print_tree_elements(
+        f: &mut Formatter,
+        element: &SyntaxElement,
+        parents_child_count: Option<usize>,
+        prefix: &str
+    ) -> Result<(), Error> {
+        match parents_child_count {
+            None => {},
+            Some(1) => write!(f, " ")?,
+            Some(_) => write!(f, "{}", prefix)?
         }
+
+        let mut next_prefix = prefix.to_string();
+        next_prefix.push_str("\t");
+
+        match element {
+            SyntaxElement::Token(token) => {
+                write!(f, "{}", token)?;
+            },
+            SyntaxElement::Node(node) => {
+                match node.children().len() {
+                    0 => {
+                        write!(f, "({})", node.kind())?;
+                    }
+                    1 => {
+                        write!(f, "({}", node.kind())?;
+                        SyntaxTree::pretty_print_tree_elements(f, &node.children()[0], Some(1), &next_prefix)?;
+                        write!(f, ")")?;
+                    }
+                    child_count => {
+                        writeln!(f, "({}", node.kind())?;
+                        SyntaxTree::pretty_print_tree_elements(f, &node.children()[0], Some(child_count), &next_prefix)?;
+                        for child in &node.children()[1..] {
+                            writeln!(f)?;
+                            SyntaxTree::pretty_print_tree_elements(f, &child, Some(child_count), &next_prefix)?;
+                        }
+                        write!(f, ")")?;
+                    }
+                };
+            }
+        };
+
+        Ok(())
     }
 
     fn begin_forward_parents(sink: &mut TextTreeSink, events: &[ParseEvent], index: usize) {
@@ -182,16 +182,17 @@ impl SyntaxTree {
 
 impl Display for SyntaxTree {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        SyntaxTree::fmt(self, f)
+        SyntaxTree::pretty_print_tree_elements(f, &self.root, None, "")?;
+        Ok(())
     }
 }
 
 impl Debug for SyntaxTree {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        SyntaxTree::fmt(self, f)
+        SyntaxTree::pretty_print_tree_elements(f, &self.root, None, "")?;
+        Ok(())
     }
 }
-
 
 pub struct SyntaxTreeIterator<'a> {
     frontier: Vec<&'a SyntaxElement>
@@ -236,4 +237,3 @@ impl From<&str> for SyntaxTree {
         SyntaxTree::from_parser(&parsing, source)
     }
 }
-

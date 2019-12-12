@@ -3,6 +3,7 @@ use crate::featurez::TokenKind;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::fmt::{Formatter, Error};
 
 #[derive(Debug, Clone)]
 pub struct SyntaxNode {
@@ -59,3 +60,4 @@ impl SyntaxNode {
         &*self.children
     }
 }
+

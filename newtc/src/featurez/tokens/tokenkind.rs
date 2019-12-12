@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter, Error};
+
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug, Hash)]
 pub enum TokenKind {
     WhiteSpace,
@@ -94,5 +96,12 @@ impl TokenKind {
             TokenKind::Bang | TokenKind::Minus => true,
             _ => false,
         }
+    }
+}
+
+
+impl Display for TokenKind {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{:?}", self)
     }
 }
