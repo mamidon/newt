@@ -1,0 +1,66 @@
+
+fn IsArrowKey(action) {
+	return action.key == "left"
+		|| action.key == "right"
+		|| action.key == "up"
+		|| action.key == "down";
+}
+
+fn LeftArrowKeypress(state, action) {
+	if (state.prefix.Length == 0 
+		&& state.preceedingLines.Length == 0) {
+		return state;
+	}
+
+	if (state.prefix.Length == 0) {
+		let succeedingLines = state.succeedingLines[..];
+		succeedingLines.Push(state.suffix);
+		return state with {
+			preceedingLines: state.preceedingLines[0..-1],
+			prefix: state.preceedingLines[-1],
+			suffix: "",
+			succeedingLines: succeedingLines
+		};
+	}
+
+	return state with {
+		prefix: state.prefix[0..-1],
+		suffix: [state.prefix[-1], ...state.suffix]
+	};
+}
+
+fn ArrowKeypress(state, action) {
+	if (action.key == "left") {
+		return LeftArrowKeypress(state, action);
+	}
+
+	if (action.key == "right") {
+		return RightArrowKeypress(state, action);
+	}
+
+	if (action.key == "up") {
+		return UpArrowKeypress(state, action);
+	}
+
+	if (action.key == "down") {
+		return DownArrowKeypress(state, action);
+	}
+}
+
+fn KeypressReducer(state, action) {
+	if (IsArrowKey(action)) {
+		return ArrowKeypress(state, action);
+	}
+
+	if (IsModifierKey(action)) {
+		return ModifierKeypress(state, action);
+	}
+
+	return TextualKeypress(state, action);
+};
+
+
+
+export Reducers = {
+	Keypress: KeypressReducer
+};
