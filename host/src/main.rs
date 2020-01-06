@@ -32,6 +32,7 @@ fn main() {
 
     let mut events_loop = EventsLoop::new();
     let surface = WindowBuilder::new()
+        .with_dimensions((512,512).into())
         .build_vk_surface(&events_loop, instance.clone())
         .unwrap();
 
@@ -74,10 +75,14 @@ fn main() {
     let vertex_buffer = {
 
         CpuAccessibleBuffer::from_iter(device.clone(), BufferUsage::all(), [
-            Vertex { position: [-0.5, -0.25] },
-            Vertex { position: [0.0, 0.5] },
-            Vertex { position: [0.25, -0.1] }
-        ].iter().cloned()).unwrap()
+            Vertex { position: [-1.0, -1.0] },
+            Vertex { position: [0.0, -1.0] },
+            Vertex { position: [0.0, 0.0] },
+
+            Vertex { position: [0.0, 0.0] },
+            Vertex { position: [-1.0, 0.0] },
+            Vertex { position: [-1.0, -1.0] },
+            ].iter().cloned()).unwrap()
     };
 
     mod vertex_shader {
@@ -87,9 +92,10 @@ fn main() {
 #version 450
 
 layout(location = 0) in vec2 position;
-
+layout(location = 0) out vec2 uv;
 void main() {
     gl_Position = vec4(position, 0.0, 1.0);
+    uv = position + vec2(0.5);
 }
             "#
         }
@@ -101,10 +107,15 @@ void main() {
             src: r#"
 #version 450
 
+layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 f_color;
 
 void main() {
-    f_color = vec4(1.0, 0.0, 0.0, 1.0);
+    if (uv.x * uv.x + uv.y * uv.y < 0.05) {
+        f_color = vec4(1.0, 0.0, 0.0, 1.0);
+    } else {
+        f_color = vec4(0.0, 1.0, 0.0, 1.0);
+    }
 }
             "#
         }
