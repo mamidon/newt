@@ -111,7 +111,7 @@ layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 f_color;
 
 void main() {
-    if (uv.x * uv.x + uv.y * uv.y < 0.05) {
+    if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
         f_color = vec4(1.0, 0.0, 0.0, 1.0);
     } else {
         f_color = vec4(0.0, 1.0, 0.0, 1.0);
