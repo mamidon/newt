@@ -35,7 +35,7 @@ pub struct Renderer {
 }
 
 pub enum RenderCommand {
-    Rectangle { x: usize, y: usize, width: usize, height: usize }
+    Rectangle { x: isize, y: isize, width: usize, height: usize }
 }
 
 impl Renderer {
@@ -221,12 +221,35 @@ if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
         };
 
         let clear_values = vec!([0.0, 0.0, 1.0, 1.0].into());
+        let data: Vec<Vertex> = commands.into_iter().map(|c|
+            match c {
+                RenderCommand::Rectangle { x, y, width, height } => {
+                    let logical_size = self.surface.window().get_inner_size().unwrap();
+                    let xf = (x as f32) / logical_size.width as f32;
+                    let yf = (y as f32) / logical_size.height as f32;
+                    let wf = (width as f32) / logical_size.width as f32;
+                    let hf = (height as f32) / logical_size.height as f32;
+
+                    let top_left = [ xf, yf ];
+                    let top_right = [ xf + wf, yf ];
+                    let bottom_left = [ xf, yf + hf];
+                    let bottom_right = [ xf + wf, yf + hf ];
+
+                    vec![
+                        Vertex { position: top_left },
+                        Vertex { position: top_right },
+                        Vertex { position: bottom_left },
+                        Vertex { position: top_right },
+                        Vertex { position: bottom_right },
+                        Vertex { position: bottom_left}
+                    ]
+                }
+            })
+            .flat_map(|vertices| vertices.into_iter())
+            .collect();
+
         let vertex_buffer: Vec<Arc<dyn BufferAccess + Send + Sync + 'static>> = {
-            vec![CpuAccessibleBuffer::from_iter(self.logical_device.clone(), BufferUsage::all(), [
-                Vertex { position: [-0.5, -0.25] },
-                Vertex { position: [0.0, 0.5] },
-                Vertex { position: [0.25, -0.1] }
-            ].iter().cloned()).unwrap()]
+            vec![CpuAccessibleBuffer::from_iter(self.logical_device.clone(), BufferUsage::all(), data.into_iter()).unwrap()]
         };
 
         let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(

@@ -41,7 +41,21 @@ fn main() {
         renderer.begin_frame(force_recreate);
         force_recreate = false;
 
-        let commands = vec![RenderCommand::Rectangle { x: 10, y: 10, width: 100, height: 100 }];
+        let mut commands: Vec<RenderCommand> = Vec::new();
+
+        let mut x_offset = -512;
+        for x in 0..10 {
+            let stride = 55;
+
+            let mut y_offset = -512;
+            for y in 0..10 {
+
+                commands.push(RenderCommand::Rectangle { x: x_offset, y: y_offset, width: 50, height: 50 });
+
+                y_offset += stride;
+            }
+            x_offset += stride;
+        }
 
         previous_frame_future = Some(renderer.submit_commands(previous_frame_future, commands));
         renderer.present();
