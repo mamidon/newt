@@ -26,7 +26,6 @@ pub struct Renderer {
     surface: Arc<Surface<Window>>,
     logical_device: Arc<Device>,
     graphics_queue: Arc<Queue>,
-    previous_frame: Box<dyn GpuFuture>,
     recreate_swapchain: bool,
     swapchain: Arc<Swapchain<Window>>,
     render_pass: Arc<dyn RenderPassAbstract + Send + Sync + 'static>,
@@ -165,14 +164,12 @@ if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
 
         let mut framebuffers = window_size_dependent_setup(&images, render_pass.clone(), &mut dynamic_state);
         let mut recreate_swapchain = false;
-        let mut previous_frame = Box::new(now(device.clone())) as Box<dyn GpuFuture>;
 
         Ok(Renderer {
             instance,
             surface: surface.clone(),
             logical_device: device.clone(),
             graphics_queue,
-            previous_frame,
             recreate_swapchain,
             swapchain,
             render_pass,
@@ -183,9 +180,9 @@ if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
     }
 
     pub fn begin_frame(&mut self, force_recreate: bool) {
-        self.previous_frame.cleanup_finished();
+        self.recreate_swapchain = self.recreate_swapchain || force_recreate;
 
-        while self.recreate_swapchain || force_recreate {
+        while self.recreate_swapchain {
             // Get the new dimensions of the window.
             let dimensions = if let Some(dimensions) = self.surface.window().get_inner_size() {
                 let dimensions: (u32, u32) = dimensions.to_physical(self.surface.window().get_hidpi_factor()).into();
@@ -211,12 +208,14 @@ if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
         }
     }
 
-    pub fn submit_commands<C: IntoIterator<Item=RenderCommand>>(&mut self, commands: C) {
+    pub fn submit_commands<C: IntoIterator<Item=RenderCommand>>(&mut self, previous_frame: Option<Box<dyn GpuFuture>>, commands: C) -> Box<dyn GpuFuture> {
+        let previous_frame_future = previous_frame.unwrap_or(Box::new(now(self.logical_device.clone())) as Box<dyn GpuFuture>);
+
         let (image_index, future) = match vulkano::swapchain::acquire_next_image(self.swapchain.clone(), None) {
             Ok(tuple) => tuple,
             Err(AcquireError::OutOfDate) => {
                 self.recreate_swapchain = true;
-                return;
+                return previous_frame_future;
             },
             Err(error) => panic!("{:?}", error)
         };
@@ -243,7 +242,7 @@ if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
             .build()
             .unwrap();
 
-        let future = future
+        let future = previous_frame_future.join(future)
             .then_execute(self.graphics_queue.clone(), command_buffer)
             .unwrap()
             .then_swapchain_present(self.graphics_queue.clone(), self.swapchain.clone(), image_index)
@@ -253,15 +252,15 @@ if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
             Ok(future) => {
                 // This wait is required when using NVIDIA or running on macOS. See https://github.com/vulkano-rs/vulkano/issues/1247
                 future.wait(None).unwrap();
-                self.previous_frame = Box::new(future) as Box<_>;
+                Box::new(future) as Box<_>
             }
             Err(FlushError::OutOfDate) => {
                 self.recreate_swapchain = true;
-                self.previous_frame = Box::new(now(self.logical_device.clone())) as Box<_>;
+                Box::new(now(self.logical_device.clone())) as Box<_>
             }
             Err(e) => {
                 println!("{:?}", e);
-                self.previous_frame = Box::new(now(self.logical_device.clone())) as Box<_>;
+                Box::new(now(self.logical_device.clone())) as Box<_>
             }
         }
     }

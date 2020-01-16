@@ -30,14 +30,20 @@ fn main() {
     let mut events_loop = EventsLoop::new();
     let mut renderer: Renderer = newt_render::Renderer::initialize(&events_loop).ok().unwrap();
     let mut force_recreate = false;
+    let mut previous_frame_future: Option<Box<dyn GpuFuture>> = None;
 
     loop {
+        match &mut previous_frame_future {
+            Some(future) => future.cleanup_finished(),
+            _ => {}
+        }
+
         renderer.begin_frame(force_recreate);
         force_recreate = false;
 
         let commands = vec![RenderCommand::Rectangle { x: 10, y: 10, width: 100, height: 100 }];
-        renderer.submit_commands(commands);
 
+        previous_frame_future = Some(renderer.submit_commands(previous_frame_future, commands));
         renderer.present();
 
         let mut done = false;
