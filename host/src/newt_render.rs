@@ -225,10 +225,10 @@ if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
             match c {
                 RenderCommand::Rectangle { x, y, width, height } => {
                     let logical_size = self.surface.window().get_inner_size().unwrap();
-                    let xf = (x as f32) / logical_size.width as f32;
-                    let yf = (y as f32) / logical_size.height as f32;
-                    let wf = (width as f32) / logical_size.width as f32;
-                    let hf = (height as f32) / logical_size.height as f32;
+                    let xf = screen_to_logical_device_coordinate(x, logical_size.width);
+                    let yf = screen_to_logical_device_coordinate(y, logical_size.height);
+                    let wf = screen_to_logical_device_coordinate(width as isize, logical_size.width);
+                    let hf = screen_to_logical_device_coordinate(height as isize, logical_size.height);
 
                     let top_left = [ xf, yf ];
                     let top_right = [ xf + wf, yf ];
@@ -311,4 +311,27 @@ fn window_size_dependent_setup(images: &[Arc<SwapchainImage<Window>>],
                 .build().unwrap()
         ) as Arc<dyn FramebufferAbstract + Send + Sync>
     }).collect::<Vec<_>>()
+}
+
+fn screen_to_logical_device_coordinate(screen: isize, dimension: f64) -> f32 {
+    return (screen as f32) / dimension as f32 * 2.0 - 1.0;
+}
+
+mod test {
+    use crate::newt_render::screen_to_logical_device_coordinate;
+
+    #[test]
+    fn screen_to_logical_device_coordinate_handles_minimum() {
+        assert_eq!(screen_to_logical_device_coordinate(0, 512.0), -1.0);
+    }
+
+    #[test]
+    fn screen_to_logical_device_coordinate_handles_maximum() {
+        assert_eq!(screen_to_logical_device_coordinate(512, 512.0), 1.0);
+    }
+
+    #[test]
+    fn screen_to_logical_device_coordinate_handles_middle() {
+        assert_eq!(screen_to_logical_device_coordinate(256, 512.0), 0.0);
+    }
 }
