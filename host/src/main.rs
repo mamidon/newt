@@ -44,9 +44,8 @@ fn main() {
         let mut commands: Vec<RenderCommand> = Vec::new();
 
         let mut x_offset = 0;
+        let stride = 55;
         for x in 0..10 {
-            let stride = 55;
-
             let mut y_offset = 0;
             for y in 0..10 {
 

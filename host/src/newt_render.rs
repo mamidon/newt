@@ -227,13 +227,13 @@ if (abs(uv.x) < 0.05 && abs(uv.y) < 0.05) {
                     let logical_size = self.surface.window().get_inner_size().unwrap();
                     let xf = screen_to_logical_device_coordinate(x, logical_size.width);
                     let yf = screen_to_logical_device_coordinate(y, logical_size.height);
-                    let wf = screen_to_logical_device_coordinate(width as isize, logical_size.width);
-                    let hf = screen_to_logical_device_coordinate(height as isize, logical_size.height);
+                    let wf = screen_to_logical_device_coordinate((x + width as isize), logical_size.width);
+                    let hf = screen_to_logical_device_coordinate((y + height as isize), logical_size.height);
 
                     let top_left = [ xf, yf ];
-                    let top_right = [ xf + wf, yf ];
-                    let bottom_left = [ xf, yf + hf];
-                    let bottom_right = [ xf + wf, yf + hf ];
+                    let top_right = [ wf, yf ];
+                    let bottom_left = [ xf, hf];
+                    let bottom_right = [ wf, hf ];
 
                     vec![
                         Vertex { position: top_left },
