@@ -1,11 +1,11 @@
 use crate::featurez::syntax::{SyntaxNode, SyntaxToken};
 use crate::featurez::TokenKind;
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Error, Formatter};
 
 #[derive(Debug, Clone)]
 pub enum SyntaxElement {
     Node(SyntaxNode),
-    Token(SyntaxToken)
+    Token(SyntaxToken),
 }
 
 impl SyntaxElement {
@@ -19,7 +19,7 @@ impl SyntaxElement {
     pub fn is_token(&self) -> bool {
         match self {
             SyntaxElement::Token(_) => true,
-            _ => false
+            _ => false,
         }
     }
 

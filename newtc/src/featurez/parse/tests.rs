@@ -351,5 +351,8 @@ fn parser_remap_node_changes_the_syntax_kind() {
     parser.remap_node(&marker, SyntaxKind::PrimitiveLiteralExpr);
     let tree: SyntaxTree = SyntaxTree::from_parser(&parser.end_parsing(), "1");
 
-    assert_eq!(SyntaxKind::PrimitiveLiteralExpr, tree.root().as_node().expect("A root node").kind());
+    assert_eq!(
+        SyntaxKind::PrimitiveLiteralExpr,
+        tree.root().as_node().expect("A root node").kind()
+    );
 }

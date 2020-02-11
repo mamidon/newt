@@ -8,8 +8,8 @@ mod featurez;
 use crate::featurez::*;
 
 use std::env::args;
-use std::io::{Write, Error};
 use std::io::{stdin, stdout};
+use std::io::{Error, Write};
 use std::path::PathBuf;
 use std::str::Chars;
 
@@ -20,7 +20,6 @@ struct Config {
     display_help: bool,
     entry_file: Option<PathBuf>,
 }
-
 
 fn main() {
     let arguments: Vec<String> = args().collect();
@@ -111,43 +110,42 @@ fn balanced_braces(input_buffer: &str) -> bool {
     return braces_counted == 0 && parenthesis_counted == 0;
 }
 
-
 fn print_help() {
     println!("usage: newtc [--entry-file (path)] [--tokens] [--parse] [--no-eval] [--help]");
 }
 
 impl Config {
     pub fn parse(arguments: &Vec<&str>) -> Config {
-	    let tokens_flag = Config::parse_tokens_flag(arguments);
-	    let parse_flag = Config::parse_parse_flag(arguments);
-	    let no_eval_flag = Config::parse_no_eval_flag(arguments);
-	    let help_flag = Config::parse_help_flag(arguments);
-	    let entry_file = Config::parse_entry_file(arguments);
+        let tokens_flag = Config::parse_tokens_flag(arguments);
+        let parse_flag = Config::parse_parse_flag(arguments);
+        let no_eval_flag = Config::parse_no_eval_flag(arguments);
+        let help_flag = Config::parse_help_flag(arguments);
+        let entry_file = Config::parse_entry_file(arguments);
 
-	    Config {
-		    display_tokenization: tokens_flag,
-		    display_parsing: parse_flag,
-		    display_evaluation: !no_eval_flag,
+        Config {
+            display_tokenization: tokens_flag,
+            display_parsing: parse_flag,
+            display_evaluation: !no_eval_flag,
             display_help: help_flag,
-		    entry_file
-	    }
+            entry_file,
+        }
     }
 
-	fn parse_tokens_flag(arguments: &Vec<&str>) -> bool {
-		arguments.contains(&"--tokens")
-	}
+    fn parse_tokens_flag(arguments: &Vec<&str>) -> bool {
+        arguments.contains(&"--tokens")
+    }
 
-	fn parse_parse_flag(arguments: &Vec<&str>) -> bool {
-		arguments.contains(&"--parse")
-	}
+    fn parse_parse_flag(arguments: &Vec<&str>) -> bool {
+        arguments.contains(&"--parse")
+    }
 
-	fn parse_no_eval_flag(arguments: &Vec<&str>) -> bool {
-		arguments.contains(&"--no-eval")
-	}
+    fn parse_no_eval_flag(arguments: &Vec<&str>) -> bool {
+        arguments.contains(&"--no-eval")
+    }
 
-	fn parse_help_flag(arguments: &Vec<&str>) -> bool {
-		arguments.contains(&"--help")
-	}
+    fn parse_help_flag(arguments: &Vec<&str>) -> bool {
+        arguments.contains(&"--help")
+    }
 
     fn parse_entry_file(arguments: &Vec<&str>) -> Option<PathBuf> {
         let entry_file_flag_position = arguments.iter().position(|arg| *arg == "--entry-file");
@@ -244,7 +242,14 @@ fn config_parse_entry_file_finds_pathname() {
 
 #[test]
 fn config_parse_output_mode_finds_all_flags_and_entry_file() {
-    let args = vec!["--help", "--tokens", "--parse", "--no-eval", "--entry-file", "pathname"];
+    let args = vec![
+        "--help",
+        "--tokens",
+        "--parse",
+        "--no-eval",
+        "--entry-file",
+        "pathname",
+    ];
 
     let config = Config::parse(&args);
 

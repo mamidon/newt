@@ -1,12 +1,14 @@
 use crate::featurez::newtypes::TransparentNewType;
-use crate::featurez::syntax::{AstNode, ExprKind, StmtKind, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, RValKind};
+use crate::featurez::syntax::{
+    AstNode, ExprKind, RValKind, StmtKind, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
+};
 use crate::featurez::tokens::{Token, TokenKind};
 
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::rc::Rc;
-use std::collections::HashMap;
 
 #[repr(transparent)]
 #[derive(Clone)]
@@ -42,9 +44,9 @@ impl StmtNode {
             SyntaxKind::VariableDeclarationStmt => StmtKind::VariableDeclarationStmt(
                 VariableDeclarationStmtNode::from_inner(self.syntax()),
             ),
-            SyntaxKind::AssignmentStmt => StmtKind::AssignmentStmt(
-                AssignmentStmtNode::from_inner(self.syntax()),
-            ),
+            SyntaxKind::AssignmentStmt => {
+                StmtKind::AssignmentStmt(AssignmentStmtNode::from_inner(self.syntax()))
+            }
             SyntaxKind::ExprStmt => StmtKind::ExprStmt(ExprStmtNode::from_inner(self.syntax())),
             SyntaxKind::IfStmt => StmtKind::IfStmt(IfStmtNode::from_inner(self.syntax())),
             SyntaxKind::WhileStmt => StmtKind::WhileStmt(WhileStmtNode::from_inner(self.syntax())),
@@ -53,10 +55,10 @@ impl StmtNode {
             ),
             SyntaxKind::ReturnStmt => {
                 StmtKind::ReturnStmt(ReturnStmtNode::from_inner(self.syntax()))
-            },
+            }
             SyntaxKind::StmtListStmt => {
                 StmtKind::StmtListStmt(StmtListStmtNode::from_inner(self.syntax()))
-            },
+            }
             _ => unreachable!("StmtNode cannot be constructed from invalid SyntaxKind"),
         }
     }
@@ -90,9 +92,10 @@ impl FunctionDeclarationStmtNode {
     }
 
     pub fn arguments(&self) -> impl Iterator<Item = &SyntaxToken> {
-	    self.0.tokens()
-		    .filter(|t| t.token_kind() == TokenKind::Identifier)
-		    .skip(1)
+        self.0
+            .tokens()
+            .filter(|t| t.token_kind() == TokenKind::Identifier)
+            .skip(1)
     }
 
     pub fn stmts(&self) -> &StmtListStmtNode {
@@ -276,12 +279,12 @@ impl ExprNode {
             SyntaxKind::UnaryExpr => {
                 ExprKind::UnaryExpr(UnaryExprNode::from_inner(self.to_inner()))
             }
-            SyntaxKind::PrimitiveLiteralExpr => {
-                ExprKind::PrimitiveLiteralExpr(PrimitiveLiteralExprNode::from_inner(self.to_inner()))
+            SyntaxKind::PrimitiveLiteralExpr => ExprKind::PrimitiveLiteralExpr(
+                PrimitiveLiteralExprNode::from_inner(self.to_inner()),
+            ),
+            SyntaxKind::ObjectLiteralExpr => {
+                ExprKind::ObjectLiteralExpr(ObjectLiteralExprNode::from_inner(self.to_inner()))
             }
-	        SyntaxKind::ObjectLiteralExpr => {
-		        ExprKind::ObjectLiteralExpr(ObjectLiteralExprNode::from_inner(self.to_inner()))
-	        }
             SyntaxKind::ObjectPropertyExpr => {
                 ExprKind::ObjectPropertyExpr(ObjectPropertyExprNode::from_inner(self.to_inner()))
             }
@@ -313,10 +316,7 @@ impl FunctionCallExprNode {
     }
 
     pub fn arguments(&self) -> impl Iterator<Item = &ExprNode> {
-        self.0
-	        .nodes()
-            .filter_map(|n| ExprNode::cast(n))
-	        .skip(1)
+        self.0.nodes().filter_map(|n| ExprNode::cast(n)).skip(1)
     }
 }
 
@@ -344,7 +344,8 @@ unsafe impl TransparentNewType for ObjectLiteralExprNode {
 
 impl ObjectLiteralExprNode {
     pub fn fields(&self) -> HashMap<String, ExprNode> {
-        let relevant_children: Vec<_> = self.0
+        let relevant_children: Vec<_> = self
+            .0
             .children()
             .iter()
             .filter(ObjectLiteralExprNode::is_identifier_token_or_expr_node)
@@ -359,11 +360,16 @@ impl ObjectLiteralExprNode {
         for slice in pairs {
             match slice {
                 [key_element, value_element] => {
-                    let key = ObjectLiteralExprNode::as_identifier(key_element).unwrap().lexeme().to_string();
-                    let value = ObjectLiteralExprNode::as_expr_node(value_element).unwrap().clone();
+                    let key = ObjectLiteralExprNode::as_identifier(key_element)
+                        .unwrap()
+                        .lexeme()
+                        .to_string();
+                    let value = ObjectLiteralExprNode::as_expr_node(value_element)
+                        .unwrap()
+                        .clone();
                     map.insert(key, value);
                 }
-                _ => unreachable!("Shouldn't happen with chunks_exact of 2")
+                _ => unreachable!("Shouldn't happen with chunks_exact of 2"),
             }
         }
 
@@ -373,21 +379,21 @@ impl ObjectLiteralExprNode {
     fn as_identifier(element: &&SyntaxElement) -> Option<SyntaxToken> {
         match element {
             SyntaxElement::Token(token) => Some(token.clone()),
-            _ => None
+            _ => None,
         }
     }
 
     fn as_expr_node(element: &SyntaxElement) -> Option<&ExprNode> {
         match element {
             SyntaxElement::Node(node) => ExprNode::cast(node),
-            _ => None
+            _ => None,
         }
     }
 
     fn is_identifier_token_or_expr_node(element: &&SyntaxElement) -> bool {
         match element {
             SyntaxElement::Token(token) => token.token_kind() == TokenKind::Identifier,
-            SyntaxElement::Node(node) => ExprNode::cast(node).is_some()
+            SyntaxElement::Node(node) => ExprNode::cast(node).is_some(),
         }
     }
 }
@@ -401,9 +407,9 @@ unsafe impl TransparentNewType for ObjectPropertyExprNode {
 }
 
 impl ObjectPropertyExprNode {
-	pub fn source_expr(&self) -> &ExprNode {
-		ExprNode::cast(self.0.nth_node(0)).unwrap()
-	}
+    pub fn source_expr(&self) -> &ExprNode {
+        ExprNode::cast(self.0.nth_node(0)).unwrap()
+    }
 
     pub fn identifier(&self) -> &SyntaxToken {
         self.0.nth_token(1)
@@ -489,11 +495,10 @@ unsafe impl TransparentNewType for RValNode {
 impl AstNode for RValNode {
     fn cast(node: &SyntaxNode) -> Option<&Self> {
         match node.kind() {
-            SyntaxKind::ObjectPropertyRVal
-            | SyntaxKind::VariableRval => {
+            SyntaxKind::ObjectPropertyRVal | SyntaxKind::VariableRval => {
                 Some(RValNode::from_inner(node))
             }
-            _ => None
+            _ => None,
         }
     }
 
@@ -505,11 +510,13 @@ impl AstNode for RValNode {
 impl RValNode {
     pub fn kind(&self) -> RValKind {
         match self.0.kind() {
-            SyntaxKind::VariableRval
-                => RValKind::VariableRVal(VariableRValNode::from_inner(&self.0)),
-            SyntaxKind::ObjectPropertyRVal
-                => RValKind::ObjectPropertyRVal(ObjectPropertyRValNode::from_inner(&self.0)),
-            kind => unreachable!("An RValNode should not contain an {:?} node", kind)
+            SyntaxKind::VariableRval => {
+                RValKind::VariableRVal(VariableRValNode::from_inner(&self.0))
+            }
+            SyntaxKind::ObjectPropertyRVal => {
+                RValKind::ObjectPropertyRVal(ObjectPropertyRValNode::from_inner(&self.0))
+            }
+            kind => unreachable!("An RValNode should not contain an {:?} node", kind),
         }
     }
 }
@@ -545,6 +552,3 @@ impl ObjectPropertyRValNode {
         self.0.nth_token(1)
     }
 }
-
-
-

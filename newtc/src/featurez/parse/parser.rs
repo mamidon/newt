@@ -180,11 +180,11 @@ impl Parser {
             ParseEvent::BeginNode {
                 kind: ref mut target_kind,
                 is_forward_parent: _,
-                forward_parent_offset: _
-            } => {
-                *target_kind = kind
-            },
-            _ => panic!("Did not expect a completed market to point to a different kind of ParseEvent")
+                forward_parent_offset: _,
+            } => *target_kind = kind,
+            _ => panic!(
+                "Did not expect a completed market to point to a different kind of ParseEvent"
+            ),
         }
     }
 

@@ -8,14 +8,14 @@ use crate::featurez::runtime::Callable;
 use crate::featurez::syntax::{NewtObject, NewtString};
 
 use crate::featurez::syntax::{
-    AstNode, BinaryExprNode, ExprKind, ExprNode, GroupingExprNode, PrimitiveLiteralExprNode, SyntaxElement,
-    SyntaxKind, SyntaxNode, SyntaxToken, SyntaxTree, TextTreeSink, TokenSource, TreeSink,
-    UnaryExprNode,
+    AstNode, BinaryExprNode, ExprKind, ExprNode, GroupingExprNode, PrimitiveLiteralExprNode,
+    SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, SyntaxTree, TextTreeSink, TokenSource,
+    TreeSink, UnaryExprNode,
 };
 use crate::featurez::TokenKind;
-use std::rc::Rc;
-use std::collections::HashMap;
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum NewtValue {
@@ -26,7 +26,7 @@ pub enum NewtValue {
     Bool(bool),
     Callable(Rc<dyn Callable>),
     Object(NewtObject),
-    Null
+    Null,
 }
 
 impl NewtValue {
@@ -54,7 +54,9 @@ impl NewtValue {
             TokenKind::FloatLiteral => {
                 NewtValue::Float(lexeme.parse().expect("unparsable literal token"))
             }
-            TokenKind::StringLiteral => NewtValue::String(NewtString::new(&lexeme[1..lexeme.len()-1])),
+            TokenKind::StringLiteral => {
+                NewtValue::String(NewtString::new(&lexeme[1..lexeme.len() - 1]))
+            }
             TokenKind::GlyphLiteral => {
                 NewtValue::Glyph(lexeme[1..2].parse().expect("unparsable literal token"))
             }
@@ -244,12 +246,13 @@ impl From<NewtString> for NewtValue {
 }
 
 impl<T> From<Option<T>> for NewtValue
-	where T: Into<NewtValue> {
-
-	fn from(maybe: Option<T>) -> Self {
+where
+    T: Into<NewtValue>,
+{
+    fn from(maybe: Option<T>) -> Self {
         match maybe {
             Some(value) => value.into(),
-            None => NewtValue::Null
+            None => NewtValue::Null,
         }
     }
 }

@@ -1,6 +1,8 @@
 use crate::featurez::parse::CompletedMarker;
 use crate::featurez::parse::{CompletedParsing, Marker, Parser};
-use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, RValNode, ExprNode};
+use crate::featurez::syntax::{
+    ExprNode, RValNode, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
+};
 use crate::featurez::{Token, TokenKind};
 
 use super::expr;
@@ -165,7 +167,7 @@ fn rval(p: &mut Parser, rval: CompletedMarker) {
     let remap_target = match rval.kind() {
         SyntaxKind::ObjectPropertyExpr => SyntaxKind::ObjectPropertyRVal,
         SyntaxKind::VariableExpr => SyntaxKind::VariableRval,
-        _ => SyntaxKind::Error("Expected an acceptable r-val")
+        _ => SyntaxKind::Error("Expected an acceptable r-val"),
     };
 
     p.remap_node(&rval, remap_target);

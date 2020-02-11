@@ -102,8 +102,8 @@ _456validIdentifier
 456badIdentifier
 seperate identifiers",
     keywords:
-"if else 
-let 
+"if else
+let
 fn
 while
 for in
@@ -116,7 +116,7 @@ false",
 let x=1+2-3/4*5+(6);
 // Logic operators
 let y=true&&false||!true;
-// Comparison operators 
+// Comparison operators
 let z=2==2;
 let a=4<2;
 let b=4>2;

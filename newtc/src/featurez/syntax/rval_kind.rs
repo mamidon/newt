@@ -1,6 +1,6 @@
-use crate::featurez::syntax::{VariableRValNode, ObjectPropertyRValNode};
+use crate::featurez::syntax::{ObjectPropertyRValNode, VariableRValNode};
 
 pub enum RValKind<'a> {
-	VariableRVal(&'a VariableRValNode),
-	ObjectPropertyRVal(&'a ObjectPropertyRValNode)
+    VariableRVal(&'a VariableRValNode),
+    ObjectPropertyRVal(&'a ObjectPropertyRValNode),
 }

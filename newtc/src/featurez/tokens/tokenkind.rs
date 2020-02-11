@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Error, Formatter};
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug, Hash)]
 pub enum TokenKind {
@@ -98,7 +98,6 @@ impl TokenKind {
         }
     }
 }
-
 
 impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {

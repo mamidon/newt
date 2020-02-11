@@ -2,8 +2,8 @@ use self::expr::expr;
 use self::stmt::stmt;
 
 use crate::featurez::parse::{CompletedParsing, Parser};
-use crate::featurez::TokenKind;
 use crate::featurez::syntax::SyntaxKind;
+use crate::featurez::TokenKind;
 
 mod expr;
 mod stmt;
