@@ -1,0 +1,53 @@
+/*
+The import statement imports a file as an object.
+This object's properties correspond to the export statements in that file.
+
+import FolderA.FolderB.FileName;
+FileName.FooBar();
+let z = FileName.y;
+*/
+
+import Notepad.CursorReducers;
+
+fn CreateGapBuffer(lines) {
+	let suffix = "";
+	let succeedingLines = lines.Reverse();
+
+	if (succeedingLines.Length > 0) {
+		suffix = succeedingLines.Pop();
+	}
+	
+	return {
+		preceedingLines: [],
+		prefix: "",
+		suffix: suffix,
+		succeedingLines: succeedingLines
+	};
+}
+
+fn CreateInitialState() {
+	return {
+		gapBuffer: CreateGapBuffer([])
+	};
+}
+
+fn RegisterCursorReducers(store) {
+	/*
+	The with keywords is a binary operator between two objects.
+	Without changing either of it's operands, it creates a new object
+	using properties of it's left object then it's right object. 
+	*/
+
+	store.reducers = store.reducers with CursorReducers.Reducers;
+}
+
+fn CreateNotepadStore() {
+	let store = {
+		state: CreateInitialState(),
+		reducers: {}
+	};
+
+	RegisterCursorReducers(store);
+}
+
+export CreateNotepadStore;

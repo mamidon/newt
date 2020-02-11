@@ -1,0 +1,3 @@
+import Notepad.Store;
+
+let store = Store.CreateNotepadStore();
