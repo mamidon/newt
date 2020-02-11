@@ -1,0 +1,15 @@
+[package]
+name = "host"
+version = "0.1.0"
+authors = ["mamidon <mamidon@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+vulkano = "0.16.0"
+vulkano-shaders = "0.16.0"
+vulkano-win = "0.16.0"
+winit = "0.19.5"
+png = "0.15.0"
+
