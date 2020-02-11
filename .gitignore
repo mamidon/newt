@@ -3,3 +3,6 @@
 .idea/*
 .DS_Store
 *.candidate
+./Cargo.lock
+*/Cargo.lock
+*/*/Cargo.lock
