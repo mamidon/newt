@@ -166,32 +166,6 @@ impl BoxPipeline {
         }
     }
 
-    fn bind_attachment(&mut self, surface: &NewtSurface) -> Box<dyn DescriptorSet> {
-        let sampler = Sampler::new(
-            self.pipeline.device().clone(),
-            Filter::Linear,
-            Filter::Linear,
-            MipmapMode::Nearest,
-            SamplerAddressMode::Repeat,
-            SamplerAddressMode::Repeat,
-            SamplerAddressMode::Repeat,
-            0.0,
-            1.0,
-            0.0,
-            0.0,
-        )
-        .unwrap();
-
-        let ds = Box::new(
-            PersistentDescriptorSet::start(self.pipeline.clone(), 0)
-                .add_sampled_image(surface.0.clone(), sampler.clone())
-                .expect("add_sampled_image failed")
-                .build()
-                .expect("build persistent_descriptor_set failed"));
-
-        ds
-    }
-
     pub fn write_to_command_buffer<'a, I, P>(
         &self,
         info: &CommandBufferWritingInfo<'a, I>,
@@ -202,12 +176,6 @@ impl BoxPipeline {
         I: Iterator<Item = &'a RenderCommand>,
     {
         builder
-            .begin_render_pass(
-                self.framebuffers[info.image_index].clone(),
-                false,
-                vec![[0.0, 0.0, 1.0, 1.0].into()],
-            )
-            .map_err(|_| "begin_render_pass failed")?
             .draw(
                 self.pipeline.clone(),
                 info.dynamic_state,
@@ -215,64 +183,7 @@ impl BoxPipeline {
                 (),
                 (),
             )
-            .map_err(|e| {
-                println!("{:?}", e);
-                "draw failed"
-            })?
-            .end_render_pass()
-            .map_err(|_| "end_render_pass failed")
-    }
-
-    pub fn map_commands_to_vertices<'a>(
-        commands: impl Iterator<Item = &'a RenderCommand>,
-        logical_width: f64,
-        logical_height: f64,
-    ) -> Vec<Vertex> {
-        let filtered_commands: Vec<Vertex> = commands
-            .filter_map(|c| match c {
-                RenderCommand::Rectangle {
-                    x,
-                    y,
-                    width,
-                    height,
-                } => {
-                    let xf = screen_to_logical_device_coordinate(*x, logical_width);
-                    let yf = screen_to_logical_device_coordinate(*y, logical_height);
-                    let wf =
-                        screen_to_logical_device_coordinate((x + *width as isize), logical_width);
-                    let hf =
-                        screen_to_logical_device_coordinate((y + *height as isize), logical_height);
-
-                    let top_left = [xf, yf];
-                    let top_right = [wf, yf];
-                    let bottom_left = [xf, hf];
-                    let bottom_right = [wf, hf];
-
-                    Some(vec![
-                        Vertex { position: top_left },
-                        Vertex {
-                            position: top_right,
-                        },
-                        Vertex {
-                            position: bottom_left,
-                        },
-                        Vertex {
-                            position: top_right,
-                        },
-                        Vertex {
-                            position: bottom_right,
-                        },
-                        Vertex {
-                            position: bottom_left,
-                        },
-                    ])
-                }
-                _ => None,
-            })
-            .flat_map(|vertices| vertices.into_iter())
-            .collect();
-
-        filtered_commands
+            .map_err(|_| "draw failed")
     }
 }
 

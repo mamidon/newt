@@ -15,11 +15,12 @@ use vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode, BorderCo
 use vulkano::swapchain::Swapchain;
 use winit::Window;
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Vertex {
     position: [f32; 2],
+    uv: [f32; 2]
 }
-vulkano::impl_vertex!(Vertex, position);
+vulkano::impl_vertex!(Vertex, position, uv);
 
 pub struct BoundAttachments {
     descriptor: Arc<dyn DescriptorSet + Send + Sync>,
@@ -133,21 +134,29 @@ impl GlyphPipeline {
                     let bottom_right = [wf, hf];
 
                     vec![
-                        Vertex { position: top_left },
+                        Vertex {
+                            position: top_left,
+                            uv: [0.0, 0.0]
+                        },
                         Vertex {
                             position: top_right,
+                            uv: [1.0, 0.0]
                         },
                         Vertex {
                             position: bottom_left,
+                            uv: [0.0, 1.0]
                         },
                         Vertex {
                             position: top_right,
+                            uv: [1.0, 0.0]
                         },
                         Vertex {
                             position: bottom_right,
+                            uv: [1.0, 1.0]
                         },
                         Vertex {
                             position: bottom_left,
+                            uv: [0.0, 1.0]
                         },
                     ]
                 }
@@ -235,12 +244,6 @@ impl GlyphPipeline {
         I: Iterator<Item = &'a RenderCommand>,
     {
         builder
-            .begin_render_pass(
-                self.framebuffers[info.image_index].clone(),
-                false,
-                vec![[0.0, 0.0, 1.0, 1.0].into()],
-            )
-            .map_err(|_| "begin_render_pass failed")?
             .draw(
                 self.pipeline.clone(),
                 info.dynamic_state,
@@ -251,61 +254,7 @@ impl GlyphPipeline {
             .map_err(|e| {
                 println!("{:?}", e);
                 "draw failed"
-            })?
-            .end_render_pass()
-            .map_err(|_| "end_render_pass failed")
-    }
-
-    pub fn map_commands_to_vertices<'a>(
-        commands: impl Iterator<Item = &'a RenderCommand>,
-        logical_width: f64,
-        logical_height: f64,
-    ) -> Vec<Vertex> {
-        let filtered_commands: Vec<Vertex> = commands
-            .filter_map(|c| match c {
-                RenderCommand::Rectangle {
-                    x,
-                    y,
-                    width,
-                    height,
-                } => {
-                    let xf = screen_to_logical_device_coordinate(*x, logical_width);
-                    let yf = screen_to_logical_device_coordinate(*y, logical_height);
-                    let wf =
-                        screen_to_logical_device_coordinate((x + *width as isize), logical_width);
-                    let hf =
-                        screen_to_logical_device_coordinate((y + *height as isize), logical_height);
-
-                    let top_left = [xf, yf];
-                    let top_right = [wf, yf];
-                    let bottom_left = [xf, hf];
-                    let bottom_right = [wf, hf];
-
-                    Some(vec![
-                        Vertex { position: top_left },
-                        Vertex {
-                            position: top_right,
-                        },
-                        Vertex {
-                            position: bottom_left,
-                        },
-                        Vertex {
-                            position: top_right,
-                        },
-                        Vertex {
-                            position: bottom_right,
-                        },
-                        Vertex {
-                            position: bottom_left,
-                        },
-                    ])
-                }
-                _ => None,
             })
-            .flat_map(|vertices| vertices.into_iter())
-            .collect();
-
-        filtered_commands
     }
 }
 
@@ -316,10 +265,13 @@ mod vertex_shader {
             #version 450
 
             layout(location = 0) in vec2 position;
-            layout(location = 0) out vec2 uv;
+            layout(location = 1) in vec2 uv;
+
+            layout(location = 0) out vec2 uv_output;
+
             void main() {
                 gl_Position = vec4(position, 0.0, 1.0);
-                uv = position + vec2(0.5);
+                uv_output = uv;
             }
             "#
     }

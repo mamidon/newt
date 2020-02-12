@@ -244,22 +244,27 @@ impl Renderer {
             };
 
         let logical_size = self.surface.window().get_inner_size().unwrap();
+        let box_pipeline_writing_info = CommandBufferWritingInfo::initialize(
+            frame.submitted_commands.iter(),
+            &self.box_pipeline.dynamic_state,
+            image_index,
+            logical_size.width,
+            logical_size.height
+        );
+        let box_pipeline_attachments = self.box_pipeline.create_attachments(&box_pipeline_writing_info);
+
         let mut command_buffer_builder = AutoCommandBufferBuilder::primary_one_time_submit(
             self.logical_device.clone(),
             self.graphics_queue.family(),
+        ).unwrap()
+        .begin_render_pass(
+            self.box_pipeline.framebuffers[image_index].clone(),
+            false,
+            vec![[0.0, 0.0, 1.0, 1.0].into()],
         )
-            .unwrap();
+        .expect("begin_render_pass failed");
 
         command_buffer_builder = {
-            let box_pipeline_writing_info = CommandBufferWritingInfo::initialize(
-                frame.submitted_commands.iter(),
-                &self.box_pipeline.dynamic_state,
-                image_index,
-                logical_size.width,
-                logical_size.height
-            );
-            let box_pipeline_attachments = self.box_pipeline.create_attachments(&box_pipeline_writing_info);
-
             self.box_pipeline.write_to_command_buffer(
                 &box_pipeline_writing_info,
                 command_buffer_builder,
@@ -283,6 +288,10 @@ impl Renderer {
                 glyph_pipeline_attachments
             ).expect("write_to_command_buffer failed")
         };
+
+        command_buffer_builder = command_buffer_builder
+                .end_render_pass()
+                .expect("end_render_pass failed");
 
         let command_buffer = command_buffer_builder.build().unwrap();
 

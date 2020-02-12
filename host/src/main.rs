@@ -63,28 +63,30 @@ fn main() {
 
         let mut x_offset = 0;
         let stride = 55;
-        for x in 0..0 {
+        for x in 0..10 {
             let mut y_offset = 0;
-            for y in 0..0 {
-                commands.push(RenderCommand::Rectangle {
-                    x: x_offset,
-                    y: y_offset,
-                    width: 50,
-                    height: 50,
-                });
+            for y in 0..10 {
+                if x % 2 == 0 || y % 2 == 0 {
+                    commands.push(RenderCommand::Rectangle {
+                        x: x_offset,
+                        y: y_offset,
+                        width: 50,
+                        height: 50,
+                    });
+                } else {
+                    commands.push(RenderCommand::NewtSurface {
+                        x: x_offset,
+                        y: y_offset,
+                        width: 50,
+                        height: 50,
+                        surface: surface.clone()
+                    });
+                }
 
                 y_offset += stride;
             }
             x_offset += stride;
         }
-
-        commands.push(RenderCommand::NewtSurface {
-            x: 0,
-            y: 0,
-            width: 512,
-            height: 512,
-            surface: surface.clone()
-        });
 
         frame.submit_commands(commands);
         renderer.present(frame);
