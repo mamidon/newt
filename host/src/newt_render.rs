@@ -28,12 +28,6 @@ use crate::newt_render::pipelines::glyphs::GlyphPipeline;
 use crate::newt_render::pipelines::CommandBufferWritingInfo;
 use vulkano::sampler::{Filter, Sampler};
 
-#[derive(Default, Debug, Clone)]
-struct Vertex {
-    position: [f32; 2],
-}
-vulkano::impl_vertex!(Vertex, position);
-
 type ErrorMessage = &'static str;
 
 pub struct Renderer {
