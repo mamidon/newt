@@ -9,7 +9,6 @@ where
     I: Iterator<Item = &'a RenderCommand>,
 {
     commands: I,
-    dynamic_state: &'a DynamicState,
     image_index: usize,
     logical_width: f64,
     logical_height: f64,
@@ -21,14 +20,12 @@ where
 {
     pub fn initialize(
         commands: I,
-        dynamic_state: &'a DynamicState,
         image_index: usize,
         logical_width: f64,
         logical_height: f64,
     ) -> CommandBufferWritingInfo<'a, I> {
         CommandBufferWritingInfo {
             commands,
-            dynamic_state,
             image_index,
             logical_width,
             logical_height,

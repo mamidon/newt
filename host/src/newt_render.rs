@@ -246,7 +246,6 @@ impl Renderer {
         let logical_size = self.surface.window().get_inner_size().unwrap();
         let box_pipeline_writing_info = CommandBufferWritingInfo::initialize(
             frame.submitted_commands.iter(),
-            &self.box_pipeline.dynamic_state,
             image_index,
             logical_size.width,
             logical_size.height,
@@ -280,7 +279,6 @@ impl Renderer {
         command_buffer_builder = {
             let glyph_pipeline_writing_info = CommandBufferWritingInfo::initialize(
                 frame.submitted_commands.iter(),
-                &self.glyph_pipeline.dynamic_state,
                 image_index,
                 logical_size.width,
                 logical_size.height,

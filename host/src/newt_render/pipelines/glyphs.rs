@@ -251,7 +251,7 @@ impl GlyphPipeline {
         builder
             .draw(
                 self.pipeline.clone(),
-                info.dynamic_state,
+                &self.dynamic_state,
                 attachments.vertices,
                 attachments.descriptor.clone(),
                 (),
