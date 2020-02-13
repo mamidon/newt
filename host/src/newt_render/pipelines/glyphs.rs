@@ -11,14 +11,14 @@ use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract,
 use vulkano::image::SwapchainImage;
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
-use vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode, BorderColor};
+use vulkano::sampler::{BorderColor, Filter, MipmapMode, Sampler, SamplerAddressMode};
 use vulkano::swapchain::Swapchain;
 use winit::Window;
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Vertex {
     position: [f32; 2],
-    uv: [f32; 2]
+    uv: [f32; 2],
 }
 vulkano::impl_vertex!(Vertex, position, uv);
 
@@ -101,7 +101,7 @@ impl GlyphPipeline {
 
     pub fn create_attachments<'a, I>(
         &self,
-        info: &CommandBufferWritingInfo<'a, I>
+        info: &CommandBufferWritingInfo<'a, I>,
     ) -> BoundAttachments
     where
         I: Iterator<Item = &'a RenderCommand> + Clone,
@@ -115,7 +115,7 @@ impl GlyphPipeline {
                     y,
                     width,
                     height,
-                    surface
+                    surface,
                 } => {
                     let xf = screen_to_logical_device_coordinate(*x, info.logical_width);
                     let yf = screen_to_logical_device_coordinate(*y, info.logical_height);
@@ -136,27 +136,27 @@ impl GlyphPipeline {
                     vec![
                         Vertex {
                             position: top_left,
-                            uv: [0.0, 0.0]
+                            uv: [0.0, 0.0],
                         },
                         Vertex {
                             position: top_right,
-                            uv: [1.0, 0.0]
+                            uv: [1.0, 0.0],
                         },
                         Vertex {
                             position: bottom_left,
-                            uv: [0.0, 1.0]
+                            uv: [0.0, 1.0],
                         },
                         Vertex {
                             position: top_right,
-                            uv: [1.0, 0.0]
+                            uv: [1.0, 0.0],
                         },
                         Vertex {
                             position: bottom_right,
-                            uv: [1.0, 1.0]
+                            uv: [1.0, 1.0],
                         },
                         Vertex {
                             position: bottom_left,
-                            uv: [0.0, 1.0]
+                            uv: [0.0, 1.0],
                         },
                     ]
                 }
@@ -185,19 +185,24 @@ impl GlyphPipeline {
             0.0,
             1.0,
             0.0,
-            0.0
-        ).expect("Sampler::new failed");
-        let surface = info.commands.clone().
-            filter_map(|c| match c {
-            RenderCommand::NewtSurface {
-                surface,
-                x,
-                y,
-                width,
-                height
-            } => Some(surface),
-            _ => None
-        }).next().unwrap();
+            0.0,
+        )
+        .expect("Sampler::new failed");
+        let surface = info
+            .commands
+            .clone()
+            .filter_map(|c| match c {
+                RenderCommand::NewtSurface {
+                    surface,
+                    x,
+                    y,
+                    width,
+                    height,
+                } => Some(surface),
+                _ => None,
+            })
+            .next()
+            .unwrap();
 
         let binding = self.bind_attachment(surface);
 

@@ -21,10 +21,8 @@ pub struct Vertex {
 }
 vulkano::impl_vertex!(Vertex, position);
 
-
-pub struct BoundAttachments
-{
-    vertices: Vec<Arc<dyn BufferAccess + Send + Sync + 'static>>
+pub struct BoundAttachments {
+    vertices: Vec<Arc<dyn BufferAccess + Send + Sync + 'static>>,
 }
 
 pub struct BoxPipeline {
@@ -90,7 +88,7 @@ impl BoxPipeline {
             pipeline,
             dynamic_state,
             render_pass,
-            framebuffers
+            framebuffers,
         })
     }
 
@@ -99,11 +97,15 @@ impl BoxPipeline {
             window_size_dependent_setup(images, &self.render_pass, &mut self.dynamic_state);
     }
 
-    pub fn create_attachments<'a, I>(&self, info: &CommandBufferWritingInfo<'a, I>) -> BoundAttachments
+    pub fn create_attachments<'a, I>(
+        &self,
+        info: &CommandBufferWritingInfo<'a, I>,
+    ) -> BoundAttachments
     where
         I: Iterator<Item = &'a RenderCommand> + Clone,
     {
-        let vertices: Vec<Vertex> = info.commands
+        let vertices: Vec<Vertex> = info
+            .commands
             .clone()
             .map(|c| match c {
                 RenderCommand::Rectangle {
@@ -158,11 +160,11 @@ impl BoxPipeline {
                 BufferUsage::all(),
                 vertices.into_iter(),
             )
-                .unwrap()]
+            .unwrap()]
         };
 
         BoundAttachments {
-            vertices: vertex_buffer
+            vertices: vertex_buffer,
         }
     }
 

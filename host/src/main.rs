@@ -50,7 +50,8 @@ fn main() {
     let mut image_data = Vec::new();
     image_data.resize((info.height * info.width * 4) as usize, 0);
     reader.next_frame(&mut image_data).unwrap();
-    let surface = renderer.load_image(image_data, info.height as usize, info.width as usize)
+    let surface = renderer
+        .load_image(image_data, info.height as usize, info.width as usize)
         .expect("load_image failed");
 
     loop {
@@ -79,7 +80,7 @@ fn main() {
                         y: y_offset,
                         width: 50,
                         height: 50,
-                        surface: surface.clone()
+                        surface: surface.clone(),
                     });
                 }
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBuffer, DynamicState};
 use vulkano::descriptor::descriptor_set::PersistentDescriptorSet;
-use vulkano::descriptor::{PipelineLayoutAbstract, DescriptorSet};
+use vulkano::descriptor::{DescriptorSet, PipelineLayoutAbstract};
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::format::{ClearValue, Format};
 use vulkano::framebuffer::{
@@ -24,9 +24,9 @@ use winit::{EventsLoop, Window, WindowBuilder};
 mod pipelines;
 
 use crate::newt_render::pipelines::boxes::BoxPipeline;
-use crate::newt_render::pipelines::CommandBufferWritingInfo;
-use vulkano::sampler::{Sampler, Filter};
 use crate::newt_render::pipelines::glyphs::GlyphPipeline;
+use crate::newt_render::pipelines::CommandBufferWritingInfo;
+use vulkano::sampler::{Filter, Sampler};
 
 #[derive(Default, Debug, Clone)]
 struct Vertex {
@@ -44,7 +44,7 @@ pub struct Renderer {
     recreate_swapchain: bool,
     swapchain: Arc<Swapchain<Window>>,
     box_pipeline: BoxPipeline,
-    glyph_pipeline: GlyphPipeline
+    glyph_pipeline: GlyphPipeline,
 }
 
 pub struct RendererFrame {
@@ -168,7 +168,7 @@ impl Renderer {
             recreate_swapchain,
             swapchain: swapchain.clone(),
             box_pipeline: BoxPipeline::initialize(&device, swapchain.format(), &images)?,
-            glyph_pipeline: GlyphPipeline::initialize(&device, swapchain.format(), &images)?
+            glyph_pipeline: GlyphPipeline::initialize(&device, swapchain.format(), &images)?,
         })
     }
 
@@ -249,14 +249,17 @@ impl Renderer {
             &self.box_pipeline.dynamic_state,
             image_index,
             logical_size.width,
-            logical_size.height
+            logical_size.height,
         );
-        let box_pipeline_attachments = self.box_pipeline.create_attachments(&box_pipeline_writing_info);
+        let box_pipeline_attachments = self
+            .box_pipeline
+            .create_attachments(&box_pipeline_writing_info);
 
         let mut command_buffer_builder = AutoCommandBufferBuilder::primary_one_time_submit(
             self.logical_device.clone(),
             self.graphics_queue.family(),
-        ).unwrap()
+        )
+        .unwrap()
         .begin_render_pass(
             self.box_pipeline.framebuffers[image_index].clone(),
             false,
@@ -265,11 +268,13 @@ impl Renderer {
         .expect("begin_render_pass failed");
 
         command_buffer_builder = {
-            self.box_pipeline.write_to_command_buffer(
-                &box_pipeline_writing_info,
-                command_buffer_builder,
-                box_pipeline_attachments
-            ).expect("write_to_command_buffer failed")
+            self.box_pipeline
+                .write_to_command_buffer(
+                    &box_pipeline_writing_info,
+                    command_buffer_builder,
+                    box_pipeline_attachments,
+                )
+                .expect("write_to_command_buffer failed")
         };
 
         command_buffer_builder = {
@@ -278,20 +283,24 @@ impl Renderer {
                 &self.glyph_pipeline.dynamic_state,
                 image_index,
                 logical_size.width,
-                logical_size.height
+                logical_size.height,
             );
-            let glyph_pipeline_attachments = self.glyph_pipeline.create_attachments(&glyph_pipeline_writing_info);
+            let glyph_pipeline_attachments = self
+                .glyph_pipeline
+                .create_attachments(&glyph_pipeline_writing_info);
 
-            self.glyph_pipeline.write_to_command_buffer(
-                &glyph_pipeline_writing_info,
-                command_buffer_builder,
-                glyph_pipeline_attachments
-            ).expect("write_to_command_buffer failed")
+            self.glyph_pipeline
+                .write_to_command_buffer(
+                    &glyph_pipeline_writing_info,
+                    command_buffer_builder,
+                    glyph_pipeline_attachments,
+                )
+                .expect("write_to_command_buffer failed")
         };
 
         command_buffer_builder = command_buffer_builder
-                .end_render_pass()
-                .expect("end_render_pass failed");
+            .end_render_pass()
+            .expect("end_render_pass failed");
 
         let command_buffer = command_buffer_builder.build().unwrap();
 
