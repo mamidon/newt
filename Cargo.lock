@@ -258,6 +258,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "drawing"
 version = "0.1.0"
+dependencies = [
+ "png 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "vulkano 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "vulkano-shaders 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "vulkano-win 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winit 0.19.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "fnv"
