@@ -13,8 +13,16 @@ pub struct Brush {
     pub foreground: Color,
     pub background: Color,
 }
-pub type TextureRGBA = Vec<u8>;
-pub type TextureGreyScale = Vec<u8>;
+pub struct TextureRGBA {
+    width: usize,
+    height: usize,
+    bytes: Vec<u8>,
+}
+pub struct TextureGreyScale {
+    width: usize,
+    height: usize,
+    bytes: Vec<u8>,
+}
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 pub struct Handle {
@@ -108,8 +116,8 @@ impl Drawing {
 impl Default for DrawingOptions {
     fn default() -> Self {
         DrawingOptions {
-            width: 512,
-            height: 512,
+            width: 64,
+            height: 64,
         }
     }
 }
@@ -160,6 +168,30 @@ impl RasterizedDrawList {
     }
 }
 
+impl TextureRGBA {
+    pub fn new(width: usize, height: usize, bytes: Vec<u8>) -> TextureRGBA {
+        TextureRGBA {
+            width,
+            height,
+            bytes,
+        }
+    }
+
+    pub fn get_pixel(&self, x: usize, y: usize) -> u32 {
+        let start_index = self.get_index(x, y);
+        let pixel_bytes: Vec<u32> = self.bytes[start_index..start_index + 4]
+            .iter()
+            .map(|byte| *byte as u32)
+            .collect();
+
+        (pixel_bytes[0] << 24 | pixel_bytes[1] << 16 | pixel_bytes[2] << 8 | pixel_bytes[3])
+    }
+
+    fn get_index(&self, x: usize, y: usize) -> usize {
+        y * self.width + x
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Brush, DrawCommand, Drawing, DrawingOptions, ShapeKind};
@@ -192,7 +224,7 @@ mod tests {
                 foreground: 0xFF0000FF,
                 background: 0x00FF00FF,
             },
-            extent: (32, 32).into(),
+            extent: (64, 64).into(),
         });
 
         let mut rasterization = harness
@@ -200,10 +232,15 @@ mod tests {
             .rasterize_draw_list(draw_list)
             .expect("Failed to rasterize draw list");
 
-        let rendering = rasterization
+        let texture = rasterization
             .present_to_texture()
             .expect("Failed to retrieve rasterization");
 
-        assert_eq!(1, 1);
+        for x in 0..texture.width {
+            for y in 0..texture.height {
+                let pixel = texture.get_pixel(x, y);
+                assert_eq!(0xFF0000FF, pixel);
+            }
+        }
     }
 }
