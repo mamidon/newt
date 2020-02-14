@@ -21,16 +21,22 @@ use vulkano::sync::{now, FlushError, GpuFuture};
 use vulkano_win::VkSurfaceBuild;
 use winit::{EventsLoop, Window, WindowBuilder};
 
+pub mod attachments;
 mod pipelines;
 
+use crate::newt_render::attachments::{
+    AttachmentCollection, AttachmentHandle, GpuSurface, HostSurface, OntoGpu,
+};
 use crate::newt_render::pipelines::boxes::BoxPipeline;
 use crate::newt_render::pipelines::glyphs::GlyphPipeline;
 use crate::newt_render::pipelines::CommandBufferWritingInfo;
+use std::hash::Hash;
 use vulkano::sampler::{Filter, Sampler};
 
 type ErrorMessage = &'static str;
 
 pub struct Renderer {
+    surface_attachments: AttachmentCollection<GpuSurface>,
     instance: Arc<Instance>,
     surface: Arc<Surface<Window>>,
     logical_device: Arc<Device>,
@@ -59,12 +65,9 @@ pub enum RenderCommand {
         y: isize,
         width: usize,
         height: usize,
-        surface: NewtSurface,
+        surface: AttachmentHandle,
     },
 }
-
-#[derive(Clone)]
-pub struct NewtSurface(Arc<ImmutableImage<Format>>);
 
 impl RendererFrame {
     pub fn initialize() -> RendererFrame {
@@ -155,6 +158,7 @@ impl Renderer {
         let mut recreate_swapchain = false;
 
         Ok(Renderer {
+            surface_attachments: AttachmentCollection::new(),
             instance,
             surface: surface.clone(),
             logical_device: device.clone(),
@@ -166,28 +170,14 @@ impl Renderer {
         })
     }
 
-    pub fn load_image(
-        &mut self,
-        bytes: Vec<u8>,
-        height: usize,
-        width: usize,
-    ) -> Result<NewtSurface, &'static str> {
-        let image_dimensions = Dimensions::Dim2d {
-            width: width as u32,
-            height: height as u32,
-        };
+    pub fn load_surface<S: Into<HostSurface>>(&mut self, surface: S) -> AttachmentHandle {
+        let host_surface: HostSurface = surface.into();
+        let gpu_surface = host_surface.onto_gpu(self);
+        self.surface_attachments.load(gpu_surface)
+    }
 
-        let (handle, future) = ImmutableImage::from_iter(
-            bytes.iter().cloned(),
-            image_dimensions,
-            Format::R8G8B8A8Srgb,
-            self.graphics_queue.clone(),
-        )
-        .map_err(|_| "Failed to load image data into Vulkan Image")?;
-
-        future.join(now(self.logical_device.clone()));
-
-        Ok(NewtSurface(handle))
+    fn get_gpu_surface(&self, handle: AttachmentHandle) -> GpuSurface {
+        self.surface_attachments.retrieve(handle).unwrap().clone()
     }
 
     pub fn begin_frame(&mut self, force_recreate: bool) -> Result<RendererFrame, &'static str> {
@@ -240,6 +230,7 @@ impl Renderer {
         let logical_size = self.surface.window().get_inner_size().unwrap();
         let box_pipeline_writing_info = CommandBufferWritingInfo::initialize(
             frame.submitted_commands.iter(),
+            self,
             image_index,
             logical_size.width,
             logical_size.height,
@@ -273,6 +264,7 @@ impl Renderer {
         command_buffer_builder = {
             let glyph_pipeline_writing_info = CommandBufferWritingInfo::initialize(
                 frame.submitted_commands.iter(),
+                self,
                 image_index,
                 logical_size.width,
                 logical_size.height,

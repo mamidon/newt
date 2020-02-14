@@ -1,4 +1,4 @@
-use crate::newt_render::RenderCommand;
+use crate::newt_render::{RenderCommand, Renderer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};
 
 pub mod boxes;
@@ -8,6 +8,7 @@ pub struct CommandBufferWritingInfo<'a, I>
 where
     I: Iterator<Item = &'a RenderCommand>,
 {
+    renderer: &'a Renderer,
     commands: I,
     image_index: usize,
     logical_width: f64,
@@ -20,12 +21,14 @@ where
 {
     pub fn initialize(
         commands: I,
+        renderer: &'a Renderer,
         image_index: usize,
         logical_width: f64,
         logical_height: f64,
     ) -> CommandBufferWritingInfo<'a, I> {
         CommandBufferWritingInfo {
             commands,
+            renderer,
             image_index,
             logical_width,
             logical_height,

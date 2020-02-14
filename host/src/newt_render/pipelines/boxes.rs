@@ -1,5 +1,5 @@
 use crate::newt_render::pipelines::CommandBufferWritingInfo;
-use crate::newt_render::{NewtSurface, RenderCommand};
+use crate::newt_render::RenderCommand;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::pool::standard::StandardCommandPoolBuilder;

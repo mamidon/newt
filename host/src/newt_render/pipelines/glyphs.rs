@@ -1,5 +1,6 @@
+use crate::newt_render::attachments::{AttachmentHandle, GpuSurface};
 use crate::newt_render::pipelines::CommandBufferWritingInfo;
-use crate::newt_render::{NewtSurface, RenderCommand};
+use crate::newt_render::RenderCommand;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::pool::standard::StandardCommandPoolBuilder;
@@ -204,7 +205,7 @@ impl GlyphPipeline {
             .next()
             .unwrap();
 
-        let binding = self.bind_attachment(surface);
+        let binding = self.bind_attachment(&info.renderer.get_gpu_surface(*surface));
 
         BoundAttachments {
             descriptor: binding,
@@ -212,7 +213,7 @@ impl GlyphPipeline {
         }
     }
 
-    fn bind_attachment(&self, surface: &NewtSurface) -> Arc<dyn DescriptorSet + Send + Sync> {
+    fn bind_attachment(&self, surface: &GpuSurface) -> Arc<dyn DescriptorSet + Send + Sync> {
         let sampler = Sampler::new(
             self.pipeline.device().clone(),
             Filter::Linear,
@@ -230,7 +231,7 @@ impl GlyphPipeline {
 
         let ds = Arc::new(
             PersistentDescriptorSet::start(self.pipeline.clone(), 0)
-                .add_sampled_image(surface.0.clone(), sampler.clone())
+                .add_sampled_image(surface.texture(), sampler.clone())
                 .expect("add_sampled_image failed")
                 .build()
                 .expect("build persistent_descriptor_set failed"),

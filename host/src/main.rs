@@ -3,6 +3,7 @@
 extern crate vulkano;
 extern crate vulkano_win;
 
+use crate::newt_render::attachments::HostSurface;
 use crate::newt_render::{RenderCommand, Renderer};
 use png;
 use std::cell::RefCell;
@@ -50,9 +51,7 @@ fn main() {
     let mut image_data = Vec::new();
     image_data.resize((info.height * info.width * 4) as usize, 0);
     reader.next_frame(&mut image_data).unwrap();
-    let surface = renderer
-        .load_image(image_data, info.height as usize, info.width as usize)
-        .expect("load_image failed");
+    let surface = renderer.load_surface(HostSurface::new(&image_data, info.width, info.height));
 
     loop {
         let mut frame = renderer
