@@ -3,5 +3,6 @@
 members = [
 	"newtc",
 	"gen-syntax",
-	"host"
+	"host",
+	"drawing"
 ]
