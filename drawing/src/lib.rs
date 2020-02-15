@@ -1,5 +1,6 @@
 use crate::backend::Gpu;
 use std::marker::PhantomData;
+use vulkano::command_buffer::AutoCommandBufferBuilder;
 
 mod backend;
 
@@ -90,6 +91,7 @@ pub struct DrawingOptions {
 pub struct RasterizedDrawList;
 pub struct MaterialCollection;
 pub struct DrawList {
+    options: DrawingOptions,
     commands: Vec<DrawCommand>,
 }
 
@@ -97,19 +99,19 @@ impl Drawing {
     pub fn initialize(options: DrawingOptions) -> DrawingResult<Self> {
         Ok(Drawing {
             options,
-            backend_gpu: Gpu::initialize()?,
+            backend_gpu: Gpu::initialize(options)?,
         })
     }
 
     pub fn create_draw_list(&self) -> DrawingResult<DrawList> {
-        Ok(DrawList::empty())
+        Ok(DrawList::empty(self.options))
     }
 
     pub fn rasterize_draw_list(
         &mut self,
         _draw_list: DrawList,
     ) -> DrawingResult<RasterizedDrawList> {
-        unimplemented!()
+        let frame = self.backend_gpu.begin_rasterizing();
     }
 }
 
@@ -143,8 +145,9 @@ impl MaterialCollection {
 }
 
 impl DrawList {
-    pub fn empty() -> DrawList {
+    pub fn empty(options: DrawingOptions) -> DrawList {
         DrawList {
+            options,
             commands: Vec::new(),
         }
     }
