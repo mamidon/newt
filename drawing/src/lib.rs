@@ -9,7 +9,7 @@ pub type DrawingResult<T> = Result<T, DrawingError>;
 
 pub type Color = u64;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Brush {
     pub foreground: Color,
     pub background: Color,
@@ -78,6 +78,15 @@ pub enum DrawCommand {
     },
 }
 
+impl DrawCommand {
+    fn is_same_brush(&self, other_brush: &Brush) -> bool {
+        match self {
+            DrawCommand::Shape { brush, .. } => other_brush == brush,
+            _ => false,
+        }
+    }
+}
+
 pub struct Drawing {
     options: DrawingOptions,
     backend_gpu: Gpu,
@@ -112,6 +121,8 @@ impl Drawing {
         _draw_list: DrawList,
     ) -> DrawingResult<RasterizedDrawList> {
         let frame = self.backend_gpu.begin_rasterizing();
+
+        unimplemented!()
     }
 }
 
