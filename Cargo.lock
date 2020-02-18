@@ -300,6 +300,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "host"
 version = "0.1.0"
 dependencies = [
+ "drawing 0.1.0",
  "png 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano-shaders 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",

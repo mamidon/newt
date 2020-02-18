@@ -2,8 +2,11 @@ use crate::backend::shape_pipeline::ShapeVertex;
 use crate::{DrawCommand, DrawList, DrawingOptions, DrawingResult, TextureGreyScale, TextureRGBA};
 use std::convert::TryFrom;
 use std::sync::Arc;
+use std::time::Duration;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};
+use vulkano::command_buffer::{
+    AutoCommandBuffer, AutoCommandBufferBuilder, CommandBuffer, DynamicState,
+};
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract};
 use vulkano::image::Dimensions::Dim2d;
@@ -11,6 +14,7 @@ use vulkano::image::{ImageViewAccess, StorageImage};
 use vulkano::instance::{Instance, PhysicalDevice, QueueFamily};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::GraphicsPipelineAbstract;
+use vulkano::sync::GpuFuture;
 
 pub(crate) struct Gpu {
     options: DrawingOptions,
@@ -27,6 +31,10 @@ pub(crate) struct GpuFrame {
     dynamic_state: DynamicState,
     command_buffer_builder: AutoCommandBufferBuilder,
     shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
+}
+
+pub(crate) struct SealedGpuFrame {
+    commands: AutoCommandBuffer,
 }
 
 impl Gpu {
@@ -135,6 +143,18 @@ impl Gpu {
         )
     }
 
+    pub fn submit_commands(&mut self, sealed_gpu_frame: SealedGpuFrame) {
+        println!("foo");
+        sealed_gpu_frame
+            .commands
+            .execute(self.graphics_queue.clone())
+            .expect("Failed to execute command buffer")
+            .then_signal_fence_and_flush()
+            .expect("Failed to then_signal_fence_and_flush")
+            .wait(Some(Duration::from_millis(5000)))
+            .expect("Failed to wait");
+    }
+
     pub fn load_texture_rgba(&self, texture: &TextureRGBA) -> DrawingResult<()> {
         unimplemented!()
     }
@@ -165,7 +185,7 @@ impl GpuFrame {
         }
     }
 
-    pub fn write_draw_list(mut self, draw_list: &DrawList) -> Self {
+    pub fn build_command_buffer(mut self, draw_list: &DrawList) -> DrawingResult<SealedGpuFrame> {
         let mut iterator = draw_list.commands.iter();
 
         loop {
@@ -175,33 +195,33 @@ impl GpuFrame {
                         let vertices: Vec<ShapeVertex> = vec![
                             ShapeVertex {
                                 position: [-1.0, -1.0],
-                                uv: [-1.0, -1.0],
-                                kind: 1,
+                                uv_input: [-1.0, -1.0],
+                                kind_input: 1,
                             },
                             ShapeVertex {
                                 position: [1.0, -1.0],
-                                uv: [1.0, -1.0],
-                                kind: 1,
+                                uv_input: [1.0, -1.0],
+                                kind_input: 1,
                             },
                             ShapeVertex {
                                 position: [-1.0, 1.0],
-                                uv: [-1.0, 1.0],
-                                kind: 1,
+                                uv_input: [-1.0, 1.0],
+                                kind_input: 1,
                             },
                             ShapeVertex {
                                 position: [1.0, -1.0],
-                                uv: [1.0, -1.0],
-                                kind: 1,
+                                uv_input: [1.0, -1.0],
+                                kind_input: 1,
                             },
                             ShapeVertex {
                                 position: [1.0, 1.0],
-                                uv: [1.0, 1.0],
-                                kind: 1,
+                                uv_input: [1.0, 1.0],
+                                kind_input: 1,
                             },
                             ShapeVertex {
                                 position: [-1.0, 1.0],
-                                uv: [-1.0, 1.0],
-                                kind: 1,
+                                uv_input: [-1.0, 1.0],
+                                kind_input: 1,
                             },
                         ];
 
@@ -229,10 +249,25 @@ impl GpuFrame {
                         break;
                     }
                 }
+            } else {
+                break;
             }
         }
 
-        self
+        let command_buffer = self
+            .command_buffer_builder
+            .end_render_pass()
+            .expect("Failed to end_render_pass")
+            .build()
+            .unwrap();
+
+        Ok(SealedGpuFrame::new(command_buffer))
+    }
+}
+
+impl SealedGpuFrame {
+    pub fn new(commands: AutoCommandBuffer) -> Self {
+        SealedGpuFrame { commands }
     }
 }
 
@@ -246,10 +281,10 @@ mod shape_pipeline {
     #[derive(Default, Debug, Clone)]
     pub struct ShapeVertex {
         pub position: [f32; 2],
-        pub uv: [f32; 2],
-        pub kind: i32,
+        pub uv_input: [f32; 2],
+        pub kind_input: i32,
     }
-    vulkano::impl_vertex!(ShapeVertex, position, uv, kind);
+    vulkano::impl_vertex!(ShapeVertex, position, uv_input, kind_input);
 
     pub fn create_pipeline(
         device: Arc<Device>,
@@ -280,7 +315,7 @@ mod shape_pipeline {
 
             layout(location = 0) in vec2 position;
             layout(location = 1) in vec2 uv_input;
-            layout(location = 2) in int kind_in;
+            layout(location = 2) in int kind_input;
             
             layout(location = 0) out vec2 uv_output;
             layout(location = 1) out int kind_out;
@@ -288,7 +323,7 @@ mod shape_pipeline {
             void main() {
                 gl_Position = vec4(position, 0.0, 1.0);
                 uv_output = uv_input;
-                kind_out = kind_in;
+                kind_out = kind_input;
             }
             "#
         }

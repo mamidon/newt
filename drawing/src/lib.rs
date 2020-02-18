@@ -1,4 +1,4 @@
-use crate::backend::Gpu;
+use crate::backend::{Gpu, SealedGpuFrame};
 use std::marker::PhantomData;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
 
@@ -97,7 +97,9 @@ pub struct DrawingOptions {
     pub width: usize,
     pub height: usize,
 }
-pub struct RasterizedDrawList;
+pub struct SealedDrawList {
+    sealed_frame: SealedGpuFrame,
+}
 pub struct MaterialCollection;
 pub struct DrawList {
     options: DrawingOptions,
@@ -116,13 +118,19 @@ impl Drawing {
         Ok(DrawList::empty(self.options))
     }
 
-    pub fn rasterize_draw_list(
-        &mut self,
-        _draw_list: DrawList,
-    ) -> DrawingResult<RasterizedDrawList> {
+    pub fn seal_draw_list(&self, draw_list: DrawList) -> DrawingResult<SealedDrawList> {
         let frame = self.backend_gpu.begin_rasterizing();
 
-        unimplemented!()
+        let sealed_frame = frame
+            .build_command_buffer(&draw_list)
+            .expect("Failed to build_command_buffer");
+
+        Ok(SealedDrawList::new(sealed_frame))
+    }
+
+    pub fn submit_sealed_draw_list(&mut self, sealed_draw_list: SealedDrawList) {
+        self.backend_gpu
+            .submit_commands(sealed_draw_list.sealed_frame);
     }
 }
 
@@ -168,9 +176,9 @@ impl DrawList {
     }
 }
 
-impl RasterizedDrawList {
-    pub(crate) fn new() -> Self {
-        RasterizedDrawList {}
+impl SealedDrawList {
+    pub(crate) fn new(sealed_frame: SealedGpuFrame) -> Self {
+        SealedDrawList { sealed_frame }
     }
 
     pub fn present_to_screen(&mut self) -> DrawingResult<()> {
@@ -226,12 +234,12 @@ mod tests {
     #[test]
     fn example() {
         let mut harness = Harness::setup();
-
+        println!("create_draw_list");
         let mut draw_list = harness
             .drawing
             .create_draw_list()
             .expect("Failed to create draw list");
-
+        println!("push");
         draw_list.push(DrawCommand::Shape {
             kind: ShapeKind::Ellipse,
             brush: Brush {
@@ -240,12 +248,15 @@ mod tests {
             },
             extent: (64, 64).into(),
         });
+        println!("seal");
 
-        let mut rasterization = harness
+        let sealed_draw_list = harness
             .drawing
-            .rasterize_draw_list(draw_list)
-            .expect("Failed to rasterize draw list");
-
+            .seal_draw_list(draw_list)
+            .expect("Failed to seal draw list");
+        println!("submit");
+        harness.drawing.submit_sealed_draw_list(sealed_draw_list);
+        /*
         let texture = rasterization
             .present_to_texture()
             .expect("Failed to retrieve rasterization");
@@ -256,5 +267,6 @@ mod tests {
                 assert_eq!(0xFF0000FF, pixel);
             }
         }
+        */
     }
 }
