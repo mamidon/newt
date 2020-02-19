@@ -1,10 +1,12 @@
 #![allow(unused)]
 
+extern crate drawing;
 extern crate vulkano;
 extern crate vulkano_win;
 
 use crate::newt_render::attachments::HostSurface;
 use crate::newt_render::{RenderCommand, Renderer};
+use drawing::{Brush, DrawCommand, Drawing, DrawingOptions, Extent, ShapeKind};
 use png;
 use std::cell::RefCell;
 use std::fmt::{Display, Error, Formatter};
@@ -36,10 +38,14 @@ mod newt_render;
 
 fn main() {
     let mut events_loop = EventsLoop::new();
-    let mut renderer: Renderer = newt_render::Renderer::initialize(&events_loop)
-        .ok()
-        .unwrap();
-    let mut force_recreate = false;
+    let mut drawing: Drawing = Drawing::initialize(
+        &events_loop,
+        DrawingOptions {
+            width: 512,
+            height: 512,
+        },
+    )
+    .expect("Failed to initialize Drawing");
 
     let image = include_bytes!("image_img.png").to_vec();
     let decoder = png::Decoder::new(Cursor::new(image));
@@ -51,45 +57,28 @@ fn main() {
     let mut image_data = Vec::new();
     image_data.resize((info.height * info.width * 4) as usize, 0);
     reader.next_frame(&mut image_data).unwrap();
-    let surface = renderer.load_surface(HostSurface::new(&image_data, info.width, info.height));
+    let mut force_recreate = false;
 
     loop {
-        let mut frame = renderer
-            .begin_frame(force_recreate)
-            .expect("begin_frame failed");
+        let mut draw_list = drawing
+            .create_draw_list()
+            .expect("Failed to create_draw_list");
+
+        draw_list.push(DrawCommand::Shape {
+            kind: ShapeKind::Rectangle,
+            extent: Extent::new(100, 100, 10, 10),
+            brush: Brush {
+                foreground: 0xFF0000FF,
+                background: 0x00FF00FF,
+            },
+        });
+
+        let sealed_draw_list = drawing
+            .seal_draw_list(draw_list, force_recreate)
+            .expect("Failed to seal draw list");
         force_recreate = false;
 
-        let mut commands: Vec<RenderCommand> = Vec::new();
-
-        let mut x_offset = 0;
-        let stride = 55;
-        for x in 0..10 {
-            let mut y_offset = 0;
-            for y in 0..10 {
-                if x % 2 == 0 || y % 2 == 0 {
-                    commands.push(RenderCommand::Rectangle {
-                        x: x_offset,
-                        y: y_offset,
-                        width: 50,
-                        height: 50,
-                    });
-                } else {
-                    commands.push(RenderCommand::NewtSurface {
-                        x: x_offset,
-                        y: y_offset,
-                        width: 50,
-                        height: 50,
-                        surface: surface.clone(),
-                    });
-                }
-
-                y_offset += stride;
-            }
-            x_offset += stride;
-        }
-
-        frame.submit_commands(commands);
-        renderer.present(frame);
+        drawing.submit_sealed_draw_list(sealed_draw_list);
 
         let mut done = false;
         events_loop.poll_events(|ev| match ev {
@@ -100,7 +89,9 @@ fn main() {
             Event::WindowEvent {
                 event: WindowEvent::Resized(_),
                 ..
-            } => force_recreate = true,
+            } => {
+                force_recreate = true;
+            }
             _ => (),
         });
         if done {

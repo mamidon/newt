@@ -14,16 +14,23 @@ use vulkano::image::{ImageViewAccess, StorageImage};
 use vulkano::instance::{Instance, PhysicalDevice, QueueFamily};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::GraphicsPipelineAbstract;
+use vulkano::swapchain::{
+    AcquireError, PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainAcquireFuture,
+    SwapchainCreationError,
+};
 use vulkano::sync::GpuFuture;
+use vulkano_win::VkSurfaceBuild;
+use winit::{EventsLoop, Window, WindowBuilder};
 
 pub(crate) struct Gpu {
     options: DrawingOptions,
     instance: Arc<Instance>,
     device: Arc<Device>,
     graphics_queue: Arc<Queue>,
+    surface: Arc<Surface<Window>>,
+    swapchain: Arc<Swapchain<Window>>,
     render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
-    target_buffer: Arc<dyn ImageViewAccess + Send + Sync>,
-    frame_buffer: Arc<dyn FramebufferAbstract + Send + Sync>,
+    frame_buffers: Vec<Arc<dyn FramebufferAbstract + Send + Sync>>,
     shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
 }
 
@@ -31,22 +38,30 @@ pub(crate) struct GpuFrame {
     dynamic_state: DynamicState,
     command_buffer_builder: AutoCommandBufferBuilder,
     shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
+    swapchain_acquisition: SwapchainAcquireFuture<Window>,
+    target_index: usize,
 }
 
 pub(crate) struct SealedGpuFrame {
     commands: AutoCommandBuffer,
+    swapchain_acquisition: SwapchainAcquireFuture<Window>,
+    target_index: usize,
 }
 
 impl Gpu {
-    pub fn initialize(options: DrawingOptions) -> DrawingResult<Gpu> {
+    pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Gpu> {
         let instance = Instance::new(None, &vulkano_win::required_extensions(), None)
             .map_err(|_| "Failed to create Vulkan instance")?;
         let physical_device = PhysicalDevice::enumerate(&instance)
             .next()
             .ok_or("Failed to find a PhysicalDevice")?;
+        let surface = WindowBuilder::new()
+            .with_dimensions((options.width as u32, options.height as u32).into())
+            .build_vk_surface(event_loop, instance.clone())
+            .expect("Failed to build_vk_surface");
         let queue_family = physical_device
             .queue_families()
-            .find(|&qf| qf.supports_graphics())
+            .find(|&qf| qf.supports_graphics() && surface.is_supported(qf).unwrap_or(false))
             .ok_or("Failed to find supported QueueFamily")?;
 
         let required_extensions = DeviceExtensions {
@@ -65,7 +80,43 @@ impl Gpu {
             .next()
             .ok_or("Did not receive a graphics queue with the Vulkan Logical Device")?;
 
-        let format = vulkano::format::Format::R8G8B8A8Srgb;
+        let (mut swapchain, images) = {
+            let capabilities = surface.capabilities(physical_device).unwrap();
+            let usage = capabilities.supported_usage_flags;
+            let alpha = capabilities
+                .supported_composite_alpha
+                .iter()
+                .next()
+                .unwrap();
+            let format = capabilities.supported_formats[0].0;
+            let initial_dimensions = if let Some(dimensions) = surface.window().get_inner_size() {
+                let physical_dimensions: (u32, u32) = dimensions
+                    .to_physical(surface.window().get_hidpi_factor())
+                    .into();
+                [physical_dimensions.0, physical_dimensions.1]
+            } else {
+                return Err("Failed to get inner size of the render target");
+            };
+
+            Swapchain::new(
+                device.clone(),
+                surface.clone(),
+                capabilities.min_image_count,
+                format,
+                initial_dimensions,
+                1,
+                usage,
+                &graphics_queue,
+                SurfaceTransform::Identity,
+                alpha,
+                PresentMode::Fifo,
+                true,
+                None,
+            )
+            .unwrap()
+        };
+
+        let format = swapchain.format();
         let render_pass = Arc::new(
             vulkano::single_pass_renderpass!(
                 device.clone(),
@@ -85,24 +136,18 @@ impl Gpu {
             .expect("Failed to create top level RenderPass"),
         );
 
-        let target_buffer = StorageImage::new(
-            device.clone(),
-            Dim2d {
-                width: options.width as u32,
-                height: options.height as u32,
-            },
-            format,
-            (&[graphics_queue.family()]).iter().cloned(),
-        )
-        .expect("Failed to create rasterization target buffer");
-
-        let frame_buffer = Arc::new(
-            Framebuffer::start(render_pass.clone())
-                .add(target_buffer.clone())
-                .expect("Failed to bind a target buffer to a frame buffer")
-                .build()
-                .expect("Failed to build a frame buffer"),
-        );
+        let frame_buffers: Vec<_> = images
+            .iter()
+            .map(|image| {
+                Arc::new(
+                    Framebuffer::start(render_pass.clone())
+                        .add(image.clone())
+                        .expect("Failed to add image to FrameBuffer")
+                        .build()
+                        .expect("Failed to build FrameBuffer"),
+                ) as Arc<dyn FramebufferAbstract + Send + Sync>
+            })
+            .collect();
 
         let shape_pipeline = shape_pipeline::create_pipeline(device.clone(), render_pass.clone());
 
@@ -111,14 +156,62 @@ impl Gpu {
             instance,
             device,
             graphics_queue,
+            surface,
+            swapchain,
             render_pass,
-            target_buffer,
-            frame_buffer,
+            frame_buffers,
             shape_pipeline,
         })
     }
 
-    pub fn begin_rasterizing(&self) -> GpuFrame {
+    pub fn begin_frame(&mut self, mut force_recreate: bool) -> GpuFrame {
+        while force_recreate {
+            // Get the new dimensions of the window.
+            let dimensions: (u32, u32) = self
+                .surface
+                .window()
+                .get_inner_size()
+                .expect("get_inner_size failed")
+                .to_physical(self.surface.window().get_hidpi_factor())
+                .into();
+
+            let (new_swapchain, new_images) = match self
+                .swapchain
+                .recreate_with_dimension([dimensions.0, dimensions.1])
+            {
+                Ok(r) => r,
+                // This error tends to happen when the user is manually resizing the window.
+                // Simply restarting the loop is the easiest way to fix this issue.
+                Err(SwapchainCreationError::UnsupportedDimensions) => continue,
+                Err(err) => panic!("{:?}", err),
+            };
+
+            self.swapchain = new_swapchain;
+            let frame_buffers: Vec<_> = new_images
+                .iter()
+                .map(|image| {
+                    Arc::new(
+                        Framebuffer::start(self.render_pass.clone())
+                            .add(image.clone())
+                            .expect("Failed to add image to FrameBuffer")
+                            .build()
+                            .expect("Failed to build FrameBuffer"),
+                    ) as Arc<dyn FramebufferAbstract + Send + Sync>
+                })
+                .collect();
+            self.frame_buffers = frame_buffers;
+            force_recreate = false;
+        }
+
+        let (image_index, acquire_future) =
+            match vulkano::swapchain::acquire_next_image(self.swapchain.clone(), None) {
+                Ok(tuple) => tuple,
+                Err(AcquireError::OutOfDate) => {
+                    unimplemented!("Not handling swapchain rebuilding yet");
+                }
+                Err(error) => panic!("{:?}", error),
+            };
+
         let viewports = Viewport {
             origin: [0.0, 0.0],
             dimensions: [self.options.width as f32, self.options.height as f32],
@@ -137,18 +230,24 @@ impl Gpu {
         GpuFrame::new(
             self.device.clone(),
             self.graphics_queue.family(),
-            self.frame_buffer.clone(),
+            self.frame_buffers[image_index].clone(),
+            image_index,
             dynamic_state,
             self.shape_pipeline.clone(),
+            acquire_future,
         )
     }
 
-    pub fn submit_commands(&mut self, sealed_gpu_frame: SealedGpuFrame) {
-        println!("foo");
+    pub fn end_frame(&mut self, sealed_gpu_frame: SealedGpuFrame) {
         sealed_gpu_frame
-            .commands
-            .execute(self.graphics_queue.clone())
-            .expect("Failed to execute command buffer")
+            .swapchain_acquisition
+            .then_execute(self.graphics_queue.clone(), sealed_gpu_frame.commands)
+            .expect("Failed then_execute")
+            .then_swapchain_present(
+                self.graphics_queue.clone(),
+                self.swapchain.clone(),
+                sealed_gpu_frame.target_index,
+            )
             .then_signal_fence_and_flush()
             .expect("Failed to then_signal_fence_and_flush")
             .wait(Some(Duration::from_millis(5000)))
@@ -169,8 +268,10 @@ impl GpuFrame {
         device: Arc<Device>,
         queue_family: QueueFamily,
         target: Arc<dyn FramebufferAbstract + Send + Sync>,
+        target_index: usize,
         dynamic_state: DynamicState,
         shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
+        swapchain_acquisition: SwapchainAcquireFuture<Window>,
     ) -> GpuFrame {
         let command_buffer_builder =
             AutoCommandBufferBuilder::primary_one_time_submit(device, queue_family)
@@ -182,6 +283,8 @@ impl GpuFrame {
             command_buffer_builder,
             dynamic_state,
             shape_pipeline,
+            swapchain_acquisition,
+            target_index,
         }
     }
 
@@ -191,7 +294,7 @@ impl GpuFrame {
         loop {
             if let Some(head) = iterator.next() {
                 match head {
-                    DrawCommand::Shape { brush, .. } => {
+                    DrawCommand::Shape { brush, .. /* TODO convert from screen coords to device coords */ } => {
                         let vertices: Vec<ShapeVertex> = vec![
                             ShapeVertex {
                                 position: [-1.0, -1.0],
@@ -246,6 +349,7 @@ impl GpuFrame {
                             .expect("Failed to draw shapes");
                     }
                     _ => {
+                        println!("Bailed");
                         break;
                     }
                 }
@@ -261,13 +365,25 @@ impl GpuFrame {
             .build()
             .unwrap();
 
-        Ok(SealedGpuFrame::new(command_buffer))
+        Ok(SealedGpuFrame::new(
+            command_buffer,
+            self.swapchain_acquisition,
+            self.target_index,
+        ))
     }
 }
 
 impl SealedGpuFrame {
-    pub fn new(commands: AutoCommandBuffer) -> Self {
-        SealedGpuFrame { commands }
+    pub fn new(
+        commands: AutoCommandBuffer,
+        swapchain_acquisition: SwapchainAcquireFuture<Window>,
+        target_index: usize,
+    ) -> Self {
+        SealedGpuFrame {
+            commands,
+            swapchain_acquisition,
+            target_index,
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::backend::{Gpu, SealedGpuFrame};
 use std::marker::PhantomData;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
+use winit::EventsLoop;
 
 mod backend;
 
@@ -40,6 +41,17 @@ pub struct Extent {
     y: i64,
     width: u32,
     height: u32,
+}
+
+impl Extent {
+    pub fn new(x: i64, y: i64, width: u32, height: u32) -> Extent {
+        Extent {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
 }
 
 impl From<(u32, u32)> for Extent {
@@ -107,10 +119,10 @@ pub struct DrawList {
 }
 
 impl Drawing {
-    pub fn initialize(options: DrawingOptions) -> DrawingResult<Self> {
+    pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Self> {
         Ok(Drawing {
             options,
-            backend_gpu: Gpu::initialize(options)?,
+            backend_gpu: Gpu::initialize(event_loop, options)?,
         })
     }
 
@@ -118,8 +130,12 @@ impl Drawing {
         Ok(DrawList::empty(self.options))
     }
 
-    pub fn seal_draw_list(&self, draw_list: DrawList) -> DrawingResult<SealedDrawList> {
-        let frame = self.backend_gpu.begin_rasterizing();
+    pub fn seal_draw_list(
+        &mut self,
+        draw_list: DrawList,
+        force_recreate: bool,
+    ) -> DrawingResult<SealedDrawList> {
+        let frame = self.backend_gpu.begin_frame(force_recreate);
 
         let sealed_frame = frame
             .build_command_buffer(&draw_list)
@@ -129,8 +145,7 @@ impl Drawing {
     }
 
     pub fn submit_sealed_draw_list(&mut self, sealed_draw_list: SealedDrawList) {
-        self.backend_gpu
-            .submit_commands(sealed_draw_list.sealed_frame);
+        self.backend_gpu.end_frame(sealed_draw_list.sealed_frame);
     }
 }
 
@@ -217,6 +232,7 @@ impl TextureRGBA {
 #[cfg(test)]
 mod tests {
     use crate::{Brush, DrawCommand, Drawing, DrawingOptions, ShapeKind};
+    use winit::EventsLoop;
 
     struct Harness {
         pub drawing: Drawing,
@@ -225,7 +241,7 @@ mod tests {
     impl Harness {
         fn setup() -> Harness {
             Harness {
-                drawing: Drawing::initialize(DrawingOptions::default())
+                drawing: Drawing::initialize(&EventsLoop::new(), DrawingOptions::default())
                     .expect("Drawing failed to initialize for tests"),
             }
         }
@@ -252,7 +268,7 @@ mod tests {
 
         let sealed_draw_list = harness
             .drawing
-            .seal_draw_list(draw_list)
+            .seal_draw_list(draw_list, false)
             .expect("Failed to seal draw list");
         println!("submit");
         harness.drawing.submit_sealed_draw_list(sealed_draw_list);
