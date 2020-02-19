@@ -34,7 +34,7 @@ fn main() {
 
         draw_list.push(DrawCommand::Shape {
             kind: ShapeKind::Rectangle,
-            extent: Extent::new(100, 100, 10, 10),
+            extent: Extent::new(100, 100, 100, 100),
             brush: Brush {
                 foreground: 0xFF0000FF,
                 background: 0x00FF00FF,

@@ -1,5 +1,6 @@
 use crate::backend::shape_pipeline::ShapeVertex;
 use crate::{DrawCommand, DrawList, DrawingOptions, DrawingResult, TextureGreyScale, TextureRGBA};
+use std::cmp::{max, min};
 use std::convert::TryFrom;
 use std::sync::Arc;
 use std::time::Duration;
@@ -40,6 +41,7 @@ pub(crate) struct GpuFrame {
     shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
     swapchain_acquisition: SwapchainAcquireFuture<Window>,
     target_index: usize,
+    target: Arc<dyn FramebufferAbstract + Send + Sync>,
 }
 
 pub(crate) struct SealedGpuFrame {
@@ -276,7 +278,7 @@ impl GpuFrame {
         let command_buffer_builder =
             AutoCommandBufferBuilder::primary_one_time_submit(device, queue_family)
                 .expect("Failed to create command buffer")
-                .begin_render_pass(target, false, vec![[0.0, 0.0, 1.0, 1.0].into()])
+                .begin_render_pass(target.clone(), false, vec![[0.0, 0.0, 1.0, 1.0].into()])
                 .expect("Failed to begin render pass");
 
         GpuFrame {
@@ -285,44 +287,53 @@ impl GpuFrame {
             shape_pipeline,
             swapchain_acquisition,
             target_index,
+            target,
         }
     }
 
     pub fn build_command_buffer(mut self, draw_list: &DrawList) -> DrawingResult<SealedGpuFrame> {
         let mut iterator = draw_list.commands.iter();
+        let target_width = self.target.width() as f32;
+        let target_height = self.target.height() as f32;
 
         loop {
             if let Some(head) = iterator.next() {
                 match head {
-                    DrawCommand::Shape { brush, .. /* TODO convert from screen coords to device coords */ } => {
+                    DrawCommand::Shape { brush, extent, .. } => {
+                        let left = extent.x as f32 / target_width * 2.0 - 1.0;
+                        let right =
+                            (extent.x + extent.width as i64) as f32 / target_width * 2.0 - 1.0;
+                        let top = extent.y as f32 / target_height * 2.0 - 1.0;
+                        let bottom =
+                            (extent.y + extent.height as i64) as f32 / target_height * 2.0 - 1.0;
                         let vertices: Vec<ShapeVertex> = vec![
                             ShapeVertex {
-                                position: [-1.0, -1.0],
+                                position: [left, top],
                                 uv_input: [-1.0, -1.0],
                                 kind_input: 1,
                             },
                             ShapeVertex {
-                                position: [1.0, -1.0],
+                                position: [right, top],
                                 uv_input: [1.0, -1.0],
                                 kind_input: 1,
                             },
                             ShapeVertex {
-                                position: [-1.0, 1.0],
+                                position: [left, bottom],
                                 uv_input: [-1.0, 1.0],
                                 kind_input: 1,
                             },
                             ShapeVertex {
-                                position: [1.0, -1.0],
+                                position: [right, top],
                                 uv_input: [1.0, -1.0],
                                 kind_input: 1,
                             },
                             ShapeVertex {
-                                position: [1.0, 1.0],
+                                position: [right, bottom],
                                 uv_input: [1.0, 1.0],
                                 kind_input: 1,
                             },
                             ShapeVertex {
-                                position: [-1.0, 1.0],
+                                position: [left, bottom],
                                 uv_input: [-1.0, 1.0],
                                 kind_input: 1,
                             },
