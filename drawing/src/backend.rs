@@ -41,7 +41,7 @@ pub(crate) struct GpuFrame {
     shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
     swapchain_acquisition: SwapchainAcquireFuture<Window>,
     target_index: usize,
-    target: Arc<dyn FramebufferAbstract + Send + Sync>,
+    target_dimensions: [u32; 2],
 }
 
 pub(crate) struct SealedGpuFrame {
@@ -214,9 +214,13 @@ impl Gpu {
                 Err(error) => panic!("{:?}", error),
             };
 
+        let hiDpiFactor = self.surface.window().get_hidpi_factor() as f32;
         let viewports = Viewport {
             origin: [0.0, 0.0],
-            dimensions: [self.options.width as f32, self.options.height as f32],
+            dimensions: [
+                self.options.width as f32 * hiDpiFactor,
+                self.options.height as f32 * hiDpiFactor,
+            ],
             depth_range: 0.0..1.0,
         };
 
@@ -233,6 +237,7 @@ impl Gpu {
             self.device.clone(),
             self.graphics_queue.family(),
             self.frame_buffers[image_index].clone(),
+            [self.options.width as u32, self.options.height as u32],
             image_index,
             dynamic_state,
             self.shape_pipeline.clone(),
@@ -270,6 +275,7 @@ impl GpuFrame {
         device: Arc<Device>,
         queue_family: QueueFamily,
         target: Arc<dyn FramebufferAbstract + Send + Sync>,
+        target_dimensions: [u32; 2],
         target_index: usize,
         dynamic_state: DynamicState,
         shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
@@ -278,7 +284,7 @@ impl GpuFrame {
         let command_buffer_builder =
             AutoCommandBufferBuilder::primary_one_time_submit(device, queue_family)
                 .expect("Failed to create command buffer")
-                .begin_render_pass(target.clone(), false, vec![[0.0, 0.0, 1.0, 1.0].into()])
+                .begin_render_pass(target, false, vec![[0.0, 0.0, 1.0, 1.0].into()])
                 .expect("Failed to begin render pass");
 
         GpuFrame {
@@ -287,14 +293,14 @@ impl GpuFrame {
             shape_pipeline,
             swapchain_acquisition,
             target_index,
-            target,
+            target_dimensions,
         }
     }
 
     pub fn build_command_buffer(mut self, draw_list: &DrawList) -> DrawingResult<SealedGpuFrame> {
         let mut iterator = draw_list.commands.iter();
-        let target_width = self.target.width() as f32;
-        let target_height = self.target.height() as f32;
+        let target_width = self.target_dimensions[0] as f32;
+        let target_height = self.target_dimensions[1] as f32;
 
         loop {
             if let Some(head) = iterator.next() {
@@ -306,6 +312,7 @@ impl GpuFrame {
                         let top = extent.y as f32 / target_height * 2.0 - 1.0;
                         let bottom =
                             (extent.y + extent.height as i64) as f32 / target_height * 2.0 - 1.0;
+
                         let vertices: Vec<ShapeVertex> = vec![
                             ShapeVertex {
                                 position: [left, top],

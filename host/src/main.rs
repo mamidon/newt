@@ -32,14 +32,24 @@ fn main() {
             .create_draw_list()
             .expect("Failed to create_draw_list");
 
-        draw_list.push(DrawCommand::Shape {
-            kind: ShapeKind::Rectangle,
-            extent: Extent::new(100, 100, 100, 100),
-            brush: Brush {
-                foreground: 0xFF0000FF,
-                background: 0x00FF00FF,
-            },
-        });
+        let mut x_offset = 0;
+        let stride = 55;
+        for x in 0..10 {
+            let mut y_offset = 0;
+            for y in 0..10 {
+                draw_list.push(DrawCommand::Shape {
+                    kind: ShapeKind::Rectangle,
+                    extent: Extent::new(x_offset, y_offset, 50, 50),
+                    brush: Brush {
+                        foreground: 0xFF0000FF,
+                        background: 0x00FF00FF,
+                    },
+                });
+
+                y_offset += stride;
+            }
+            x_offset += stride;
+        }
 
         let sealed_draw_list = drawing
             .seal_draw_list(draw_list, force_recreate)
