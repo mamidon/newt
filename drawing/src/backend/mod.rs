@@ -1,20 +1,11 @@
 use crate::backend::shape_pipeline::ShapeVertex;
-use crate::{
-    Color, DrawCommand, DrawList, DrawingOptions, DrawingResult, ShapeKind, TextureGreyScale,
-    TextureRGBA,
-};
-use std::cmp::{max, min};
-use std::convert::TryFrom;
+use crate::{Color, DrawCommand, DrawList, DrawingOptions, DrawingResult, ShapeKind};
 use std::sync::Arc;
 use std::time::Duration;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
-use vulkano::command_buffer::{
-    AutoCommandBuffer, AutoCommandBufferBuilder, CommandBuffer, DynamicState,
-};
+use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder, DynamicState};
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract};
-use vulkano::image::Dimensions::Dim2d;
-use vulkano::image::{ImageViewAccess, StorageImage};
 use vulkano::instance::{Instance, PhysicalDevice, QueueFamily};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::pipeline::GraphicsPipelineAbstract;
@@ -28,7 +19,6 @@ use winit::{EventsLoop, Window, WindowBuilder};
 
 pub(crate) struct Gpu {
     options: DrawingOptions,
-    instance: Arc<Instance>,
     device: Arc<Device>,
     graphics_queue: Arc<Queue>,
     surface: Arc<Surface<Window>>,
@@ -85,7 +75,7 @@ impl Gpu {
             .next()
             .ok_or("Did not receive a graphics queue with the Vulkan Logical Device")?;
 
-        let (mut swapchain, images) = {
+        let (swapchain, images) = {
             let capabilities = surface.capabilities(physical_device).unwrap();
             let usage = capabilities.supported_usage_flags;
             let alpha = capabilities
@@ -158,7 +148,6 @@ impl Gpu {
 
         Ok(Gpu {
             options,
-            instance,
             device,
             graphics_queue,
             surface,
@@ -217,12 +206,12 @@ impl Gpu {
                 Err(error) => panic!("{:?}", error),
             };
 
-        let hiDpiFactor = self.surface.window().get_hidpi_factor() as f32;
+        let hi_dpi_factor = self.surface.window().get_hidpi_factor() as f32;
         let viewports = Viewport {
             origin: [0.0, 0.0],
             dimensions: [
-                self.options.width as f32 * hiDpiFactor,
-                self.options.height as f32 * hiDpiFactor,
+                self.options.width as f32 * hi_dpi_factor,
+                self.options.height as f32 * hi_dpi_factor,
             ],
             depth_range: 0.0..1.0,
         };
@@ -262,14 +251,6 @@ impl Gpu {
             .expect("Failed to then_signal_fence_and_flush")
             .wait(Some(Duration::from_millis(5000)))
             .expect("Failed to wait");
-    }
-
-    pub fn load_texture_rgba(&self, texture: &TextureRGBA) -> DrawingResult<()> {
-        unimplemented!()
-    }
-
-    pub fn load_texture_greyscale(&self, texture: &TextureGreyScale) -> DrawingResult<()> {
-        unimplemented!()
     }
 }
 

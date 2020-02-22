@@ -51,7 +51,7 @@ fn main() {
                         kind: ShapeKind::Ellipse,
                         extent: Extent::new(x_offset, y_offset, 50, 50),
                         brush: Brush {
-                            foreground: 0x00F0FFFF,
+                            foreground: 0x00FF00FF,
                             background: 0x00FF0000,
                         },
                     });

@@ -1,6 +1,4 @@
 use crate::backend::{Gpu, SealedGpuFrame};
-use std::marker::PhantomData;
-use vulkano::command_buffer::AutoCommandBufferBuilder;
 use winit::EventsLoop;
 
 mod backend;
@@ -17,14 +15,9 @@ pub struct Brush {
 }
 pub struct TextureRGBA {
     width: usize,
-    height: usize,
     bytes: Vec<u8>,
 }
-pub struct TextureGreyScale {
-    width: usize,
-    height: usize,
-    bytes: Vec<u8>,
-}
+pub struct TextureGreyScale {}
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 pub struct Handle {
@@ -90,17 +83,7 @@ pub enum DrawCommand {
     },
 }
 
-impl DrawCommand {
-    fn is_same_brush(&self, other_brush: &Brush) -> bool {
-        match self {
-            DrawCommand::Shape { brush, .. } => other_brush == brush,
-            _ => false,
-        }
-    }
-}
-
 pub struct Drawing {
-    options: DrawingOptions,
     backend_gpu: Gpu,
 }
 
@@ -114,20 +97,18 @@ pub struct SealedDrawList {
 }
 pub struct MaterialCollection;
 pub struct DrawList {
-    options: DrawingOptions,
     commands: Vec<DrawCommand>,
 }
 
 impl Drawing {
-    pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Self> {
+    pub fn initialize(event_loop: &EventsLoop, _options: DrawingOptions) -> DrawingResult<Self> {
         Ok(Drawing {
-            options,
-            backend_gpu: Gpu::initialize(event_loop, options)?,
+            backend_gpu: Gpu::initialize(event_loop, _options)?,
         })
     }
 
     pub fn create_draw_list(&self) -> DrawingResult<DrawList> {
-        Ok(DrawList::empty(self.options))
+        Ok(DrawList::empty())
     }
 
     pub fn seal_draw_list(
@@ -179,9 +160,8 @@ impl MaterialCollection {
 }
 
 impl DrawList {
-    pub fn empty(options: DrawingOptions) -> DrawList {
+    pub fn empty() -> DrawList {
         DrawList {
-            options,
             commands: Vec::new(),
         }
     }
@@ -206,12 +186,8 @@ impl SealedDrawList {
 }
 
 impl TextureRGBA {
-    pub fn new(width: usize, height: usize, bytes: Vec<u8>) -> TextureRGBA {
-        TextureRGBA {
-            width,
-            height,
-            bytes,
-        }
+    pub fn new(width: usize, _height: usize, bytes: Vec<u8>) -> TextureRGBA {
+        TextureRGBA { width, bytes }
     }
 
     pub fn get_pixel(&self, x: usize, y: usize) -> u32 {

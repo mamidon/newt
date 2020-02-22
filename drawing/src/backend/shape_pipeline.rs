@@ -1,4 +1,3 @@
-use crate::DrawingResult;
 use std::sync::Arc;
 use vulkano::device::Device;
 use vulkano::framebuffer::{RenderPassAbstract, Subpass};
