@@ -8,7 +8,7 @@ mod backend;
 pub type DrawingError = &'static str;
 pub type DrawingResult<T> = Result<T, DrawingError>;
 
-pub type Color = u64;
+pub type Color = u32;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Brush {

@@ -1,5 +1,8 @@
 use crate::backend::shape_pipeline::ShapeVertex;
-use crate::{DrawCommand, DrawList, DrawingOptions, DrawingResult, TextureGreyScale, TextureRGBA};
+use crate::{
+    Color, DrawCommand, DrawList, DrawingOptions, DrawingResult, ShapeKind, TextureGreyScale,
+    TextureRGBA,
+};
 use std::cmp::{max, min};
 use std::convert::TryFrom;
 use std::sync::Arc;
@@ -305,44 +308,65 @@ impl GpuFrame {
         loop {
             if let Some(head) = iterator.next() {
                 match head {
-                    DrawCommand::Shape { brush, extent, .. } => {
+                    DrawCommand::Shape {
+                        brush,
+                        extent,
+                        kind,
+                    } => {
                         let left = extent.x as f32 / target_width * 2.0 - 1.0;
                         let right =
                             (extent.x + extent.width as i64) as f32 / target_width * 2.0 - 1.0;
                         let top = extent.y as f32 / target_height * 2.0 - 1.0;
                         let bottom =
                             (extent.y + extent.height as i64) as f32 / target_height * 2.0 - 1.0;
+                        let kind_input = match kind {
+                            ShapeKind::Rectangle => 1,
+                            ShapeKind::Ellipse => 2,
+                            ShapeKind::Line => 3,
+                        };
 
                         let vertices: Vec<ShapeVertex> = vec![
                             ShapeVertex {
                                 position: [left, top],
                                 uv_input: [-1.0, -1.0],
-                                kind_input: 1,
+                                kind_input,
+                                foreground_input: self.to_color(brush.foreground),
+                                background_input: self.to_color(brush.background),
                             },
                             ShapeVertex {
                                 position: [right, top],
                                 uv_input: [1.0, -1.0],
-                                kind_input: 1,
+                                kind_input,
+                                foreground_input: self.to_color(brush.foreground),
+                                background_input: self.to_color(brush.background),
                             },
                             ShapeVertex {
                                 position: [left, bottom],
                                 uv_input: [-1.0, 1.0],
-                                kind_input: 1,
+                                kind_input,
+                                foreground_input: self.to_color(brush.foreground),
+                                background_input: self.to_color(brush.background),
                             },
                             ShapeVertex {
                                 position: [right, top],
                                 uv_input: [1.0, -1.0],
-                                kind_input: 1,
+                                kind_input,
+                                foreground_input: self.to_color(brush.foreground),
+                                background_input: self.to_color(brush.background),
                             },
                             ShapeVertex {
                                 position: [right, bottom],
                                 uv_input: [1.0, 1.0],
-                                kind_input: 1,
+                                kind_input,
+                                foreground_input: self.to_color(brush.foreground),
+                                background_input: self.to_color(brush.background),
                             },
                             ShapeVertex {
                                 position: [left, bottom],
                                 uv_input: [-1.0, 1.0],
-                                kind_input: 1,
+                                kind_input,
+                                foreground_input: self.to_color(brush.foreground),
+                                background_input: self.to_color(brush.background),
                             },
                         ];
 
@@ -389,6 +413,14 @@ impl GpuFrame {
             self.target_index,
         ))
     }
+
+    fn to_color(&self, color: Color) -> [f32; 4] {
+        let red = ((color & 0xFF000000) >> 24) as f32 / 255.0;
+        let green = ((color & 0x00FF0000) >> 16) as f32 / 255.0;
+        let blue = ((color & 0x0000FF00) >> 8) as f32 / 255.0;
+        let alpha = (color & 0x000000FF) as f32 / 255.0;
+        return [red, green, blue, alpha];
+    }
 }
 
 impl SealedGpuFrame {
@@ -417,8 +449,17 @@ mod shape_pipeline {
         pub position: [f32; 2],
         pub uv_input: [f32; 2],
         pub kind_input: i32,
+        pub foreground_input: [f32; 4],
+        pub background_input: [f32; 4],
     }
-    vulkano::impl_vertex!(ShapeVertex, position, uv_input, kind_input);
+    vulkano::impl_vertex!(
+        ShapeVertex,
+        position,
+        uv_input,
+        kind_input,
+        foreground_input,
+        background_input
+    );
 
     pub fn create_pipeline(
         device: Arc<Device>,
@@ -450,14 +491,20 @@ mod shape_pipeline {
             layout(location = 0) in vec2 position;
             layout(location = 1) in vec2 uv_input;
             layout(location = 2) in int kind_input;
+            layout(location = 3) in vec4 foreground_input;
+            layout(location = 4) in vec4 background_input;
             
             layout(location = 0) out vec2 uv_output;
             layout(location = 1) out int kind_out;
+            layout(location = 2) out vec4 foreground_out;
+            layout(location = 3) out vec4 background_out;
             
             void main() {
                 gl_Position = vec4(position, 0.0, 1.0);
                 uv_output = uv_input;
                 kind_out = kind_input;
+                foreground_out = foreground_input;
+                background_out = background_input;
             }
             "#
         }
@@ -469,16 +516,31 @@ mod shape_pipeline {
             src: r#"
             #version 450
 
+            #define KIND_RECTANGLE (1)
+            #define KIND_CIRCLE (2)
+            
             layout(location = 0) in vec2 uv_in;
             layout(location = 1) flat in int kind_in;
+            layout(location = 2) flat in vec4 foreground_in;
+            layout(location = 3) flat in vec4 background_in;
             
             layout(location = 0) out vec4 color_out;
 
             void main() {
-                if (abs(uv_in.x) < 0.05 && abs(uv_in.y) < 0.05) {
-                    color_out = vec4(1.0, 0.0, 0.0, 1.0);
+                if (kind_in == KIND_RECTANGLE) {
+                    if (abs(uv_in.x) < 1.0 && abs(uv_in.y) < 1.0) {
+                        color_out = foreground_in;
+                    } else {
+                        color_out = background_in;
+                    }
+                } else if (kind_in == KIND_CIRCLE) {
+                    if (abs(uv_in.x)*abs(uv_in.x) + abs(uv_in.y)*abs(uv_in.y) < 1.0) {
+                        color_out = foreground_in;
+                    } else {
+                        color_out = background_in;
+                    }
                 } else {
-                    color_out = vec4(0.0, 1.0, 0.0, 1.0);
+                    color_out = vec4(1.0, 0.0, 1.0, 1.0);
                 }
             }
             "#

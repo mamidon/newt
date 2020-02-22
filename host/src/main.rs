@@ -37,14 +37,25 @@ fn main() {
         for x in 0..10 {
             let mut y_offset = 0;
             for y in 0..10 {
-                draw_list.push(DrawCommand::Shape {
-                    kind: ShapeKind::Rectangle,
-                    extent: Extent::new(x_offset, y_offset, 50, 50),
-                    brush: Brush {
-                        foreground: 0xFF0000FF,
-                        background: 0x00FF00FF,
-                    },
-                });
+                if x % 2 == 0 && y % 2 == 0 {
+                    draw_list.push(DrawCommand::Shape {
+                        kind: ShapeKind::Rectangle,
+                        extent: Extent::new(x_offset, y_offset, 50, 50),
+                        brush: Brush {
+                            foreground: 0xFF0000FF,
+                            background: 0x00FF00FF,
+                        },
+                    });
+                } else {
+                    draw_list.push(DrawCommand::Shape {
+                        kind: ShapeKind::Ellipse,
+                        extent: Extent::new(x_offset, y_offset, 50, 50),
+                        brush: Brush {
+                            foreground: 0x00F0FFFF,
+                            background: 0x00FF0000,
+                        },
+                    });
+                }
 
                 y_offset += stride;
             }
