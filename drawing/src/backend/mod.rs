@@ -1,4 +1,4 @@
-use crate::backend::shape_pipeline::ShapeVertex;
+use crate::backend::pipelines::shape_pipeline::ShapeVertex;
 use crate::{Color, DrawCommand, DrawList, DrawingOptions, DrawingResult, ShapeKind};
 use std::sync::Arc;
 use std::time::Duration;
@@ -16,6 +16,8 @@ use vulkano::swapchain::{
 use vulkano::sync::GpuFuture;
 use vulkano_win::VkSurfaceBuild;
 use winit::{EventsLoop, Window, WindowBuilder};
+
+mod pipelines;
 
 pub(crate) struct Gpu {
     options: DrawingOptions,
@@ -144,7 +146,8 @@ impl Gpu {
             })
             .collect();
 
-        let shape_pipeline = shape_pipeline::create_pipeline(device.clone(), render_pass.clone());
+        let shape_pipeline =
+            pipelines::shape_pipeline::create_pipeline(device.clone(), render_pass.clone());
 
         Ok(Gpu {
             options,
@@ -417,5 +420,3 @@ impl SealedGpuFrame {
         }
     }
 }
-
-mod shape_pipeline;
