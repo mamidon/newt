@@ -1,14 +1,12 @@
-use crate::backend::pipelines::shape_pipeline::ShapeVertex;
-use crate::{Color, DrawCommand, DrawList, DrawingOptions, DrawingResult, ShapeKind};
+use crate::backend::pipelines::GpuPipelines;
+use crate::{DrawList, DrawingOptions, DrawingResult};
 use std::sync::Arc;
 use std::time::Duration;
-use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder, DynamicState};
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract};
 use vulkano::instance::{Instance, PhysicalDevice, QueueFamily};
 use vulkano::pipeline::viewport::Viewport;
-use vulkano::pipeline::GraphicsPipelineAbstract;
 use vulkano::swapchain::{
     AcquireError, PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainAcquireFuture,
     SwapchainCreationError,
@@ -27,13 +25,13 @@ pub(crate) struct Gpu {
     swapchain: Arc<Swapchain<Window>>,
     render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
     frame_buffers: Vec<Arc<dyn FramebufferAbstract + Send + Sync>>,
-    shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
+    pipelines: GpuPipelines,
 }
 
 pub(crate) struct GpuFrame {
     dynamic_state: DynamicState,
     command_buffer_builder: AutoCommandBufferBuilder,
-    shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
+    pipelines: GpuPipelines,
     swapchain_acquisition: SwapchainAcquireFuture<Window>,
     target_index: usize,
     target_dimensions: [u32; 2],
@@ -146,8 +144,7 @@ impl Gpu {
             })
             .collect();
 
-        let shape_pipeline =
-            pipelines::shape_pipeline::create_pipeline(device.clone(), render_pass.clone());
+        let pipelines = GpuPipelines::new(device.clone(), render_pass.clone());
 
         Ok(Gpu {
             options,
@@ -157,7 +154,7 @@ impl Gpu {
             swapchain,
             render_pass,
             frame_buffers,
-            shape_pipeline,
+            pipelines,
         })
     }
 
@@ -235,7 +232,7 @@ impl Gpu {
             [self.options.width as u32, self.options.height as u32],
             image_index,
             dynamic_state,
-            self.shape_pipeline.clone(),
+            self.pipelines.clone(),
             acquire_future,
         )
     }
@@ -265,7 +262,7 @@ impl GpuFrame {
         target_dimensions: [u32; 2],
         target_index: usize,
         dynamic_state: DynamicState,
-        shape_pipeline: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
+        pipelines: GpuPipelines,
         swapchain_acquisition: SwapchainAcquireFuture<Window>,
     ) -> GpuFrame {
         let command_buffer_builder =
@@ -277,7 +274,7 @@ impl GpuFrame {
         GpuFrame {
             command_buffer_builder,
             dynamic_state,
-            shape_pipeline,
+            pipelines,
             swapchain_acquisition,
             target_index,
             target_dimensions,
@@ -291,94 +288,16 @@ impl GpuFrame {
 
         loop {
             if let Some(head) = iterator.next() {
-                match head {
-                    DrawCommand::Shape {
-                        brush,
-                        extent,
-                        kind,
-                    } => {
-                        let left = extent.x as f32 / target_width * 2.0 - 1.0;
-                        let right =
-                            (extent.x + extent.width as i64) as f32 / target_width * 2.0 - 1.0;
-                        let top = extent.y as f32 / target_height * 2.0 - 1.0;
-                        let bottom =
-                            (extent.y + extent.height as i64) as f32 / target_height * 2.0 - 1.0;
-                        let kind_input = match kind {
-                            ShapeKind::Rectangle => 1,
-                            ShapeKind::Ellipse => 2,
-                            ShapeKind::Line => 3,
-                        };
-
-                        let vertices: Vec<ShapeVertex> = vec![
-                            ShapeVertex {
-                                position: [left, top],
-                                uv_input: [-1.0, -1.0],
-                                kind_input,
-                                foreground_input: self.to_color(brush.foreground),
-                                background_input: self.to_color(brush.background),
-                            },
-                            ShapeVertex {
-                                position: [right, top],
-                                uv_input: [1.0, -1.0],
-                                kind_input,
-                                foreground_input: self.to_color(brush.foreground),
-                                background_input: self.to_color(brush.background),
-                            },
-                            ShapeVertex {
-                                position: [left, bottom],
-                                uv_input: [-1.0, 1.0],
-                                kind_input,
-                                foreground_input: self.to_color(brush.foreground),
-                                background_input: self.to_color(brush.background),
-                            },
-                            ShapeVertex {
-                                position: [right, top],
-                                uv_input: [1.0, -1.0],
-                                kind_input,
-                                foreground_input: self.to_color(brush.foreground),
-                                background_input: self.to_color(brush.background),
-                            },
-                            ShapeVertex {
-                                position: [right, bottom],
-                                uv_input: [1.0, 1.0],
-                                kind_input,
-                                foreground_input: self.to_color(brush.foreground),
-                                background_input: self.to_color(brush.background),
-                            },
-                            ShapeVertex {
-                                position: [left, bottom],
-                                uv_input: [-1.0, 1.0],
-                                kind_input,
-                                foreground_input: self.to_color(brush.foreground),
-                                background_input: self.to_color(brush.background),
-                            },
-                        ];
-
-                        let vertex_buffer: Vec<Arc<dyn BufferAccess + Send + Sync + 'static>> = {
-                            vec![CpuAccessibleBuffer::from_iter(
-                                self.shape_pipeline.device().clone(),
-                                BufferUsage::all(),
-                                vertices.into_iter(),
-                            )
-                            .unwrap()]
-                        };
-
-                        self.command_buffer_builder = self
-                            .command_buffer_builder
-                            .draw(
-                                self.shape_pipeline.clone(),
-                                &self.dynamic_state,
-                                vertex_buffer,
-                                (),
-                                (),
-                            )
-                            .expect("Failed to draw shapes");
-                    }
-                    _ => {
-                        println!("Bailed");
-                        break;
-                    }
-                }
+                let (tail, builder) = self.pipelines.write_commands(
+                    target_width,
+                    target_height,
+                    self.dynamic_state.clone(),
+                    head,
+                    iterator,
+                    self.command_buffer_builder,
+                );
+                iterator = tail;
+                self.command_buffer_builder = builder;
             } else {
                 break;
             }
@@ -396,14 +315,6 @@ impl GpuFrame {
             self.swapchain_acquisition,
             self.target_index,
         ))
-    }
-
-    fn to_color(&self, color: Color) -> [f32; 4] {
-        let red = ((color & 0xFF000000) >> 24) as f32 / 255.0;
-        let green = ((color & 0x00FF0000) >> 16) as f32 / 255.0;
-        let blue = ((color & 0x0000FF00) >> 8) as f32 / 255.0;
-        let alpha = (color & 0x000000FF) as f32 / 255.0;
-        return [red, green, blue, alpha];
     }
 }
 
