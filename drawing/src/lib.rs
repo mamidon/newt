@@ -1,4 +1,5 @@
 use crate::backend::{Gpu, SealedGpuFrame};
+use std::collections::HashMap;
 use winit::EventsLoop;
 
 mod backend;
@@ -65,22 +66,27 @@ pub enum ShapeKind {
     Line,
 }
 
-#[derive(Copy, Clone)]
-pub enum DrawCommand {
-    Shape {
-        brush: Brush,
-        kind: ShapeKind,
-        extent: Extent,
-    },
-    Glyph {
-        texture: TextureId,
-        extent: Extent,
-    },
-    Mask {
-        mask: MaskId,
-        brush: Brush,
-        extent: Extent,
-    },
+#[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
+enum DrawCommandKind {
+    Shape,
+    Glyph(TextureId),
+    Mask(MaskId),
+}
+
+struct ShapeDrawData {
+    kind: ShapeKind,
+    brush: Brush,
+    extent: Extent,
+}
+
+struct GlyphDrawData {
+    texture: TextureId,
+    extent: Extent,
+}
+
+struct MaskDrawData {
+    brush: Brush,
+    extent: Extent,
 }
 
 pub struct Drawing {
@@ -97,7 +103,9 @@ pub struct SealedDrawList {
 }
 pub struct MaterialCollection;
 pub struct DrawList {
-    commands: Vec<DrawCommand>,
+    shapes: Vec<ShapeDrawData>,
+    glyphs: HashMap<DrawCommandKind, Vec<GlyphDrawData>>,
+    masks: HashMap<DrawCommandKind, Vec<MaskDrawData>>,
 }
 
 impl Drawing {
@@ -162,12 +170,30 @@ impl MaterialCollection {
 impl DrawList {
     pub fn empty() -> DrawList {
         DrawList {
-            commands: Vec::new(),
+            shapes: Vec::new(),
+            glyphs: HashMap::new(),
+            masks: HashMap::new(),
         }
     }
 
-    pub fn push(&mut self, command: DrawCommand) {
-        self.commands.push(command)
+    pub fn push_shape(&mut self, kind: ShapeKind, brush: Brush, extent: Extent) {
+        self.shapes.push(ShapeDrawData {
+            kind,
+            brush,
+            extent,
+        });
+    }
+
+    pub fn push_glyph(&mut self, texture: TextureId, extent: Extent) {
+        let key = DrawCommandKind::Glyph(texture);
+        let data = GlyphDrawData { texture, extent };
+        self.glyphs.entry(key).or_insert(Vec::new()).push(data);
+    }
+
+    pub fn push_mask(&mut self, mask: MaskId, brush: Brush, extent: Extent) {
+        let key = DrawCommandKind::Mask(mask);
+        let data = MaskDrawData { brush, extent };
+        self.masks.entry(key).or_insert(Vec::new()).push(data);
     }
 }
 

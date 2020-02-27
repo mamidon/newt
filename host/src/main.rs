@@ -38,23 +38,23 @@ fn main() {
             let mut y_offset = 0;
             for y in 0..10 {
                 if x % 2 == 0 && y % 2 == 0 {
-                    draw_list.push(DrawCommand::Shape {
-                        kind: ShapeKind::Rectangle,
-                        extent: Extent::new(x_offset, y_offset, 50, 50),
-                        brush: Brush {
+                    draw_list.push_shape(
+                        ShapeKind::Rectangle,
+                        Brush {
                             foreground: 0xFF0000FF,
                             background: 0x00FF00FF,
                         },
-                    });
+                        Extent::new(x_offset, y_offset, 50, 50),
+                    );
                 } else {
-                    draw_list.push(DrawCommand::Shape {
-                        kind: ShapeKind::Ellipse,
-                        extent: Extent::new(x_offset, y_offset, 50, 50),
-                        brush: Brush {
+                    draw_list.push_shape(
+                        ShapeKind::Ellipse,
+                        Brush {
                             foreground: 0x00FF00FF,
                             background: 0x00FF0000,
                         },
-                    });
+                        Extent::new(x_offset, y_offset, 50, 50),
+                    );
                 }
 
                 y_offset += stride;

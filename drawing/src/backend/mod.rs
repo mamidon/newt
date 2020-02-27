@@ -282,29 +282,12 @@ impl GpuFrame {
     }
 
     pub fn build_command_buffer(mut self, draw_list: &DrawList) -> DrawingResult<SealedGpuFrame> {
-        let mut iterator = draw_list.commands.iter();
         let target_width = self.target_dimensions[0] as f32;
         let target_height = self.target_dimensions[1] as f32;
 
-        loop {
-            if let Some(head) = iterator.next() {
-                let (tail, builder) = self.pipelines.write_commands(
-                    target_width,
-                    target_height,
-                    self.dynamic_state.clone(),
-                    head,
-                    iterator,
-                    self.command_buffer_builder,
-                );
-                iterator = tail;
-                self.command_buffer_builder = builder;
-            } else {
-                break;
-            }
-        }
+        let command_buffer_builder = self.pipelines.write_commands(&mut self, &draw_list);
 
-        let command_buffer = self
-            .command_buffer_builder
+        let command_buffer = command_buffer_builder
             .end_render_pass()
             .expect("Failed to end_render_pass")
             .build()
