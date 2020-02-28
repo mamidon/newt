@@ -1,6 +1,6 @@
 use crate::backend::pipelines::shape_pipeline::ShapeVertex;
 use crate::backend::GpuFrame;
-use crate::{Color, DrawCommand, DrawList, ShapeDrawData, ShapeKind};
+use crate::{Color, DrawList, ShapeDrawData, ShapeKind};
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, DynamicState};
@@ -25,13 +25,16 @@ impl GpuPipelines {
         }
     }
 
-    pub fn write_commands<'a, C>(
+    pub fn write_commands(
         &self,
-        frame: &mut GpuFrame,
+        target_width: f32,
+        target_height: f32,
+        dynamic_state: &DynamicState,
+        mut command_buffer_builder: AutoCommandBufferBuilder,
         draw_list: &DrawList,
     ) -> AutoCommandBufferBuilder {
-        let shape_vertices: Vec<ShapeVertex> = Vec::new();
-        for shape in draw_list.shapes {
+        let mut shape_vertices: Vec<ShapeVertex> = Vec::new();
+        for shape in draw_list.shapes.iter() {
             let ShapeDrawData {
                 brush,
                 extent,
@@ -97,12 +100,12 @@ impl GpuPipelines {
             vec![CpuAccessibleBuffer::from_iter(
                 self.shapes.device().clone(),
                 BufferUsage::all(),
-                vertices.into_iter(),
+                shape_vertices.into_iter(),
             )
             .unwrap()]
         };
 
-        command_buffer_builder = frame
+        command_buffer_builder = command_buffer_builder
             .draw(self.shapes.clone(), &dynamic_state, vertex_buffer, (), ())
             .expect("Failed to draw shapes");
 

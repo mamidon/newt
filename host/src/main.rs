@@ -2,7 +2,7 @@
 
 extern crate drawing;
 
-use drawing::{Brush, DrawCommand, Drawing, DrawingOptions, Extent, ShapeKind};
+use drawing::{Brush, Drawing, DrawingOptions, Extent, ShapeKind};
 use png;
 use std::io::Cursor;
 

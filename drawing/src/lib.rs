@@ -1,5 +1,6 @@
 use crate::backend::{Gpu, SealedGpuFrame};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use winit::EventsLoop;
 
 mod backend;
@@ -20,7 +21,7 @@ pub struct TextureRGBA {
 }
 pub struct TextureGreyScale {}
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Hash)]
 pub struct Handle {
     generation: usize,
     key: usize,
@@ -66,7 +67,7 @@ pub enum ShapeKind {
     Line,
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Hash)]
 enum DrawCommandKind {
     Shape,
     Glyph(TextureId),

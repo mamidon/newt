@@ -30,9 +30,11 @@ pub(crate) struct Gpu {
 
 pub(crate) struct GpuFrame {
     dynamic_state: DynamicState,
-    command_buffer_builder: AutoCommandBufferBuilder,
+    device: Arc<Device>,
+    graphics_queue: Arc<Queue>,
     pipelines: GpuPipelines,
     swapchain_acquisition: SwapchainAcquireFuture<Window>,
+    target: Arc<dyn FramebufferAbstract + Send + Sync>,
     target_index: usize,
     target_dimensions: [u32; 2],
 }
@@ -227,7 +229,7 @@ impl Gpu {
 
         GpuFrame::new(
             self.device.clone(),
-            self.graphics_queue.family(),
+            self.graphics_queue.clone(),
             self.frame_buffers[image_index].clone(),
             [self.options.width as u32, self.options.height as u32],
             image_index,
@@ -257,7 +259,7 @@ impl Gpu {
 impl GpuFrame {
     pub fn new(
         device: Arc<Device>,
-        queue_family: QueueFamily,
+        graphics_queue: Arc<Queue>,
         target: Arc<dyn FramebufferAbstract + Send + Sync>,
         target_dimensions: [u32; 2],
         target_index: usize,
@@ -265,27 +267,41 @@ impl GpuFrame {
         pipelines: GpuPipelines,
         swapchain_acquisition: SwapchainAcquireFuture<Window>,
     ) -> GpuFrame {
-        let command_buffer_builder =
-            AutoCommandBufferBuilder::primary_one_time_submit(device, queue_family)
-                .expect("Failed to create command buffer")
-                .begin_render_pass(target, false, vec![[0.0, 0.0, 1.0, 1.0].into()])
-                .expect("Failed to begin render pass");
-
         GpuFrame {
-            command_buffer_builder,
+            device,
+            graphics_queue,
             dynamic_state,
             pipelines,
             swapchain_acquisition,
+            target,
             target_index,
             target_dimensions,
         }
     }
 
-    pub fn build_command_buffer(mut self, draw_list: &DrawList) -> DrawingResult<SealedGpuFrame> {
+    pub fn build_command_buffer(self, draw_list: &DrawList) -> DrawingResult<SealedGpuFrame> {
         let target_width = self.target_dimensions[0] as f32;
         let target_height = self.target_dimensions[1] as f32;
 
-        let command_buffer_builder = self.pipelines.write_commands(&mut self, &draw_list);
+        let mut command_buffer_builder = AutoCommandBufferBuilder::primary_one_time_submit(
+            self.device.clone(),
+            self.graphics_queue.family(),
+        )
+        .expect("Failed to create command buffer")
+        .begin_render_pass(
+            self.target.clone(),
+            false,
+            vec![[0.0, 0.0, 1.0, 1.0].into()],
+        )
+        .expect("Failed to begin render pass");
+
+        command_buffer_builder = self.pipelines.write_commands(
+            target_width,
+            target_height,
+            &self.dynamic_state,
+            command_buffer_builder,
+            &draw_list,
+        );
 
         let command_buffer = command_buffer_builder
             .end_render_pass()
