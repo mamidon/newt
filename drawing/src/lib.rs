@@ -1,6 +1,7 @@
-use crate::backend::{Gpu, SealedGpuFrame};
+use crate::backend::{Gpu, GpuSurface, SealedGpuFrame};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use vulkano::image::Dimensions;
 use winit::EventsLoop;
 
 mod backend;
@@ -27,8 +28,28 @@ pub struct Handle {
     key: usize,
 }
 
-pub type TextureId = Handle;
+pub type SurfaceId = Handle;
 pub type MaskId = Handle;
+
+impl Handle {
+    pub fn new(start_from: usize) -> Handle {
+        Handle {
+            generation: 0,
+            key: start_from,
+        }
+    }
+
+    pub fn next(&mut self) -> Handle {
+        let next = Handle {
+            generation: self.generation,
+            key: self.key,
+        };
+
+        self.key += 1;
+
+        next
+    }
+}
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub struct Extent {
@@ -70,7 +91,7 @@ pub enum ShapeKind {
 #[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Hash)]
 enum DrawCommandKind {
     Shape,
-    Glyph(TextureId),
+    Glyph(SurfaceId),
     Mask(MaskId),
 }
 
@@ -81,7 +102,6 @@ struct ShapeDrawData {
 }
 
 struct GlyphDrawData {
-    texture: TextureId,
     extent: Extent,
 }
 
@@ -92,6 +112,12 @@ struct MaskDrawData {
 
 pub struct Drawing {
     backend_gpu: Gpu,
+    resources_table: DrawingResourcesTable,
+}
+
+pub(crate) struct DrawingResourcesTable {
+    key_source: Handle,
+    surfaces: HashMap<SurfaceId, GpuSurface>,
 }
 
 #[derive(Copy, Clone)]
@@ -113,6 +139,7 @@ impl Drawing {
     pub fn initialize(event_loop: &EventsLoop, _options: DrawingOptions) -> DrawingResult<Self> {
         Ok(Drawing {
             backend_gpu: Gpu::initialize(event_loop, _options)?,
+            resources_table: DrawingResourcesTable::new(),
         })
     }
 
@@ -137,6 +164,18 @@ impl Drawing {
     pub fn submit_sealed_draw_list(&mut self, sealed_draw_list: SealedDrawList) {
         self.backend_gpu.end_frame(sealed_draw_list.sealed_frame);
     }
+
+    pub fn load_rgba_texture(
+        &mut self,
+        width: u32,
+        height: u32,
+        bytes: &[u8],
+    ) -> DrawingResult<SurfaceId> {
+        let gpu_surface = self.backend_gpu.load_surface(width, height, bytes)?;
+        let handle = self.resources_table.register_surface(gpu_surface.clone());
+
+        Ok(handle)
+    }
 }
 
 impl Default for DrawingOptions {
@@ -148,6 +187,21 @@ impl Default for DrawingOptions {
     }
 }
 
+impl DrawingResourcesTable {
+    pub fn new() -> DrawingResourcesTable {
+        DrawingResourcesTable {
+            key_source: Handle::new(0),
+            surfaces: HashMap::new(),
+        }
+    }
+
+    pub fn register_surface(&mut self, surface: GpuSurface) -> SurfaceId {
+        let key = self.key_source.next();
+        self.surfaces.entry(key).or_insert(surface.clone());
+        key
+    }
+}
+
 impl MaterialCollection {
     pub fn new() -> DrawingResult<MaterialCollection> {
         Ok(MaterialCollection {})
@@ -156,7 +210,7 @@ impl MaterialCollection {
     pub fn create_material_glyph(
         &mut self,
         _material: impl Into<TextureRGBA>,
-    ) -> DrawingResult<TextureId> {
+    ) -> DrawingResult<SurfaceId> {
         unimplemented!()
     }
 
@@ -185,9 +239,9 @@ impl DrawList {
         });
     }
 
-    pub fn push_glyph(&mut self, texture: TextureId, extent: Extent) {
-        let key = DrawCommandKind::Glyph(texture);
-        let data = GlyphDrawData { texture, extent };
+    pub fn push_glyph(&mut self, surface: SurfaceId, extent: Extent) {
+        let key = DrawCommandKind::Glyph(surface);
+        let data = GlyphDrawData { extent };
         self.glyphs.entry(key).or_insert(Vec::new()).push(data);
     }
 

@@ -8,7 +8,8 @@ use vulkano::device::Device;
 use vulkano::framebuffer::RenderPassAbstract;
 use vulkano::pipeline::GraphicsPipelineAbstract;
 
-pub mod shape_pipeline;
+mod glyph_pipeline;
+mod shape_pipeline;
 
 type OwnedRenderPass = Arc<dyn RenderPassAbstract + Send + Sync>;
 type OwnedGraphicsPipeline = Arc<dyn GraphicsPipelineAbstract + Send + Sync>;
@@ -16,12 +17,14 @@ type OwnedGraphicsPipeline = Arc<dyn GraphicsPipelineAbstract + Send + Sync>;
 #[derive(Clone)]
 pub struct GpuPipelines {
     shapes: OwnedGraphicsPipeline,
+    glyphs: OwnedGraphicsPipeline,
 }
 
 impl GpuPipelines {
     pub fn new(device: Arc<Device>, render_pass: OwnedRenderPass) -> GpuPipelines {
         GpuPipelines {
-            shapes: shape_pipeline::create_pipeline(device, render_pass),
+            shapes: shape_pipeline::create_pipeline(device.clone(), render_pass.clone()),
+            glyphs: glyph_pipeline::create_pipeline(device.clone(), render_pass.clone()),
         }
     }
 

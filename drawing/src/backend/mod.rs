@@ -1,17 +1,19 @@
 use crate::backend::pipelines::GpuPipelines;
-use crate::{DrawList, DrawingOptions, DrawingResult};
+use crate::{DrawList, DrawingOptions, DrawingResult, SurfaceId};
 use std::sync::Arc;
 use std::time::Duration;
 use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder, DynamicState};
 use vulkano::device::{Device, DeviceExtensions, Queue};
+use vulkano::format::Format;
 use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract};
+use vulkano::image::{Dimensions, ImmutableImage};
 use vulkano::instance::{Instance, PhysicalDevice, QueueFamily};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::swapchain::{
     AcquireError, PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainAcquireFuture,
     SwapchainCreationError,
 };
-use vulkano::sync::GpuFuture;
+use vulkano::sync::{now, GpuFuture};
 use vulkano_win::VkSurfaceBuild;
 use winit::{EventsLoop, Window, WindowBuilder};
 
@@ -45,6 +47,11 @@ pub(crate) struct SealedGpuFrame {
     target_index: usize,
 }
 
+#[derive(Clone)]
+pub(crate) struct GpuSurface {
+    gpu_surface: Arc<ImmutableImage<Format>>,
+}
+
 impl Gpu {
     pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Gpu> {
         let instance = Instance::new(None, &vulkano_win::required_extensions(), None)
@@ -71,7 +78,7 @@ impl Gpu {
             &required_extensions,
             [(queue_family, 0.5)].iter().cloned(),
         )
-        .map_err(|_| "Failed to create a Vulkan Logical Device")?;
+        .expect("Failed to create a Vulkan Logical Device");
 
         let graphics_queue = queues
             .next()
@@ -253,6 +260,26 @@ impl Gpu {
             .expect("Failed to then_signal_fence_and_flush")
             .wait(Some(Duration::from_millis(5000)))
             .expect("Failed to wait");
+    }
+
+    pub fn load_surface(
+        &mut self,
+        width: u32,
+        height: u32,
+        bytes: &[u8],
+    ) -> DrawingResult<GpuSurface> {
+        let dimensions = Dimensions::Dim2d { width, height };
+        let (gpu_surface, loading_future) = ImmutableImage::from_iter(
+            bytes.iter().cloned(),
+            dimensions,
+            Format::R8G8B8A8Srgb,
+            self.graphics_queue.clone(),
+        )
+        .unwrap();
+
+        loading_future.join(now(self.device.clone()));
+
+        Ok(GpuSurface { gpu_surface })
     }
 }
 
