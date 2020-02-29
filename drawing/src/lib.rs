@@ -59,6 +59,11 @@ pub struct Extent {
     height: u32,
 }
 
+pub struct Corners {
+    corner: usize,
+    extent: Extent,
+}
+
 impl Extent {
     pub fn new(x: i64, y: i64, width: u32, height: u32) -> Extent {
         Extent {
@@ -66,6 +71,56 @@ impl Extent {
             y,
             width,
             height,
+        }
+    }
+
+    pub fn corners(&self) -> Corners {
+        Corners {
+            corner: 0,
+            extent: *self,
+        }
+    }
+
+    pub fn logical_device_coordinates(index: usize) -> [f32; 2] {
+        let left = -1.0;
+        let right = 1.0;
+        let top = -1.0;
+        let bottom = 1.0;
+
+        let corner = match index {
+            0 => Some([left, top]),
+            1 => Some([right, top]),
+            2 => Some([left, bottom]),
+            3 => Some([right, top]),
+            4 => Some([right, bottom]),
+            5 => Some([left, bottom]),
+            _ => None,
+        };
+
+        corner.expect("I should probably create an enum for this")
+    }
+}
+
+impl Iterator for Corners {
+    type Item = [i64; 2];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let left = self.extent.x;
+        let right = self.extent.x + self.extent.width as i64;
+        let top = self.extent.y;
+        let bottom = self.extent.y + self.extent.height as i64;
+
+        let corner = self.corner;
+        self.corner += 1;
+
+        match corner {
+            0 => Some([left, top]),
+            1 => Some([right, top]),
+            2 => Some([left, bottom]),
+            3 => Some([right, top]),
+            4 => Some([right, bottom]),
+            5 => Some([left, bottom]),
+            _ => None,
         }
     }
 }
@@ -255,14 +310,6 @@ impl DrawList {
 impl SealedDrawList {
     pub(crate) fn new(sealed_frame: SealedGpuFrame) -> Self {
         SealedDrawList { sealed_frame }
-    }
-
-    pub fn present_to_screen(&mut self) -> DrawingResult<()> {
-        unimplemented!()
-    }
-
-    pub fn present_to_texture(&mut self) -> DrawingResult<TextureRGBA> {
-        unimplemented!()
     }
 }
 

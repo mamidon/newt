@@ -307,34 +307,7 @@ impl GpuFrame {
     }
 
     pub fn build_command_buffer(self, draw_list: &DrawList) -> DrawingResult<SealedGpuFrame> {
-        let target_width = self.target_dimensions[0] as f32;
-        let target_height = self.target_dimensions[1] as f32;
-
-        let mut command_buffer_builder = AutoCommandBufferBuilder::primary_one_time_submit(
-            self.device.clone(),
-            self.graphics_queue.family(),
-        )
-        .expect("Failed to create command buffer")
-        .begin_render_pass(
-            self.target.clone(),
-            false,
-            vec![[0.0, 0.0, 1.0, 1.0].into()],
-        )
-        .expect("Failed to begin render pass");
-
-        command_buffer_builder = self.pipelines.write_commands(
-            target_width,
-            target_height,
-            &self.dynamic_state,
-            command_buffer_builder,
-            &draw_list,
-        );
-
-        let command_buffer = command_buffer_builder
-            .end_render_pass()
-            .expect("Failed to end_render_pass")
-            .build()
-            .unwrap();
+        let command_buffer = self.pipelines.write_commands(&self, &draw_list);
 
         Ok(SealedGpuFrame::new(
             command_buffer,

@@ -1,10 +1,14 @@
+use crate::backend::GpuFrame;
+use crate::{Color, DrawList, DrawingResult, Extent, ShapeDrawData, ShapeKind};
 use std::sync::Arc;
+use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
+use vulkano::command_buffer::AutoCommandBufferBuilder;
 use vulkano::device::Device;
 use vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 
 #[derive(Default, Debug, Clone)]
-pub struct ShapeVertex {
+pub(crate) struct ShapeVertex {
     pub position: [f32; 2],
     pub uv_input: [f32; 2],
     pub kind_input: i32,
@@ -20,25 +24,105 @@ vulkano::impl_vertex!(
     background_input
 );
 
-pub fn create_pipeline(
-    device: Arc<Device>,
-    render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
-) -> Arc<dyn GraphicsPipelineAbstract + Send + Sync> {
-    let vs = vertex_shader::Shader::load(device.clone()).unwrap();
-    let fs = fragment_shader::Shader::load(device.clone()).unwrap();
+#[derive(Clone)]
+pub(crate) struct ShapePipeline {
+    inner: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
+}
 
-    Arc::new(
-        GraphicsPipeline::start()
-            .vertex_input_single_buffer::<ShapeVertex>()
-            .vertex_shader(vs.main_entry_point(), ())
-            .triangle_list()
-            .viewports_dynamic_scissors_irrelevant(1)
-            .fragment_shader(fs.main_entry_point(), ())
-            .blend_alpha_blending()
-            .render_pass(Subpass::from(render_pass, 0).unwrap())
-            .build(device.clone())
-            .unwrap(),
-    )
+impl ShapePipeline {
+    pub fn create_pipeline(
+        device: Arc<Device>,
+        render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
+    ) -> ShapePipeline {
+        let vs = vertex_shader::Shader::load(device.clone()).unwrap();
+        let fs = fragment_shader::Shader::load(device.clone()).unwrap();
+
+        let inner = Arc::new(
+            GraphicsPipeline::start()
+                .vertex_input_single_buffer::<ShapeVertex>()
+                .vertex_shader(vs.main_entry_point(), ())
+                .triangle_list()
+                .viewports_dynamic_scissors_irrelevant(1)
+                .fragment_shader(fs.main_entry_point(), ())
+                .blend_alpha_blending()
+                .render_pass(Subpass::from(render_pass, 0).unwrap())
+                .build(device.clone())
+                .unwrap(),
+        );
+
+        ShapePipeline { inner }
+    }
+
+    pub fn write_commands(
+        &self,
+        frame: &GpuFrame,
+        draw_list: &DrawList,
+        builder: AutoCommandBufferBuilder,
+    ) -> DrawingResult<AutoCommandBufferBuilder> {
+        let mut shape_vertices: Vec<ShapeVertex> = Vec::new();
+
+        for shape in draw_list.shapes.iter() {
+            let ShapeDrawData {
+                brush,
+                extent,
+                kind,
+            } = shape;
+
+            let kind_input = match kind {
+                ShapeKind::Rectangle => 1,
+                ShapeKind::Ellipse => 2,
+                ShapeKind::Line => 3,
+            };
+
+            let corners: Vec<[f32; 2]> = extent
+                .corners()
+                .map(|corner| [corner[0] as f32, corner[1] as f32])
+                .map(|corner| {
+                    [
+                        corner[0] * 2.0 / frame.target_dimensions[0] as f32 - 1.0,
+                        corner[1] * 2.0 / frame.target_dimensions[1] as f32 - 1.0,
+                    ]
+                })
+                .collect();
+
+            for (index, corner) in corners.iter().enumerate() {
+                shape_vertices.push(ShapeVertex {
+                    kind_input,
+                    position: *corner,
+                    uv_input: Extent::logical_device_coordinates(index),
+                    foreground_input: self.to_color(brush.foreground),
+                    background_input: self.to_color(brush.background),
+                })
+            }
+        }
+
+        let vertex_buffer: Vec<Arc<dyn BufferAccess + Send + Sync + 'static>> = {
+            vec![CpuAccessibleBuffer::from_iter(
+                self.inner.device().clone(),
+                BufferUsage::all(),
+                shape_vertices.into_iter(),
+            )
+            .unwrap()]
+        };
+
+        builder
+            .draw(
+                self.inner.clone(),
+                &frame.dynamic_state,
+                vertex_buffer,
+                (),
+                (),
+            )
+            .map_err(|_| "Failed to draw shapes")
+    }
+
+    fn to_color(&self, color: Color) -> [f32; 4] {
+        let red = ((color & 0xFF000000) >> 24) as f32 / 255.0;
+        let green = ((color & 0x00FF0000) >> 16) as f32 / 255.0;
+        let blue = ((color & 0x0000FF00) >> 8) as f32 / 255.0;
+        let alpha = (color & 0x000000FF) as f32 / 255.0;
+        return [red, green, blue, alpha];
+    }
 }
 
 mod vertex_shader {
