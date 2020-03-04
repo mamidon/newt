@@ -1,4 +1,5 @@
-use crate::backend::pipelines::shape_pipeline::{ShapePipeline, ShapeVertex};
+use crate::backend::pipelines::glyph_pipeline::GlyphPipeline;
+use crate::backend::pipelines::shape_pipeline::ShapePipeline;
 use crate::backend::GpuFrame;
 use crate::{Color, DrawList, ShapeDrawData, ShapeKind};
 use std::sync::Arc;
@@ -11,20 +12,19 @@ use vulkano::pipeline::GraphicsPipelineAbstract;
 mod glyph_pipeline;
 mod shape_pipeline;
 
-type OwnedRenderPass = Arc<dyn RenderPassAbstract + Send + Sync>;
-type OwnedGraphicsPipeline = Arc<dyn GraphicsPipelineAbstract + Send + Sync>;
-
 #[derive(Clone)]
 pub struct GpuPipelines {
     shapes: ShapePipeline,
-    glyphs: OwnedGraphicsPipeline,
+    glyphs: GlyphPipeline,
 }
+
+type OwnedRenderPass = Arc<dyn RenderPassAbstract + Send + Sync>;
 
 impl GpuPipelines {
     pub fn new(device: Arc<Device>, render_pass: OwnedRenderPass) -> GpuPipelines {
         GpuPipelines {
             shapes: ShapePipeline::create_pipeline(device.clone(), render_pass.clone()),
-            glyphs: glyph_pipeline::create_pipeline(device.clone(), render_pass.clone()),
+            glyphs: GlyphPipeline::create_pipeline(device.clone(), render_pass.clone()),
         }
     }
 

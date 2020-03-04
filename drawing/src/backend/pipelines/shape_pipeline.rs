@@ -8,12 +8,12 @@ use vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 
 #[derive(Default, Debug, Clone)]
-pub(crate) struct ShapeVertex {
-    pub position: [f32; 2],
-    pub uv_input: [f32; 2],
-    pub kind_input: i32,
-    pub foreground_input: [f32; 4],
-    pub background_input: [f32; 4],
+struct ShapeVertex {
+    position: [f32; 2],
+    uv_input: [f32; 2],
+    kind_input: i32,
+    foreground_input: [f32; 4],
+    background_input: [f32; 4],
 }
 vulkano::impl_vertex!(
     ShapeVertex,
