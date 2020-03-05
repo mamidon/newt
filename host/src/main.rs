@@ -25,6 +25,10 @@ fn main() {
     let mut image_data = Vec::new();
     image_data.resize((info.height * info.width * 4) as usize, 0);
     reader.next_frame(&mut image_data).unwrap();
+
+    let texture_id = drawing
+        .load_rgba_texture(info.width, info.height, image_data.as_slice())
+        .expect("");
     let mut force_recreate = false;
 
     loop {
@@ -39,7 +43,7 @@ fn main() {
             for y in 0..10 {
                 if x % 2 == 0 && y % 2 == 0 {
                     draw_list.push_shape(
-                        ShapeKind::Rectangle,
+                        ShapeKind::Ellipse,
                         Brush {
                             foreground: 0xFF0000FF,
                             background: 0x00FF00FF,
@@ -47,14 +51,15 @@ fn main() {
                         Extent::new(x_offset, y_offset, 50, 50),
                     );
                 } else {
-                    draw_list.push_shape(
+                    /*draw_list.push_shape(
                         ShapeKind::Ellipse,
                         Brush {
                             foreground: 0x00FF00FF,
                             background: 0x00FF0000,
                         },
                         Extent::new(x_offset, y_offset, 50, 50),
-                    );
+                    );*/
+                    draw_list.push_glyph(texture_id, Extent::new(x_offset, y_offset, 50, 50));
                 }
 
                 y_offset += stride;

@@ -1,5 +1,5 @@
 use crate::backend::pipelines::GpuPipelines;
-use crate::{DrawList, DrawingOptions, DrawingResult, SurfaceId};
+use crate::{DrawList, DrawingOptions, DrawingResult, ResourceTable, SurfaceId};
 use std::sync::Arc;
 use std::time::Duration;
 use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder, DynamicState};
@@ -53,7 +53,11 @@ pub(crate) struct GpuSurface {
 }
 
 impl Gpu {
-    pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Gpu> {
+    pub fn initialize(
+        event_loop: &EventsLoop,
+        resource_table: Arc<ResourceTable>,
+        options: DrawingOptions,
+    ) -> DrawingResult<Gpu> {
         let instance = Instance::new(None, &vulkano_win::required_extensions(), None)
             .map_err(|_| "Failed to create Vulkan instance")?;
         let physical_device = PhysicalDevice::enumerate(&instance)
@@ -153,7 +157,7 @@ impl Gpu {
             })
             .collect();
 
-        let pipelines = GpuPipelines::new(device.clone(), render_pass.clone());
+        let pipelines = GpuPipelines::new(device.clone(), render_pass.clone(), resource_table);
 
         Ok(Gpu {
             options,

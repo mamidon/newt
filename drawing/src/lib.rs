@@ -1,10 +1,13 @@
 use crate::backend::{Gpu, GpuSurface, SealedGpuFrame};
+use crate::resource_table::ResourceTable;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 use vulkano::image::Dimensions;
 use winit::EventsLoop;
 
 mod backend;
+mod resource_table;
 
 pub type DrawingError = &'static str;
 pub type DrawingResult<T> = Result<T, DrawingError>;
@@ -99,6 +102,25 @@ impl Extent {
 
         corner.expect("I should probably create an enum for this")
     }
+
+    pub fn uv_coordinates(index: usize) -> [f32; 2] {
+        let left = 0.0;
+        let right = 1.0;
+        let top = 0.0;
+        let bottom = 1.0;
+
+        let corner = match index {
+            0 => Some([left, top]),
+            1 => Some([right, top]),
+            2 => Some([left, bottom]),
+            3 => Some([right, top]),
+            4 => Some([right, bottom]),
+            5 => Some([left, bottom]),
+            _ => None,
+        };
+
+        corner.expect("I should probably create an enum for this")
+    }
 }
 
 impl Iterator for Corners {
@@ -167,12 +189,7 @@ struct MaskDrawData {
 
 pub struct Drawing {
     backend_gpu: Gpu,
-    resources_table: DrawingResourcesTable,
-}
-
-pub(crate) struct DrawingResourcesTable {
-    key_source: Handle,
-    surfaces: HashMap<SurfaceId, GpuSurface>,
+    resource_table: Arc<ResourceTable>,
 }
 
 #[derive(Copy, Clone)]
@@ -191,10 +208,13 @@ pub struct DrawList {
 }
 
 impl Drawing {
-    pub fn initialize(event_loop: &EventsLoop, _options: DrawingOptions) -> DrawingResult<Self> {
+    pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Self> {
+        let resource_table = Arc::new(ResourceTable::new());
+        let backend_gpu = Gpu::initialize(event_loop, resource_table.clone(), options)?;
+
         Ok(Drawing {
-            backend_gpu: Gpu::initialize(event_loop, _options)?,
-            resources_table: DrawingResourcesTable::new(),
+            backend_gpu,
+            resource_table,
         })
     }
 
@@ -227,7 +247,7 @@ impl Drawing {
         bytes: &[u8],
     ) -> DrawingResult<SurfaceId> {
         let gpu_surface = self.backend_gpu.load_surface(width, height, bytes)?;
-        let handle = self.resources_table.register_surface(gpu_surface.clone());
+        let handle = self.resource_table.register_surface(gpu_surface.clone());
 
         Ok(handle)
     }
@@ -239,21 +259,6 @@ impl Default for DrawingOptions {
             width: 64,
             height: 64,
         }
-    }
-}
-
-impl DrawingResourcesTable {
-    pub fn new() -> DrawingResourcesTable {
-        DrawingResourcesTable {
-            key_source: Handle::new(0),
-            surfaces: HashMap::new(),
-        }
-    }
-
-    pub fn register_surface(&mut self, surface: GpuSurface) -> SurfaceId {
-        let key = self.key_source.next();
-        self.surfaces.entry(key).or_insert(surface.clone());
-        key
     }
 }
 

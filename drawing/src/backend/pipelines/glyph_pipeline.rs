@@ -1,5 +1,10 @@
-use crate::DrawCommandKind;
+use crate::backend::GpuFrame;
+use crate::{DrawCommandKind, DrawList, DrawingResult, Extent, GlyphDrawData, ResourceTable};
 use std::sync::Arc;
+use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
+use vulkano::command_buffer::AutoCommandBufferBuilder;
+use vulkano::descriptor::descriptor_set::PersistentDescriptorSet;
+use vulkano::descriptor::DescriptorSet;
 use vulkano::device::Device;
 use vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
@@ -15,12 +20,14 @@ vulkano::impl_vertex!(GlyphVertex, position, uv_input);
 #[derive(Clone)]
 pub(crate) struct GlyphPipeline {
     inner: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
+    resource_table: Arc<ResourceTable>,
 }
 
 impl GlyphPipeline {
     pub fn create_pipeline(
         device: Arc<Device>,
         render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
+        resource_table: Arc<ResourceTable>,
     ) -> GlyphPipeline {
         let vs = vertex_shader::Shader::load(device.clone()).unwrap();
         let fs = fragment_shader::Shader::load(device.clone()).unwrap();
@@ -38,10 +45,68 @@ impl GlyphPipeline {
                 .unwrap(),
         );
 
-        GlyphPipeline { inner }
+        GlyphPipeline {
+            inner,
+            resource_table,
+        }
     }
 
-    pub fn bind(&self, kind: DrawCommandKind) -> () {
+    pub fn write_commands(
+        &self,
+        frame: &GpuFrame,
+        draw_list: &DrawList,
+        mut builder: AutoCommandBufferBuilder,
+    ) -> DrawingResult<AutoCommandBufferBuilder> {
+        for (kind, glyph_instances) in draw_list.glyphs.iter() {
+            let mut glyph_vertices: Vec<GlyphVertex> = Vec::new();
+
+            let binding = self.bind(kind);
+
+            for glyph_instance in glyph_instances.iter() {
+                let GlyphDrawData { extent } = glyph_instance;
+
+                extent
+                    .corners()
+                    .map(|corner| [corner[0] as f32, corner[1] as f32])
+                    .map(|corner| {
+                        [
+                            corner[0] * 2.0 / frame.target_dimensions[0] as f32 - 1.0,
+                            corner[1] * 2.0 / frame.target_dimensions[1] as f32 - 1.0,
+                        ]
+                    })
+                    .enumerate()
+                    .for_each(|(index, corner)| {
+                        glyph_vertices.push(GlyphVertex {
+                            position: corner,
+                            uv_input: Extent::uv_coordinates(index),
+                        })
+                    });
+            }
+
+            let vertex_buffer: Vec<Arc<dyn BufferAccess + Send + Sync + 'static>> = {
+                vec![CpuAccessibleBuffer::from_iter(
+                    self.inner.device().clone(),
+                    BufferUsage::all(),
+                    glyph_vertices.into_iter(),
+                )
+                .unwrap()]
+            };
+
+            builder = builder
+                .draw(
+                    self.inner.clone(),
+                    &frame.dynamic_state,
+                    vertex_buffer,
+                    binding.clone(),
+                    (),
+                )
+                .expect("Failed to draw glyphs")
+        }
+
+        Ok(builder)
+    }
+
+    fn bind(&self, kind: &DrawCommandKind) -> Arc<dyn DescriptorSet + Send + Sync> {
         let sampler = Sampler::new(
             self.inner.device().clone(),
             Filter::Linear,
@@ -56,9 +121,21 @@ impl GlyphPipeline {
             0.0,
         )
         .expect("Sampler::new failed");
-        let surface = unimplemented!("Fetching the actual GPU surface from the resources table");
 
-        unimplemented!("Actually binding the resources into a PersistentDescriptorSet")
+        let surface_id = match kind {
+            DrawCommandKind::Glyph(surface_id) => *surface_id,
+            _ => panic!("Unexpected kind"),
+        };
+
+        let surface = self.resource_table.get_surface(surface_id);
+
+        Arc::new(
+            PersistentDescriptorSet::start(self.inner.clone(), 0)
+                .add_sampled_image(surface.gpu_surface, sampler.clone())
+                .expect("add_sampled_image failed")
+                .build()
+                .expect("build persistent_descriptor_set failed"),
+        )
     }
 }
 
@@ -86,13 +163,13 @@ mod fragment_shader {
         ty: "fragment",
         src: r#"
     #version 450
-    
-    layout(location = 0) in vec2 uv_in;
-    
-    layout(location = 0) out vec4 color_out;
+    layout(location = 0) in vec2 tex_coords;
+    layout(location = 0) out vec4 f_color;
+
+    layout(set = 0, binding = 0) uniform sampler2D tex;
 
     void main() {
-        color_out = vec4(uv_in, 0.0, 0.0);
+        f_color = texture(tex, tex_coords);
     }
     "#
     }
