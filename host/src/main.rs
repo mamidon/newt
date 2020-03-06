@@ -6,6 +6,13 @@ use drawing::{Brush, Drawing, DrawingOptions, Extent, ShapeKind};
 use png;
 use std::io::Cursor;
 
+use euclid::{Point2D, Size2D};
+use font_kit::canvas::{Canvas, Format, RasterizationOptions};
+use font_kit::family_name::FamilyName;
+use font_kit::hinting::HintingOptions;
+use font_kit::loader::FontTransform;
+use font_kit::properties::Properties;
+use font_kit::source::SystemSource;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
 
 fn main() {
@@ -19,15 +26,42 @@ fn main() {
     )
     .expect("Failed to initialize Drawing");
 
-    let image = include_bytes!("image_img.png").to_vec();
-    let decoder = png::Decoder::new(Cursor::new(image));
-    let (info, mut reader) = decoder.read_info().unwrap();
-    let mut image_data = Vec::new();
-    image_data.resize((info.height * info.width * 4) as usize, 0);
-    reader.next_frame(&mut image_data).unwrap();
-
+    let font = SystemSource::new()
+        .select_best_match(&[FamilyName::SansSerif], &Properties::new())
+        .expect("select_best_match failed")
+        .load()
+        .expect("Font Handle load failed");
+    let glyph_id = font.glyph_for_char('A').expect("glyph_for_char failed");
+    let mut canvas = Canvas::new(&Size2D::new(16, 16), Format::A8);
+    font.rasterize_glyph(
+        &mut canvas,
+        glyph_id,
+        16.0,
+        &FontTransform::identity(),
+        &Point2D::new(0.0, 16.0),
+        HintingOptions::None,
+        RasterizationOptions::GrayscaleAa,
+    )
+    .expect("rasterize_glyph failed");
+    let rgba_bytes: Vec<[u8; 4]> = canvas
+        .pixels
+        .iter()
+        .map(|byte| match byte {
+            0 => 0u32,
+            x => {
+                let x32 = *x as u32;
+                (x32 << 16) | (x32)
+            }
+        })
+        .map(|pixel| pixel.to_be_bytes())
+        .collect();
+    let foo: Vec<u8> = rgba_bytes
+        .iter()
+        .flat_map(|rba| rba.iter())
+        .cloned()
+        .collect();
     let texture_id = drawing
-        .load_rgba_texture(info.width, info.height, image_data.as_slice())
+        .load_rgba_texture(canvas.size.width, canvas.size.height, foo.as_slice())
         .expect("");
     let mut force_recreate = false;
 
@@ -59,7 +93,7 @@ fn main() {
                         },
                         Extent::new(x_offset, y_offset, 50, 50),
                     );*/
-                    draw_list.push_glyph(texture_id, Extent::new(x_offset, y_offset, 50, 50));
+                    draw_list.push_glyph(texture_id, Extent::new(x_offset, y_offset, 16, 16));
                 }
 
                 y_offset += stride;

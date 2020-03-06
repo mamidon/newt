@@ -13,3 +13,5 @@ vulkano-win = "0.16.0"
 winit = "0.19.5"
 png = "0.15.0"
 drawing = { path = "../drawing" }
+font-kit = "0.5.0"
+euclid = "0.20.7"
