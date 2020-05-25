@@ -6,13 +6,6 @@ use drawing::{Brush, Drawing, DrawingOptions, Extent, ShapeKind};
 use png;
 use std::io::Cursor;
 
-use euclid::{Point2D, Size2D};
-use font_kit::canvas::{Canvas, Format, RasterizationOptions};
-use font_kit::family_name::FamilyName;
-use font_kit::hinting::HintingOptions;
-use font_kit::loader::FontTransform;
-use font_kit::properties::Properties;
-use font_kit::source::SystemSource;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
 
 fn main() {
@@ -61,7 +54,7 @@ fn main() {
         .cloned()
         .collect();
     let texture_id = drawing
-        .load_rgba_texture(canvas.size.width, canvas.size.height, foo.as_slice())
+        .load_rgba_texture(info.width, info.height, image_data.as_slice())
         .expect("");
     let mut force_recreate = false;
 
