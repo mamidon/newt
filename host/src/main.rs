@@ -6,7 +6,117 @@ use drawing::{Brush, Drawing, DrawingOptions, Extent, ShapeKind};
 use png;
 use std::io::Cursor;
 
+use euclid::{Point2D, Size2D, UnknownUnit};
+use font_kit::canvas::{Canvas, Format, RasterizationOptions};
+use font_kit::family_name::FamilyName;
+use font_kit::hinting::HintingOptions;
+use font_kit::loader::FontTransform;
+use font_kit::loaders::directwrite::Font;
+use font_kit::properties::Properties;
+use font_kit::source::SystemSource;
+use std::collections::HashMap;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
+
+struct TypeSet {
+    font: Font,
+    point_size: f32,
+    faces: HashMap<char, TypeFace>,
+}
+
+impl TypeSet {
+    pub fn new(font: Font, point_size: f32) -> TypeSet {
+        let mut faces: HashMap<char, TypeFace> = HashMap::new();
+
+        for code_index in 0..255u8 {
+            let code_point: char = code_index.into();
+            if let Some(glyph_id) = font.glyph_for_char(code_point) {
+                let glyph_bounds = font
+                    .raster_bounds(
+                        glyph_id,
+                        point_size,
+                        &FontTransform::identity(),
+                        &Point2D::origin(),
+                        HintingOptions::None,
+                        RasterizationOptions::GrayscaleAa,
+                    )
+                    .expect("glyph_for_char failed");
+
+                let glyph_size = Size2D::new(
+                    glyph_bounds.size.width as u32,
+                    glyph_bounds.size.height as u32,
+                );
+
+                let mut canvas = Canvas::new(&glyph_size, Format::A8);
+                font.rasterize_glyph(
+                    &mut canvas,
+                    glyph_id,
+                    point_size,
+                    &FontTransform::identity(),
+                    &Point2D::new(
+                        -(glyph_bounds.origin.x as f32),
+                        -(glyph_bounds.origin.y as f32),
+                    ),
+                    HintingOptions::None,
+                    RasterizationOptions::GrayscaleAa,
+                );
+                faces.insert(
+                    code_point,
+                    TypeFace::new(glyph_id, glyph_size, canvas.pixels),
+                );
+            }
+        }
+
+        TypeSet {
+            font,
+            point_size,
+            faces,
+        }
+    }
+
+    pub fn get_face(&self, code_point: char) -> Option<&TypeFace> {
+        self.faces.get(&code_point)
+    }
+}
+
+struct TypeFace {
+    glyph_id: u32,
+    bounds: Size2D<u32, UnknownUnit>,
+    bytes: Vec<u8>,
+}
+
+impl TypeFace {
+    pub fn new(glyph_id: u32, bounds: Size2D<u32, UnknownUnit>, bytes: Vec<u8>) -> TypeFace {
+        TypeFace {
+            glyph_id,
+            bounds,
+            bytes,
+        }
+    }
+
+    pub fn as_a8_bytes(&self) -> &[u8] {
+        self.bytes.as_slice()
+    }
+
+    pub fn to_rgba_bytes(&self, r: u8, g: u8, b: u8) -> Vec<u8> {
+        let rgb: u32 = (r as u32) << 24 | (g as u32) << 16 | (b as u32) << 8;
+
+        let rgba_bytes: Vec<[u8; 4]> = self
+            .bytes
+            .iter()
+            .map(|byte| match byte {
+                0 => (255 << 16) | 255,
+                &x => rgb | (x as u32),
+            })
+            .map(|pixel| pixel.to_be_bytes())
+            .collect();
+
+        rgba_bytes
+            .iter()
+            .flat_map(|rba| rba.iter())
+            .cloned()
+            .collect()
+    }
+}
 
 fn main() {
     let mut events_loop = EventsLoop::new();
@@ -24,37 +134,16 @@ fn main() {
         .expect("select_best_match failed")
         .load()
         .expect("Font Handle load failed");
-    let glyph_id = font.glyph_for_char('A').expect("glyph_for_char failed");
-    let mut canvas = Canvas::new(&Size2D::new(16, 16), Format::A8);
-    font.rasterize_glyph(
-        &mut canvas,
-        glyph_id,
-        16.0,
-        &FontTransform::identity(),
-        &Point2D::new(0.0, 16.0),
-        HintingOptions::None,
-        RasterizationOptions::GrayscaleAa,
-    )
-    .expect("rasterize_glyph failed");
-    let rgba_bytes: Vec<[u8; 4]> = canvas
-        .pixels
-        .iter()
-        .map(|byte| match byte {
-            0 => 0u32,
-            x => {
-                let x32 = *x as u32;
-                (x32 << 16) | (x32)
-            }
-        })
-        .map(|pixel| pixel.to_be_bytes())
-        .collect();
-    let foo: Vec<u8> = rgba_bytes
-        .iter()
-        .flat_map(|rba| rba.iter())
-        .cloned()
-        .collect();
+
+    let type_set = TypeSet::new(font, 32.0);
+    let type_face = type_set.get_face('q').unwrap();
+
     let texture_id = drawing
-        .load_rgba_texture(info.width, info.height, image_data.as_slice())
+        .load_rgba_texture(
+            type_face.bounds.width,
+            type_face.bounds.height,
+            type_face.to_rgba_bytes(255, 0, 0).as_slice(),
+        )
         .expect("");
     let mut force_recreate = false;
 
