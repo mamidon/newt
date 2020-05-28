@@ -7,7 +7,6 @@ use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder, DynamicState};
 use vulkano::device::Device;
 use vulkano::framebuffer::RenderPassAbstract;
-use vulkano::pipeline::GraphicsPipelineAbstract;
 
 mod glyph_pipeline;
 mod shape_pipeline;

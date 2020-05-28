@@ -1,9 +1,8 @@
-use crate::backend::{Gpu, GpuSurface, SealedGpuFrame};
+use crate::backend::{Gpu, SealedGpuFrame};
 use crate::resource_table::ResourceTable;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::sync::Arc;
-use vulkano::image::Dimensions;
 use winit::EventsLoop;
 
 mod backend;

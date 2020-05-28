@@ -1,5 +1,5 @@
 use crate::backend::pipelines::GpuPipelines;
-use crate::{DrawList, DrawingOptions, DrawingResult, ResourceTable, SurfaceId};
+use crate::{DrawList, DrawingOptions, DrawingResult, ResourceTable};
 use std::sync::Arc;
 use std::time::Duration;
 use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder, DynamicState};
