@@ -9,7 +9,9 @@ use font_kit::loaders::directwrite::Font;
 use font_kit::metrics::Metrics;
 use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
+use std::borrow::Borrow;
 use std::collections::hash_map::Iter;
+use std::ops::Mul;
 
 pub struct TypeSet {
     font: Font,
@@ -39,7 +41,6 @@ impl<'a> TypeSet {
                 )
                 .expect("glyph_for_char failed");
             let origin = font.origin(glyph_id).expect("font.origin failed");
-            let advance = font.advance(glyph_id).expect("font.advance failed");
 
             let glyph_size = Size2D::new(
                 glyph_bounds.size.width as u32,
@@ -85,21 +86,39 @@ impl<'a> TypeSet {
                     .expect("all glyphs in font are in the hashmap");
 
                 let bounds = type_face.bounds;
-                let advance = self.font.advance(glyph_id).expect("advance failed");
-                let offset: Point2D<i64, UnknownUnit> = Point2D::origin();
+                let typographic_bounds = self
+                    .font
+                    .typographic_bounds(glyph_id)
+                    .expect("typographic_bounds failed");
+                let advance = self
+                    .font
+                    .advance(glyph_id)
+                    .expect("advance failed")
+                    .mul(bounds.width as f32 / typographic_bounds.size.width);
+                let glyph_bounds = self
+                    .font
+                    .raster_bounds(
+                        glyph_id,
+                        32.0,
+                        &FontTransform::identity(),
+                        &Point2D::origin(),
+                        HintingOptions::None,
+                        RasterizationOptions::GrayscaleAa,
+                    )
+                    .expect("glyph_for_char failed");
+
                 let size = Size2D::new(bounds.width, bounds.height);
                 let units_per_em = self.font.metrics().units_per_em as f32;
-                println!("units_per_em: {}", units_per_em);
-                self.font.typographic_bounds(0).unwrap().size
+
                 if size.area() > 0 {
                     glyphs.push(Glyph {
                         glyph_id,
-                        offset,
+                        offset: dbg!(Point2D::new(
+                            glyph_bounds.origin.x as i64,
+                            glyph_bounds.origin.y as i64
+                        )),
                         size,
-                        advance: Vector2D::new(
-                            (advance.x / units_per_em) as i64,
-                            (advance.y / units_per_em) as i64,
-                        ),
+                        advance: Vector2D::new(advance.x as i64, advance.y as i64),
                     })
                 }
             }
