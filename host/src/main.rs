@@ -7,6 +7,7 @@ use png;
 use std::io::Cursor;
 
 use crate::typesetting::{TypeFace, TypeSet};
+use euclid::Point2D;
 use std::collections::HashMap;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
 
@@ -24,34 +25,45 @@ fn main() {
     .expect("Failed to initialize Drawing");
 
     let type_set = TypeSet::new(32.0);
-    let mut type_face_textures: HashMap<char, (SurfaceId, TypeFace)> = HashMap::new();
-    let type_face = type_set.get_face('q').unwrap();
+    let mut type_face_textures: HashMap<u32, SurfaceId> = HashMap::new();
 
-    for (&character, type_face) in type_set.get_faces() {
+    for type_face in type_set.faces() {
         let texture_id = drawing
             .load_rgba_texture(
-                type_face.bounds().width,
-                type_face.bounds().height,
+                type_face.size().width,
+                type_face.size().height,
                 type_face.to_rgba_bytes(255, 0, 0).as_slice(),
             )
-            .expect("");
-        type_face_textures.insert(character, (texture_id, type_face.clone()));
+            .expect("load_rgba_texture failed");
+        type_face_textures.insert(type_face.glyph_id(), texture_id);
     }
-    let mut force_recreate = false;
 
+    let mut glyph_run = type_set.glyph_run("Hello, World!");
+    println!("Glyph run: {:#?}", glyph_run);
+
+    glyph_run = glyph_run.position(Point2D::new(100, 100));
+
+    let mut force_recreate = false;
     loop {
         let mut draw_list = drawing
             .create_draw_list()
             .expect("Failed to create_draw_list");
 
-        draw_list.push_shape(
-            ShapeKind::Ellipse,
-            Brush {
-                foreground: 0xFF0000FF,
-                background: 0x00FF00FF,
-            },
-            Extent::new(100, 100, 50, 50),
-        );
+        for glyph in glyph_run.glyphs() {
+            if let Some(surface_id) = type_face_textures.get(&glyph.id()) {
+                draw_list.push_glyph(
+                    *surface_id,
+                    Extent::new(
+                        glyph.offset().x,
+                        glyph.offset().y,
+                        glyph.size().width,
+                        glyph.size().height,
+                    ),
+                );
+            } else {
+                println!("failed to render glyph_id: {:?}", glyph);
+            }
+        }
         //draw_list.push_glyph(texture_id, Extent::new(x_offset, y_offset, 16, 16));
 
         let sealed_draw_list = drawing
