@@ -8,7 +8,7 @@ use std::io::{BufRead, BufReader, Cursor};
 
 use crate::typesetting::{GlyphRun, TypeFace, TypeSet};
 use euclid::{Point2D, Size2D};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::ops::Add;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
@@ -33,7 +33,21 @@ fn main() {
     let type_set = TypeSet::new(16.0);
     let mut type_face_textures: HashMap<u32, SurfaceId> = HashMap::new();
 
+    let mut glyph_runs: Vec<GlyphRun> = file_lines
+        .iter()
+        .map(|line| type_set.glyph_run(line))
+        .collect();
+    let used_glyph_ids: HashSet<u32> = glyph_runs
+        .iter()
+        .flat_map(|run| run.glyphs())
+        .map(|glyph| glyph.id())
+        .collect();
+
     for type_face in type_set.faces() {
+        if !used_glyph_ids.contains(&type_face.glyph_id()) {
+            continue;
+        }
+
         let texture_id = drawing
             .load_rgba_texture(
                 type_face.size().width,
@@ -43,11 +57,6 @@ fn main() {
             .expect("load_rgba_texture failed");
         type_face_textures.insert(type_face.glyph_id(), texture_id);
     }
-
-    let mut glyph_runs: Vec<GlyphRun> = file_lines
-        .iter()
-        .map(|line| type_set.glyph_run(line))
-        .collect();
 
     let mut force_recreate = false;
     loop {
