@@ -48,7 +48,7 @@ impl GpuPipelines {
         .begin_render_pass(
             frame.target.clone(),
             false,
-            vec![[0.0, 0.0, 1.0, 1.0].into()],
+            vec![[1.0, 1.0, 1.0, 1.0].into()],
         )
         .expect("Failed to begin render pass");
 

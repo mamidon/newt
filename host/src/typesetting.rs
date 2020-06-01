@@ -99,7 +99,7 @@ impl<'a> TypeSet {
                     .font
                     .raster_bounds(
                         glyph_id,
-                        32.0,
+                        self.point_size,
                         &FontTransform::identity(),
                         &Point2D::origin(),
                         HintingOptions::None,
@@ -113,10 +113,10 @@ impl<'a> TypeSet {
                 if size.area() > 0 {
                     glyphs.push(Glyph {
                         glyph_id,
-                        offset: dbg!(Point2D::new(
+                        offset: Point2D::new(
                             glyph_bounds.origin.x as i64,
-                            glyph_bounds.origin.y as i64
-                        )),
+                            glyph_bounds.origin.y as i64,
+                        ),
                         size,
                         advance: Vector2D::new(advance.x as i64, advance.y as i64),
                     })
@@ -166,7 +166,7 @@ impl TypeFace {
             .bytes
             .iter()
             .map(|byte| match byte {
-                0 => (255 << 16) | 255,
+                0 => 0,
                 &x => rgb | (x as u32),
             })
             .map(|pixel| pixel.to_be_bytes())
