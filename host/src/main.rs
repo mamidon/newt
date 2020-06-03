@@ -29,19 +29,13 @@ fn main() {
     let file_path = arguments.get(1).expect("File path not provided");
     let file = File::open(file_path).expect("File not found");
     let file_lines: Vec<String> = BufReader::new(file).lines().map(|l| l.unwrap()).collect();
+    let file_content = file_lines.join("\n");
 
     let type_set = TypeSet::new(16.0);
     let mut type_face_textures: HashMap<u32, SurfaceId> = HashMap::new();
 
-    let mut glyph_runs: Vec<GlyphRun> = file_lines
-        .iter()
-        .map(|line| type_set.glyph_run(line))
-        .collect();
-    let used_glyph_ids: HashSet<u32> = glyph_runs
-        .iter()
-        .flat_map(|run| run.glyphs())
-        .map(|glyph| glyph.id())
-        .collect();
+    let mut glyph_run: GlyphRun = type_set.glyph_run(&file_content);
+    let used_glyph_ids: HashSet<u32> = glyph_run.glyphs().map(|glyph| glyph.id()).collect();
 
     for type_face in type_set.faces() {
         if !used_glyph_ids.contains(&type_face.glyph_id()) {
@@ -60,29 +54,25 @@ fn main() {
 
     let mut force_recreate = false;
     loop {
-        let mut line_start = Point2D::new(0, 20);
+        let mut line_start = Point2D::new(0, 0);
         let mut draw_list = drawing
             .create_draw_list()
             .expect("Failed to create_draw_list");
 
-        for mut glyph_run in &glyph_runs {
-            for glyph in glyph_run.position(line_start).glyphs() {
-                if let Some(surface_id) = type_face_textures.get(&glyph.id()) {
-                    draw_list.push_glyph(
-                        *surface_id,
-                        Extent::new(
-                            glyph.offset().x,
-                            glyph.offset().y,
-                            glyph.size().width,
-                            glyph.size().height,
-                        ),
-                    );
-                } else {
-                    println!("failed to render glyph_id: {:?}", glyph);
-                }
+        for glyph in glyph_run.position(line_start).glyphs() {
+            if let Some(surface_id) = type_face_textures.get(&glyph.id()) {
+                draw_list.push_glyph(
+                    *surface_id,
+                    Extent::new(
+                        glyph.offset().x,
+                        glyph.offset().y,
+                        glyph.size().width,
+                        glyph.size().height,
+                    ),
+                );
+            } else {
+                println!("failed to render glyph_id: {:?}", glyph);
             }
-
-            line_start = line_start.add(Size2D::new(0, 20));
         }
 
         let sealed_draw_list = drawing
