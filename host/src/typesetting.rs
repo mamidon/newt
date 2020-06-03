@@ -16,6 +16,7 @@ use std::ops::Mul;
 pub struct TypeSet {
     font: Font,
     point_size: f32,
+    font_units_to_pixels_scale: f32,
     faces: HashMap<u32, TypeFace>,
 }
 
@@ -64,18 +65,29 @@ impl<'a> TypeSet {
             faces.insert(glyph_id, TypeFace::new(glyph_id, glyph_size, canvas.pixels));
         }
 
+        let font_units_to_pixels_scale =
+            (point_size * 96.0 / 72.0) / (font.metrics().units_per_em as f32);
+
         TypeSet {
             font,
             point_size,
+            font_units_to_pixels_scale,
             faces,
         }
     }
 
     pub fn faces(&self) -> impl Iterator<Item = &TypeFace> {
-        self.faces.values().filter(|face| face.bounds.area() > 0)
+        self.faces
+            .values()
+            .filter(|face| face.raster_size.area() > 0)
     }
 
     pub fn glyph_run(&self, text: &str) -> GlyphRun {
+        let metrics = self.font.metrics();
+        let ascent_pixels = (metrics.ascent * self.font_units_to_pixels_scale) as i64;
+        let descent_pixels = (metrics.descent * self.font_units_to_pixels_scale) as i64;
+        let linegap_pixels = (metrics.line_gap * self.font_units_to_pixels_scale) as i64;
+
         let mut glyphs: Vec<Glyph> = Vec::new();
 
         for c in text.chars() {
@@ -85,16 +97,13 @@ impl<'a> TypeSet {
                     .get(&glyph_id)
                     .expect("all glyphs in font are in the hashmap");
 
-                let bounds = type_face.bounds;
-                let typographic_bounds = self
-                    .font
-                    .typographic_bounds(glyph_id)
-                    .expect("typographic_bounds failed");
+                let raster_bounds = type_face.raster_size;
                 let advance = self
                     .font
                     .advance(glyph_id)
                     .expect("advance failed")
-                    .mul(bounds.width as f32 / typographic_bounds.size.width);
+                    .mul(self.font_units_to_pixels_scale * (if c == '\t' { 4.0 } else { 1.0 }));
+
                 let glyph_bounds = self
                     .font
                     .raster_bounds(
@@ -107,7 +116,7 @@ impl<'a> TypeSet {
                     )
                     .expect("glyph_for_char failed");
 
-                let size = Size2D::new(bounds.width, bounds.height);
+                let size = Size2D::new(raster_bounds.width, raster_bounds.height);
                 let units_per_em = self.font.metrics().units_per_em as f32;
 
                 if size.area() > 0 {
@@ -119,13 +128,17 @@ impl<'a> TypeSet {
                         ),
                         size,
                         advance: Vector2D::new(advance.x as i64, advance.y as i64),
+                        is_newline: c == '\n',
+                        is_whitespace: c.is_whitespace(),
                     })
                 }
             }
         }
 
         GlyphRun {
-            metrics: self.font.metrics(),
+            ascent_pixels,
+            descent_pixels,
+            linegap_pixels,
             glyphs,
         }
     }
@@ -134,7 +147,7 @@ impl<'a> TypeSet {
 #[derive(Clone)]
 pub struct TypeFace {
     glyph_id: u32,
-    bounds: Size2D<u32, UnknownUnit>,
+    raster_size: Size2D<u32, UnknownUnit>,
     bytes: Vec<u8>,
 }
 
@@ -142,13 +155,13 @@ impl TypeFace {
     fn new(glyph_id: u32, bounds: Size2D<u32, UnknownUnit>, bytes: Vec<u8>) -> TypeFace {
         TypeFace {
             glyph_id,
-            bounds,
+            raster_size: bounds,
             bytes,
         }
     }
 
     pub fn size(&self) -> Size2D<u32, UnknownUnit> {
-        self.bounds
+        self.raster_size
     }
 
     pub fn glyph_id(&self) -> u32 {
@@ -182,23 +195,33 @@ impl TypeFace {
 
 #[derive(Debug)]
 pub struct GlyphRun {
-    metrics: Metrics,
+    ascent_pixels: i64,
+    descent_pixels: i64,
+    linegap_pixels: i64,
     glyphs: Vec<Glyph>,
 }
 
 impl GlyphRun {
     pub fn position(&self, origin: Point2D<i64, UnknownUnit>) -> GlyphRun {
+        let x_start = origin.x;
+        let y_start = origin.y + self.ascent_pixels as i64;
+        let pixels_per_line = self.ascent_pixels - self.descent_pixels + self.linegap_pixels;
+
         let glyphs: Vec<Glyph> = self
             .glyphs
             .iter()
-            .scan(origin.to_vector(), |cursor, glyph| {
+            .scan(Vector2D::new(x_start, y_start), |cursor, glyph| {
                 let next_glyph = Glyph {
                     offset: glyph.offset + *cursor,
                     size: glyph.size,
                     ..*glyph
                 };
 
-                *cursor += glyph.advance;
+                if glyph.is_newline {
+                    *cursor = Vector2D::new(x_start, cursor.y + pixels_per_line as i64);
+                } else {
+                    *cursor += glyph.advance;
+                }
 
                 Some(next_glyph)
             })
@@ -208,7 +231,7 @@ impl GlyphRun {
     }
 
     pub fn glyphs(&self) -> impl Iterator<Item = &Glyph> {
-        self.glyphs.iter()
+        self.glyphs.iter().filter(|g| !g.is_whitespace)
     }
 }
 
@@ -218,6 +241,8 @@ pub struct Glyph {
     offset: Point2D<i64, UnknownUnit>,
     size: Size2D<u32, UnknownUnit>,
     advance: Vector2D<i64, UnknownUnit>,
+    is_newline: bool,
+    is_whitespace: bool,
 }
 
 impl Glyph {
