@@ -13,7 +13,7 @@ use vulkano::swapchain::{
     AcquireError, PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainAcquireFuture,
     SwapchainCreationError,
 };
-use vulkano::sync::{now, GpuFuture};
+use vulkano::sync::{now, FlushError, GpuFuture};
 use vulkano_win::VkSurfaceBuild;
 use winit::{EventsLoop, Window, WindowBuilder};
 
@@ -251,7 +251,7 @@ impl Gpu {
     }
 
     pub fn end_frame(&mut self, sealed_gpu_frame: SealedGpuFrame) {
-        sealed_gpu_frame
+        let result = sealed_gpu_frame
             .swapchain_acquisition
             .then_execute(self.graphics_queue.clone(), sealed_gpu_frame.commands)
             .expect("Failed then_execute")
@@ -260,10 +260,15 @@ impl Gpu {
                 self.swapchain.clone(),
                 sealed_gpu_frame.target_index,
             )
-            .then_signal_fence_and_flush()
-            .expect("Failed to then_signal_fence_and_flush")
-            .wait(Some(Duration::from_millis(5000)))
-            .expect("Failed to wait");
+            .then_signal_fence_and_flush();
+
+        match result {
+            Ok(future) => future
+                .wait(Some(Duration::from_millis(5000)))
+                .expect("Failed to wait"),
+            Err(FlushError::OutOfDate) => { /* Main loop will automatically recover */ }
+            Err(error) => panic!(error),
+        }
     }
 
     pub fn load_surface(
