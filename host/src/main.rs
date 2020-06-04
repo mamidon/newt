@@ -11,7 +11,7 @@ use euclid::{Point2D, Size2D};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::ops::Add;
-use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
+use winit::{Event, EventsLoop, KeyboardInput, Window, WindowBuilder, WindowEvent};
 
 mod typesetting;
 
@@ -54,18 +54,17 @@ fn main() {
 
     let mut force_recreate = false;
     loop {
-        let mut line_start = Point2D::new(0, 0);
         let mut draw_list = drawing
             .create_draw_list()
             .expect("Failed to create_draw_list");
 
-        for glyph in glyph_run.position(line_start).glyphs() {
+        for glyph in glyph_run.glyphs() {
             if let Some(surface_id) = type_face_textures.get(&glyph.id()) {
                 draw_list.push_glyph(
                     *surface_id,
                     Extent::new(
-                        glyph.offset().x,
-                        glyph.offset().y,
+                        glyph.offset().x as i64,
+                        glyph.offset().y as i64,
                         glyph.size().width,
                         glyph.size().height,
                     ),
@@ -84,6 +83,14 @@ fn main() {
 
         let mut done = false;
         events_loop.poll_events(|ev| match ev {
+            Event::WindowEvent {
+                event:
+                    WindowEvent::KeyboardInput {
+                        input: KeyboardInput { scancode: 1, .. },
+                        ..
+                    },
+                ..
+            } => done = true,
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..

@@ -13,6 +13,9 @@ use std::borrow::Borrow;
 use std::collections::hash_map::Iter;
 use std::ops::Mul;
 
+struct FontUnits;
+pub struct Pixels;
+
 pub struct TypeSet {
     font: Font,
     point_size: f32,
@@ -20,53 +23,13 @@ pub struct TypeSet {
     faces: HashMap<u32, TypeFace>,
 }
 
-impl<'a> TypeSet {
+impl TypeSet {
     pub fn new(point_size: f32) -> TypeSet {
-        let font = SystemSource::new()
-            .select_best_match(&[FamilyName::SansSerif], &Properties::new())
-            .expect("select_best_match failed")
-            .load()
-            .expect("Font Handle load failed");
-
-        let mut faces: HashMap<u32, TypeFace> = HashMap::new();
-        let glyph_count = font.glyph_count();
-        for glyph_id in 0..glyph_count {
-            let glyph_bounds = font
-                .raster_bounds(
-                    glyph_id,
-                    point_size,
-                    &FontTransform::identity(),
-                    &Point2D::origin(),
-                    HintingOptions::None,
-                    RasterizationOptions::GrayscaleAa,
-                )
-                .expect("glyph_for_char failed");
-            let origin = font.origin(glyph_id).expect("font.origin failed");
-
-            let glyph_size = Size2D::new(
-                glyph_bounds.size.width as u32,
-                glyph_bounds.size.height as u32,
-            );
-
-            let mut canvas = Canvas::new(&glyph_size, Format::A8);
-            font.rasterize_glyph(
-                &mut canvas,
-                glyph_id,
-                point_size,
-                &FontTransform::identity(),
-                &Point2D::new(
-                    -(glyph_bounds.origin.x as f32),
-                    -(glyph_bounds.origin.y as f32),
-                ),
-                HintingOptions::None,
-                RasterizationOptions::GrayscaleAa,
-            );
-
-            faces.insert(glyph_id, TypeFace::new(glyph_id, glyph_size, canvas.pixels));
-        }
-
+        let font = TypeSet::load_font();
         let font_units_to_pixels_scale =
             (point_size * 96.0 / 72.0) / (font.metrics().units_per_em as f32);
+
+        let faces = TypeSet::build_faces(&font, point_size, font_units_to_pixels_scale);
 
         TypeSet {
             font,
@@ -83,82 +46,95 @@ impl<'a> TypeSet {
     }
 
     pub fn glyph_run(&self, text: &str) -> GlyphRun {
-        let metrics = self.font.metrics();
-        let ascent_pixels = (metrics.ascent * self.font_units_to_pixels_scale) as i64;
-        let descent_pixels = (metrics.descent * self.font_units_to_pixels_scale) as i64;
-        let linegap_pixels = (metrics.line_gap * self.font_units_to_pixels_scale) as i64;
+        GlyphRun::build(self, text)
+    }
 
-        let mut glyphs: Vec<Glyph> = Vec::new();
+    fn load_font() -> Font {
+        SystemSource::new()
+            .select_best_match(&[FamilyName::SansSerif], &Properties::new())
+            .expect("select_best_match failed")
+            .load()
+            .expect("Font Handle load failed")
+    }
 
-        for c in text.chars() {
-            if let Some(glyph_id) = self.font.glyph_for_char(c) {
-                let type_face = self
-                    .faces
-                    .get(&glyph_id)
-                    .expect("all glyphs in font are in the hashmap");
+    fn build_faces(
+        font: &Font,
+        point_size: f32,
+        font_units_to_pixels_scale: f32,
+    ) -> HashMap<u32, TypeFace> {
+        let mut faces = HashMap::new();
+        let glyph_count = font.glyph_count();
 
-                let raster_bounds = type_face.raster_size;
-                let advance = self
-                    .font
-                    .advance(glyph_id)
-                    .expect("advance failed")
-                    .mul(self.font_units_to_pixels_scale * (if c == '\t' { 4.0 } else { 1.0 }));
+        for glyph_id in 0..glyph_count {
+            let type_face = TypeFace::build(font, glyph_id, point_size, font_units_to_pixels_scale);
 
-                let glyph_bounds = self
-                    .font
-                    .raster_bounds(
-                        glyph_id,
-                        self.point_size,
-                        &FontTransform::identity(),
-                        &Point2D::origin(),
-                        HintingOptions::None,
-                        RasterizationOptions::GrayscaleAa,
-                    )
-                    .expect("glyph_for_char failed");
-
-                let size = Size2D::new(raster_bounds.width, raster_bounds.height);
-                let units_per_em = self.font.metrics().units_per_em as f32;
-
-                glyphs.push(Glyph {
-                    glyph_id,
-                    offset: Point2D::new(
-                        glyph_bounds.origin.x as i64,
-                        glyph_bounds.origin.y as i64,
-                    ),
-                    size,
-                    advance: Vector2D::new(advance.x as i64, advance.y as i64),
-                    is_newline: c == '\n',
-                    is_whitespace: c.is_whitespace(),
-                });
-            }
+            faces.insert(glyph_id, type_face);
         }
 
-        GlyphRun {
-            ascent_pixels,
-            descent_pixels,
-            linegap_pixels,
-            glyphs,
-        }
+        faces
     }
 }
 
 #[derive(Clone)]
 pub struct TypeFace {
     glyph_id: u32,
-    raster_size: Size2D<u32, UnknownUnit>,
+    raster_offset: Point2D<i32, Pixels>,
+    raster_size: Size2D<u32, Pixels>,
+    raster_advance: Vector2D<i32, Pixels>,
     bytes: Vec<u8>,
 }
 
 impl TypeFace {
-    fn new(glyph_id: u32, bounds: Size2D<u32, UnknownUnit>, bytes: Vec<u8>) -> TypeFace {
+    fn build(
+        font: &Font,
+        glyph_id: u32,
+        point_size: f32,
+        font_units_to_pixels_scale: f32,
+    ) -> TypeFace {
+        let glyph_bounds = font
+            .raster_bounds(
+                glyph_id,
+                point_size,
+                &FontTransform::identity(),
+                &Point2D::origin(),
+                HintingOptions::None,
+                RasterizationOptions::GrayscaleAa,
+            )
+            .expect("glyph_for_char failed");
+
+        let raster_size: Size2D<u32, Pixels> = Size2D::new(
+            glyph_bounds.size.width as u32,
+            glyph_bounds.size.height as u32,
+        );
+        let raster_offset = Point2D::new(glyph_bounds.origin.x, glyph_bounds.origin.y);
+        let reverse_offset = raster_offset.mul(-1);
+
+        let mut canvas = Canvas::new(&raster_size.cast_unit(), Format::A8);
+        font.rasterize_glyph(
+            &mut canvas,
+            glyph_id,
+            point_size,
+            &FontTransform::identity(),
+            &Point2D::new(reverse_offset.x as f32, reverse_offset.y as f32),
+            HintingOptions::None,
+            RasterizationOptions::GrayscaleAa,
+        );
+
+        let raster_advance = font
+            .advance(glyph_id)
+            .expect("advance failed")
+            .mul(font_units_to_pixels_scale);
+
         TypeFace {
             glyph_id,
-            raster_size: bounds,
-            bytes,
+            bytes: canvas.pixels,
+            raster_size,
+            raster_offset,
+            raster_advance: Vector2D::new(raster_advance.x as i32, raster_advance.y as i32),
         }
     }
 
-    pub fn size(&self) -> Size2D<u32, UnknownUnit> {
+    pub fn size(&self) -> Size2D<u32, Pixels> {
         self.raster_size
     }
 
@@ -193,39 +169,55 @@ impl TypeFace {
 
 #[derive(Debug)]
 pub struct GlyphRun {
-    ascent_pixels: i64,
-    descent_pixels: i64,
-    linegap_pixels: i64,
     glyphs: Vec<Glyph>,
 }
 
 impl GlyphRun {
-    pub fn position(&self, origin: Point2D<i64, UnknownUnit>) -> GlyphRun {
-        let x_start = origin.x;
-        let y_start = origin.y + self.ascent_pixels as i64;
-        let pixels_per_line = self.ascent_pixels - self.descent_pixels + self.linegap_pixels;
+    fn build(type_set: &TypeSet, text: &str) -> GlyphRun {
+        let metrics = type_set.font.metrics();
+        let raster_ascent = (metrics.ascent * type_set.font_units_to_pixels_scale) as i32;
 
-        let glyphs: Vec<Glyph> = self
-            .glyphs
-            .iter()
-            .scan(Vector2D::new(x_start, y_start), |cursor, glyph| {
-                let next_glyph = Glyph {
-                    offset: glyph.offset + *cursor,
-                    size: glyph.size,
-                    ..*glyph
-                };
+        let pixels_per_line = {
+            let raster_descent = (metrics.descent * type_set.font_units_to_pixels_scale) as i32;
+            let raster_linegap = (metrics.line_gap * type_set.font_units_to_pixels_scale) as i32;
 
-                if glyph.is_newline {
-                    *cursor = Vector2D::new(x_start, cursor.y + pixels_per_line as i64);
-                } else {
-                    *cursor += glyph.advance;
-                }
+            raster_ascent - raster_descent + raster_linegap
+        };
 
-                Some(next_glyph)
-            })
-            .collect();
+        let mut origin = Vector2D::new(0, raster_ascent);
+        let mut glyphs: Vec<Glyph> = Vec::new();
 
-        GlyphRun { glyphs, ..*self }
+        for c in text.chars() {
+            let glyph_id = match type_set.font.glyph_for_char(c) {
+                Some(glyph_id) => glyph_id,
+                None => continue,
+            };
+
+            let type_face = type_set
+                .faces
+                .get(&glyph_id)
+                .expect("all glyphs in font are in the hashmap");
+
+            let advance_scale = if c == '\t' { 4 } else { 1 };
+            let advance = type_face.raster_advance.mul(advance_scale);
+
+            glyphs.push(Glyph {
+                glyph_id,
+                offset: type_face.raster_offset + origin,
+                size: type_face.raster_size,
+                advance,
+                is_newline: c == '\n',
+                is_whitespace: c.is_whitespace(),
+            });
+
+            origin = if c == '\n' {
+                Vector2D::new(0, origin.y + pixels_per_line)
+            } else {
+                origin + advance
+            };
+        }
+
+        GlyphRun { glyphs }
     }
 
     pub fn glyphs(&self) -> impl Iterator<Item = &Glyph> {
@@ -236,9 +228,9 @@ impl GlyphRun {
 #[derive(Copy, Clone, Debug)]
 pub struct Glyph {
     glyph_id: u32,
-    offset: Point2D<i64, UnknownUnit>,
-    size: Size2D<u32, UnknownUnit>,
-    advance: Vector2D<i64, UnknownUnit>,
+    offset: Point2D<i32, Pixels>,
+    size: Size2D<u32, Pixels>,
+    advance: Vector2D<i32, Pixels>,
     is_newline: bool,
     is_whitespace: bool,
 }
@@ -248,11 +240,11 @@ impl Glyph {
         self.glyph_id
     }
 
-    pub fn offset(&self) -> Point2D<i64, UnknownUnit> {
+    pub fn offset(&self) -> Point2D<i32, Pixels> {
         self.offset
     }
 
-    pub fn size(&self) -> Size2D<u32, UnknownUnit> {
+    pub fn size(&self) -> Size2D<u32, Pixels> {
         self.size
     }
 }
