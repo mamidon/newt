@@ -1,0 +1,14 @@
+
+===== June 4 ===============
+support actual masks & swap font rendering to that
+support arrow keys & move text up/down one line at a time
+implement text buffer & cursor
+implement simple text input at cursor location
+implement complex keyboard navigation (ctrl + arrow)
+implement complex keyboard selection (shift + arrow)
+
+-- then perhaps I can begin integrating newt-lang into host
+-- in theory, I'll have what amounts to a plain text editing control
+-- I'd prefer to port as much of the text editing logic into newt-lang (and host only redirects input, renders output)
+-- I suspect I'll need to implement some layout primitives before I can implement a minimal equivalent of Notepad's menu bar
+-- I'll also probably need to extend newt-lang with ??? features... prototypes? modules? lists? string manipulation functions? file read/write functions?
