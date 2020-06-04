@@ -119,19 +119,17 @@ impl<'a> TypeSet {
                 let size = Size2D::new(raster_bounds.width, raster_bounds.height);
                 let units_per_em = self.font.metrics().units_per_em as f32;
 
-                if size.area() > 0 {
-                    glyphs.push(Glyph {
-                        glyph_id,
-                        offset: Point2D::new(
-                            glyph_bounds.origin.x as i64,
-                            glyph_bounds.origin.y as i64,
-                        ),
-                        size,
-                        advance: Vector2D::new(advance.x as i64, advance.y as i64),
-                        is_newline: c == '\n',
-                        is_whitespace: c.is_whitespace(),
-                    })
-                }
+                glyphs.push(Glyph {
+                    glyph_id,
+                    offset: Point2D::new(
+                        glyph_bounds.origin.x as i64,
+                        glyph_bounds.origin.y as i64,
+                    ),
+                    size,
+                    advance: Vector2D::new(advance.x as i64, advance.y as i64),
+                    is_newline: c == '\n',
+                    is_whitespace: c.is_whitespace(),
+                });
             }
         }
 

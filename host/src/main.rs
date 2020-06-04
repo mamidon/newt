@@ -20,8 +20,8 @@ fn main() {
     let mut drawing: Drawing = Drawing::initialize(
         &events_loop,
         DrawingOptions {
-            width: 512,
-            height: 512,
+            width: 1024,
+            height: 1024,
         },
     )
     .expect("Failed to initialize Drawing");
@@ -31,7 +31,7 @@ fn main() {
     let file_lines: Vec<String> = BufReader::new(file).lines().map(|l| l.unwrap()).collect();
     let file_content = file_lines.join("\n");
 
-    let type_set = TypeSet::new(16.0);
+    let type_set = TypeSet::new(12.0);
     let mut type_face_textures: HashMap<u32, SurfaceId> = HashMap::new();
 
     let mut glyph_run: GlyphRun = type_set.glyph_run(&file_content);
