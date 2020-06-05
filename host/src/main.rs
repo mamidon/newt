@@ -2,7 +2,7 @@
 
 extern crate drawing;
 
-use drawing::{Brush, Drawing, DrawingOptions, Extent, ShapeKind, SurfaceId};
+use drawing::{Brush, Drawing, DrawingOptions, Extent, MaskId, ShapeKind, SurfaceId};
 use png;
 use std::io::{BufRead, BufReader, Cursor};
 
@@ -32,7 +32,7 @@ fn main() {
     let file_content = file_lines.join("\n");
 
     let type_set = TypeSet::new(12.0);
-    let mut type_face_textures: HashMap<u32, SurfaceId> = HashMap::new();
+    let mut type_face_textures: HashMap<u32, MaskId> = HashMap::new();
 
     let mut glyph_run: GlyphRun = type_set.glyph_run(&file_content);
     let used_glyph_ids: HashSet<u32> = glyph_run.glyphs().map(|glyph| glyph.id()).collect();
@@ -43,10 +43,10 @@ fn main() {
         }
 
         let texture_id = drawing
-            .load_rgba_texture(
+            .load_mask_texture(
                 type_face.size().width,
                 type_face.size().height,
-                type_face.to_rgba_bytes(0, 0, 0).as_slice(),
+                type_face.to_mask_bytes().as_slice(),
             )
             .expect("load_rgba_texture failed");
         type_face_textures.insert(type_face.glyph_id(), texture_id);
@@ -59,9 +59,13 @@ fn main() {
             .expect("Failed to create_draw_list");
 
         for glyph in glyph_run.glyphs() {
-            if let Some(surface_id) = type_face_textures.get(&glyph.id()) {
-                draw_list.push_glyph(
-                    *surface_id,
+            if let Some(mask_id) = type_face_textures.get(&glyph.id()) {
+                draw_list.push_mask(
+                    *mask_id,
+                    Brush {
+                        foreground: 0x000000FF,
+                        background: 0x00000000,
+                    },
                     Extent::new(
                         glyph.offset().x as i64,
                         glyph.offset().y as i64,

@@ -290,6 +290,26 @@ impl Gpu {
 
         Ok(GpuSurface { gpu_surface })
     }
+
+    pub fn load_mask(
+        &mut self,
+        width: u32,
+        height: u32,
+        bytes: &[u8],
+    ) -> DrawingResult<GpuSurface> {
+        let dimensions = Dimensions::Dim2d { width, height };
+        let (gpu_surface, loading_future) = ImmutableImage::from_iter(
+            bytes.iter().cloned(),
+            dimensions,
+            Format::R8Srgb,
+            self.graphics_queue.clone(),
+        )
+        .unwrap();
+
+        loading_future.join(now(self.device.clone()));
+
+        Ok(GpuSurface { gpu_surface })
+    }
 }
 
 impl GpuFrame {

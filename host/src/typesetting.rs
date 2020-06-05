@@ -153,7 +153,7 @@ impl TypeFace {
             .bytes
             .iter()
             .map(|byte| match byte {
-                0 => 0,
+                0 => 0x00FF00FF,
                 &x => rgb | (x as u32),
             })
             .map(|pixel| pixel.to_be_bytes())
@@ -164,6 +164,10 @@ impl TypeFace {
             .flat_map(|rba| rba.iter())
             .cloned()
             .collect()
+    }
+
+    pub fn to_mask_bytes(&self) -> Vec<u8> {
+        self.bytes.clone()
     }
 }
 

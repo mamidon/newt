@@ -250,6 +250,18 @@ impl Drawing {
 
         Ok(handle)
     }
+
+    pub fn load_mask_texture(
+        &mut self,
+        width: u32,
+        height: u32,
+        bytes: &[u8],
+    ) -> DrawingResult<MaskId> {
+        let gpu_mask = self.backend_gpu.load_mask(width, height, bytes)?;
+        let handle = self.resource_table.register_surface(gpu_mask.clone());
+
+        Ok(handle)
+    }
 }
 
 impl Default for DrawingOptions {
