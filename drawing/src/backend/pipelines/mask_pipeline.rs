@@ -185,15 +185,18 @@ mod fragment_shader {
     
     layout(location = 0) out vec4 f_color;
 
-    layout(set = 0, binding = 0) uniform sampler2D tex;
+    layout(set = 0, binding = 0) uniform usampler2D tex;
 
     void main() {
-        vec4 scale4 = texture(tex, tex_coords);
-        float scale = scale4.r;
+        uvec4 scale4 = texture(tex, tex_coords);
+        float scale = float(scale4.r) / 255.0;
         
-        vec4 a = vec4(foreground & 0xFF000000, foreground & 0x00FF0000, foreground & 0x0000FF00, foreground & 0x000000FF);
-        vec4 b = vec4(background & 0xFF000000, background & 0x00FF0000, background & 0x0000FF00, background & 0x000000FF);
-        f_color = mix(b, a, scale);
+        vec4 a = unpackUnorm4x8(foreground);
+        vec4 b = unpackUnorm4x8(background);
+        vec4 lerped = mix(b, a, scale);
+        
+        //unpackUnorm4x8 reverses the endianness
+        f_color = vec4(lerped.a, lerped.b, lerped.g, lerped.r); 
     }
     "#
     }

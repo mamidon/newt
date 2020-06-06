@@ -301,7 +301,7 @@ impl Gpu {
         let (gpu_surface, loading_future) = ImmutableImage::from_iter(
             bytes.iter().cloned(),
             dimensions,
-            Format::R8Srgb,
+            Format::R8Uint,
             self.graphics_queue.clone(),
         )
         .unwrap();
