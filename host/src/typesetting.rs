@@ -209,8 +209,6 @@ impl GlyphRun {
                 glyph_id,
                 offset: type_face.raster_offset + origin,
                 size: type_face.raster_size,
-                advance,
-                is_newline: c == '\n',
                 is_whitespace: c.is_whitespace(),
             });
 
@@ -227,6 +225,17 @@ impl GlyphRun {
     pub fn glyphs(&self) -> impl Iterator<Item = &Glyph> {
         self.glyphs.iter().filter(|g| !g.is_whitespace)
     }
+
+    pub fn with_offset(&self, delta: Vector2D<i32, Pixels>) -> GlyphRun {
+        let glyphs = self
+            .glyphs
+            .iter()
+            .filter(|g| !g.is_whitespace)
+            .map(|g| g.with_offset(delta))
+            .collect();
+
+        GlyphRun { glyphs }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -234,8 +243,6 @@ pub struct Glyph {
     glyph_id: u32,
     offset: Point2D<i32, Pixels>,
     size: Size2D<u32, Pixels>,
-    advance: Vector2D<i32, Pixels>,
-    is_newline: bool,
     is_whitespace: bool,
 }
 
@@ -250,5 +257,12 @@ impl Glyph {
 
     pub fn size(&self) -> Size2D<u32, Pixels> {
         self.size
+    }
+
+    pub fn with_offset(&self, delta: Vector2D<i32, Pixels>) -> Glyph {
+        Glyph {
+            offset: self.offset + delta,
+            ..*self
+        }
     }
 }

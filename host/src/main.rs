@@ -6,8 +6,8 @@ use drawing::{Brush, Drawing, DrawingOptions, Extent, MaskId, ShapeKind, Surface
 use png;
 use std::io::{BufRead, BufReader, Cursor};
 
-use crate::typesetting::{GlyphRun, TypeFace, TypeSet};
-use euclid::{Point2D, Size2D};
+use crate::typesetting::{GlyphRun, Pixels, TypeFace, TypeSet};
+use euclid::{Point2D, Size2D, Vector2D};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::ops::Add;
@@ -52,8 +52,12 @@ fn main() {
         type_face_textures.insert(type_face.glyph_id(), texture_id);
     }
 
+    let mut offset: Vector2D<i32, Pixels> = Vector2D::zero();
     let mut force_recreate = false;
     loop {
+        glyph_run = glyph_run.with_offset(offset);
+        offset = Vector2D::zero();
+
         let mut draw_list = drawing
             .create_draw_list()
             .expect("Failed to create_draw_list");
@@ -103,8 +107,8 @@ fn main() {
                     ..
                 } => match virtual_keycode {
                     VirtualKeyCode::Escape => done = true,
-                    VirtualKeyCode::Up => (),
-                    VirtualKeyCode::Down => (),
+                    VirtualKeyCode::Up => offset += Vector2D::new(0, -10),
+                    VirtualKeyCode::Down => offset += Vector2D::new(0, 10),
                     _ => (),
                 },
                 WindowEvent::CloseRequested => {
