@@ -11,7 +11,7 @@ use euclid::{Point2D, Size2D};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::ops::Add;
-use winit::{Event, EventsLoop, KeyboardInput, Window, WindowBuilder, WindowEvent};
+use winit::{Event, EventsLoop, KeyboardInput, VirtualKeyCode, Window, WindowBuilder, WindowEvent};
 
 mod typesetting;
 
@@ -86,27 +86,37 @@ fn main() {
         drawing.submit_sealed_draw_list(sealed_draw_list);
 
         let mut done = false;
-        events_loop.poll_events(|ev| match ev {
-            Event::WindowEvent {
-                event:
-                    WindowEvent::KeyboardInput {
-                        input: KeyboardInput { scancode: 1, .. },
-                        ..
-                    },
-                ..
-            } => done = true,
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => done = true,
-            Event::WindowEvent {
-                event: WindowEvent::Resized(_),
-                ..
-            } => {
-                force_recreate = true;
+        events_loop.poll_events(|polled_event| {
+            let window_event = if let Event::WindowEvent { event, .. } = polled_event {
+                event
+            } else {
+                return;
+            };
+
+            match window_event {
+                WindowEvent::KeyboardInput {
+                    input:
+                        KeyboardInput {
+                            virtual_keycode: Some(virtual_keycode),
+                            ..
+                        },
+                    ..
+                } => match virtual_keycode {
+                    VirtualKeyCode::Escape => done = true,
+                    VirtualKeyCode::Up => (),
+                    VirtualKeyCode::Down => (),
+                    _ => (),
+                },
+                WindowEvent::CloseRequested => {
+                    done = true;
+                }
+                WindowEvent::Resized(_) => {
+                    force_recreate = true;
+                }
+                _ => (),
             }
-            _ => (),
         });
+
         if done {
             return;
         }
