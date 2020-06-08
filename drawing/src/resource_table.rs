@@ -60,8 +60,8 @@ impl ResourceTable {
         self.inner.borrow_mut().register_surface(surface)
     }
 
-    pub fn register_mask(&self, surface: GpuSurface) -> SurfaceId {
-        self.inner.borrow_mut().register_surface(surface)
+    pub fn register_mask(&self, surface: GpuSurface) -> MaskId {
+        self.inner.borrow_mut().register_mask(surface)
     }
 
     pub fn get_surface(&self, surface_id: SurfaceId) -> GpuSurface {

@@ -2,10 +2,9 @@ use crate::backend::pipelines::glyph_pipeline::GlyphPipeline;
 use crate::backend::pipelines::mask_pipeline::MaskPipeline;
 use crate::backend::pipelines::shape_pipeline::ShapePipeline;
 use crate::backend::GpuFrame;
-use crate::{Color, DrawList, ResourceTable, ShapeDrawData, ShapeKind};
+use crate::{DrawList, ResourceTable};
 use std::sync::Arc;
-use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
-use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder, DynamicState};
+use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder};
 use vulkano::device::Device;
 use vulkano::framebuffer::RenderPassAbstract;
 

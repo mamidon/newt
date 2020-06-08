@@ -258,7 +258,7 @@ impl Drawing {
         bytes: &[u8],
     ) -> DrawingResult<MaskId> {
         let gpu_mask = self.backend_gpu.load_mask(width, height, bytes)?;
-        let handle = self.resource_table.register_surface(gpu_mask.clone());
+        let handle = self.resource_table.register_mask(gpu_mask.clone());
 
         Ok(handle)
     }

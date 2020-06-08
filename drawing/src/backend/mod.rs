@@ -2,12 +2,12 @@ use crate::backend::pipelines::GpuPipelines;
 use crate::{DrawList, DrawingOptions, DrawingResult, ResourceTable};
 use std::sync::Arc;
 use std::time::Duration;
-use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder, DynamicState};
+use vulkano::command_buffer::{AutoCommandBuffer, DynamicState};
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::format::Format;
 use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract};
 use vulkano::image::{Dimensions, ImmutableImage};
-use vulkano::instance::{Instance, PhysicalDevice, QueueFamily};
+use vulkano::instance::{Instance, PhysicalDevice};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::swapchain::{
     AcquireError, PresentMode, Surface, SurfaceTransform, Swapchain, SwapchainAcquireFuture,
@@ -286,7 +286,10 @@ impl Gpu {
         )
         .unwrap();
 
-        loading_future.join(now(self.device.clone()));
+        loading_future
+            .join(now(self.device.clone()))
+            .flush()
+            .expect("future flush failed");
 
         Ok(GpuSurface { gpu_surface })
     }
@@ -306,7 +309,10 @@ impl Gpu {
         )
         .unwrap();
 
-        loading_future.join(now(self.device.clone()));
+        loading_future
+            .join(now(self.device.clone()))
+            .flush()
+            .expect("future flush failed");
 
         Ok(GpuSurface { gpu_surface })
     }
