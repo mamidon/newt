@@ -6,6 +6,9 @@ use drawing::{Brush, Drawing, DrawingOptions, Extent, MaskId, ShapeKind, Surface
 use png;
 use std::io::{BufRead, BufReader, Cursor};
 
+use crate::layout::{
+    Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, VerticalStackContainer, WindowContainer,
+};
 use crate::typesetting::{GlyphRun, Pixels, TypeFace, TypeSet};
 use euclid::{Point2D, Size2D, Vector2D};
 use std::collections::{HashMap, HashSet};
@@ -13,6 +16,7 @@ use std::fs::File;
 use std::ops::Add;
 use winit::{Event, EventsLoop, KeyboardInput, VirtualKeyCode, Window, WindowBuilder, WindowEvent};
 
+mod layout;
 mod typesetting;
 
 fn main() {
@@ -55,7 +59,7 @@ fn main() {
     let mut offset: Vector2D<i32, Pixels> = Vector2D::zero();
     let mut force_recreate = false;
     loop {
-        glyph_run = glyph_run.with_offset(offset);
+        /* glyph_run = glyph_run.with_offset(offset);
         offset = Vector2D::zero();
 
         let mut draw_list = drawing
@@ -80,10 +84,24 @@ fn main() {
             } else {
                 println!("failed to render glyph_id: {:?}", glyph);
             }
-        }
+        } */
+        let mut root = LayoutItem::container(WindowContainer::new(1024, 1024));
+        let mut stack = LayoutItem::container(VerticalStackContainer::new());
+        let brush = Brush {
+            foreground: 0xFF0000FF,
+            background: 0x00FF00FF,
+        };
+        let dimensions = Dimensions::new(150, 150);
+        let shape1 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Rectangle, brush, dimensions));
+        let shape2 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Ellipse, brush, dimensions));
 
+        stack.attach(shape1);
+        stack.attach(shape2);
+        root.attach(stack);
+
+        let outcome = root.layout(&LayoutSpace::new(Some(100), Some(100)));
         let sealed_draw_list = drawing
-            .seal_draw_list(draw_list, force_recreate)
+            .seal_draw_list(outcome.draw_list, force_recreate)
             .expect("Failed to seal draw list");
         force_recreate = false;
 

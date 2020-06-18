@@ -53,7 +53,7 @@ impl Handle {
     }
 }
 
-#[derive(Eq, PartialEq, Copy, Clone)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub struct Extent {
     x: i64,
     y: i64,
@@ -320,6 +320,12 @@ impl DrawList {
         let key = DrawCommandKind::Mask(mask);
         let data = MaskDrawData { brush, extent };
         self.masks.entry(key).or_insert(Vec::new()).push(data);
+    }
+
+    pub fn push_list(&mut self, other: DrawList) {
+        self.shapes.extend(other.shapes);
+        self.glyphs.extend(other.glyphs);
+        self.masks.extend(other.masks);
     }
 }
 

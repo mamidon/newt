@@ -1,7 +1,7 @@
 
 ===== June 4 ===============
 *support actual masks & swap font rendering to that
-support arrow keys & move text up/down one line at a time
+*support arrow keys & move text up/down one line at a time
 implement text buffer & cursor
 implement simple text input at cursor location
 implement complex keyboard navigation (ctrl + arrow)
