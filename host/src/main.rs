@@ -100,12 +100,8 @@ fn main() {
         root.attach(stack);
 
         let outcome = root.layout(&LayoutSpace::new(Some(100), Some(100)));
-        let sealed_draw_list = drawing
-            .seal_draw_list(outcome.draw_list, force_recreate)
-            .expect("Failed to seal draw list");
+        drawing.submit_draw_list(&outcome.draw_list, force_recreate);
         force_recreate = false;
-
-        drawing.submit_sealed_draw_list(sealed_draw_list);
 
         let mut done = false;
         events_loop.poll_events(|polled_event| {

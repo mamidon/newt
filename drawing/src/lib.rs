@@ -196,11 +196,16 @@ pub struct DrawingOptions {
     pub width: usize,
     pub height: usize,
 }
-pub struct SealedDrawList {
-    sealed_frame: SealedGpuFrame,
-}
 pub struct MaterialCollection;
 pub struct DrawList {
+    // TODO stack of transforms, which manipulate commands as they come into the draw list
+    // TODO z-ordering
+    // TODO incorporate text rendering into Drawing, such that end users do not have to handle glyph texture management
+    /* TODO consider how layout intersects with Drawing...
+            ...perhaps define a Drawable & Layoutable traits; implementors of the former can supply DrawCommands
+            ...the latter can supply a tree of LayoutItems (which in turn can supply Drawables)
+            ...Layout items push transformations onto a transforms stack inside of the draw list..
+    */
     shapes: Vec<ShapeDrawData>,
     glyphs: HashMap<DrawCommandKind, Vec<GlyphDrawData>>,
     masks: HashMap<DrawCommandKind, Vec<MaskDrawData>>,
@@ -221,22 +226,14 @@ impl Drawing {
         Ok(DrawList::empty())
     }
 
-    pub fn seal_draw_list(
-        &mut self,
-        draw_list: DrawList,
-        force_recreate: bool,
-    ) -> DrawingResult<SealedDrawList> {
+    pub fn submit_draw_list(&mut self, draw_list: &DrawList, force_recreate: bool) {
         let frame = self.backend_gpu.begin_frame(force_recreate);
 
         let sealed_frame = frame
             .build_command_buffer(&draw_list)
             .expect("Failed to build_command_buffer");
 
-        Ok(SealedDrawList::new(sealed_frame))
-    }
-
-    pub fn submit_sealed_draw_list(&mut self, sealed_draw_list: SealedDrawList) {
-        self.backend_gpu.end_frame(sealed_draw_list.sealed_frame);
+        self.backend_gpu.end_frame(sealed_frame);
     }
 
     pub fn load_rgba_texture(
@@ -326,12 +323,6 @@ impl DrawList {
         self.shapes.extend(other.shapes);
         self.glyphs.extend(other.glyphs);
         self.masks.extend(other.masks);
-    }
-}
-
-impl SealedDrawList {
-    pub(crate) fn new(sealed_frame: SealedGpuFrame) -> Self {
-        SealedDrawList { sealed_frame }
     }
 }
 
