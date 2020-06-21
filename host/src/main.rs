@@ -9,7 +9,7 @@ use std::io::{BufRead, BufReader, Cursor};
 use crate::layout::{
     Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, VerticalStackContainer, WindowContainer,
 };
-use crate::typesetting::{GlyphRun, Pixels, TypeFace, TypeSet};
+use drawing::typesetting::{GlyphRun, Pixels, TypeFace, TypeSet};
 use euclid::{Point2D, Size2D, Vector2D};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -17,7 +17,6 @@ use std::ops::Add;
 use winit::{Event, EventsLoop, KeyboardInput, VirtualKeyCode, Window, WindowBuilder, WindowEvent};
 
 mod layout;
-mod typesetting;
 
 fn main() {
     let mut events_loop = EventsLoop::new();

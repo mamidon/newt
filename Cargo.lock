@@ -348,6 +348,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "drawing"
 version = "0.1.0"
 dependencies = [
+ "euclid 0.20.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "font-kit 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "vulkano-shaders 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",

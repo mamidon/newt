@@ -7,6 +7,7 @@ use winit::EventsLoop;
 
 mod backend;
 mod resource_table;
+pub mod typesetting;
 
 pub type DrawingError = &'static str;
 pub type DrawingResult<T> = Result<T, DrawingError>;
