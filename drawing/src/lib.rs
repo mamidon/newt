@@ -1,6 +1,9 @@
 use crate::backend::{Gpu, SealedGpuFrame};
 use crate::resource_table::ResourceTable;
-use std::collections::HashMap;
+use crate::typesetting::TypeSet;
+use euclid::Vector2D;
+use std::borrow::BorrowMut;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::sync::Arc;
 use winit::EventsLoop;
@@ -165,11 +168,12 @@ pub enum ShapeKind {
     Line,
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Hash)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash)]
 enum DrawCommandKind {
     Shape,
     Glyph(SurfaceId),
     Mask(MaskId),
+    Text(String),
 }
 
 struct ShapeDrawData {
@@ -187,9 +191,16 @@ struct MaskDrawData {
     extent: Extent,
 }
 
+struct TextDrawData {
+    text: String,
+    brush: Brush,
+    extent: Extent,
+}
+
 pub struct Drawing {
     backend_gpu: Gpu,
     resource_table: Arc<ResourceTable>,
+    type_set: TypeSet,
 }
 
 #[derive(Copy, Clone)]
@@ -197,7 +208,6 @@ pub struct DrawingOptions {
     pub width: usize,
     pub height: usize,
 }
-pub struct MaterialCollection;
 pub struct DrawList {
     // TODO stack of transforms, which manipulate commands as they come into the draw list
     // TODO z-ordering
@@ -210,16 +220,28 @@ pub struct DrawList {
     shapes: Vec<ShapeDrawData>,
     glyphs: HashMap<DrawCommandKind, Vec<GlyphDrawData>>,
     masks: HashMap<DrawCommandKind, Vec<MaskDrawData>>,
+    texts: Vec<TextDrawData>,
 }
 
 impl Drawing {
     pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Self> {
+        let type_set = TypeSet::new(12.0);
         let resource_table = Arc::new(ResourceTable::new());
-        let backend_gpu = Gpu::initialize(event_loop, resource_table.clone(), options)?;
+        let mut backend_gpu = Gpu::initialize(event_loop, resource_table.clone(), options)?;
+
+        for type_face in type_set.faces() {
+            let width = type_face.size().width;
+            let height = type_face.size().height;
+
+            let gpu_mask =
+                backend_gpu.load_mask(width, height, type_face.to_mask_bytes().as_slice())?;
+            resource_table.register_glyph(type_face.glyph_id(), gpu_mask);
+        }
 
         Ok(Drawing {
             backend_gpu,
             resource_table,
+            type_set,
         })
     }
 
@@ -271,32 +293,13 @@ impl Default for DrawingOptions {
     }
 }
 
-impl MaterialCollection {
-    pub fn new() -> DrawingResult<MaterialCollection> {
-        Ok(MaterialCollection {})
-    }
-
-    pub fn create_material_glyph(
-        &mut self,
-        _material: impl Into<TextureRGBA>,
-    ) -> DrawingResult<SurfaceId> {
-        unimplemented!()
-    }
-
-    pub fn create_material_mask(
-        &mut self,
-        _material: impl Into<TextureGreyScale>,
-    ) -> DrawingResult<MaskId> {
-        unimplemented!()
-    }
-}
-
 impl DrawList {
     pub fn empty() -> DrawList {
         DrawList {
             shapes: Vec::new(),
             glyphs: HashMap::new(),
             masks: HashMap::new(),
+            texts: Vec::new(),
         }
     }
 
@@ -318,6 +321,14 @@ impl DrawList {
         let key = DrawCommandKind::Mask(mask);
         let data = MaskDrawData { brush, extent };
         self.masks.entry(key).or_insert(Vec::new()).push(data);
+    }
+
+    pub fn push_text(&mut self, text: &str, brush: Brush, extent: Extent) {
+        self.texts.push(TextDrawData {
+            text: text.to_string(),
+            brush,
+            extent,
+        })
     }
 
     pub fn push_list(&mut self, other: DrawList) {
