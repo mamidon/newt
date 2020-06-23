@@ -94,6 +94,9 @@ pub struct ShapeLeaf {
     brush: Brush,
     dimensions: Dimensions,
 }
+pub struct TextLeaf {
+    text: String,
+}
 
 impl WindowContainer {
     pub fn new(width: u32, height: u32) -> WindowContainer {
@@ -186,6 +189,17 @@ impl LayoutLeaf for ShapeLeaf {
             remaining_space: *space,
             draw_list,
         }
+    }
+}
+
+impl LayoutLeaf for TextLeaf {
+    fn layout(&self, space: &LayoutSpace) -> LayoutOutcome {
+        let mut draw_list = DrawList::empty();
+        draw_list.push_text(
+            self.text.as_str(),
+            self.brush,
+            Extent::new(space.offset.x, space.offset.y),
+        )
     }
 }
 
