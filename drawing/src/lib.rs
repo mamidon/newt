@@ -1,9 +1,7 @@
-use crate::backend::{Gpu, SealedGpuFrame};
+use crate::backend::{Gpu};
 use crate::resource_table::ResourceTable;
 use crate::typesetting::TypeSet;
 use euclid::Vector2D;
-use std::borrow::BorrowMut;
-use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::sync::Arc;
 use winit::EventsLoop;
@@ -181,11 +179,6 @@ struct DrawCommandCommonData {
     extent: Extent,
 }
 
-enum DrawCommandSpecificData {
-    None,
-    Text(String),
-}
-
 #[derive(Clone)]
 struct DrawCommand {
     kind: DrawCommandKind,
@@ -324,6 +317,13 @@ impl DrawList {
         self.commands.push(DrawCommand {
             kind: DrawCommandKind::Shape(shape_kind),
             common_data: DrawCommandCommonData::new(brush, extent),
+        });
+    }
+
+    pub fn push_surface(&mut self, surface_id: SurfaceId, brush: Brush, extent: Extent) {
+        self.commands.push(DrawCommand {
+            kind: DrawCommandKind::Surface(surface_id),
+            common_data: DrawCommandCommonData::new(brush, extent)
         });
     }
 

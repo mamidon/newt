@@ -1,5 +1,5 @@
 use crate::backend::{GpuFrame, ShapeDrawData};
-use crate::{Color, DrawCommandKind, DrawList, DrawingResult, Extent, ShapeKind};
+use crate::{Color, DrawingResult, Extent, ShapeKind};
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::AutoCommandBufferBuilder;

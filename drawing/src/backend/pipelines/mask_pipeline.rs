@@ -1,5 +1,5 @@
 use crate::backend::{GpuFrame, MaskDrawData};
-use crate::{DrawCommandKind, DrawList, DrawingResult, Extent, MaskId, ResourceTable};
+use crate::{DrawingResult, Extent, MaskId, ResourceTable};
 use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};

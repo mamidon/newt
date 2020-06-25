@@ -1,24 +1,20 @@
 use std::collections::HashMap;
 
-use euclid::{Point2D, Rect, Size2D, UnknownUnit, Vector2D};
+use euclid::{Point2D, Size2D, Vector2D};
 use font_kit::canvas::{Canvas, Format, RasterizationOptions};
 use font_kit::family_name::FamilyName;
 use font_kit::hinting::HintingOptions;
-use font_kit::loader::{FontTransform, Loader};
+use font_kit::loader::{FontTransform};
 use font_kit::loaders::directwrite::Font;
-use font_kit::metrics::Metrics;
 use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
-use std::borrow::Borrow;
-use std::collections::hash_map::Iter;
+
 use std::ops::Mul;
 
-struct FontUnits;
 pub struct Pixels;
 
 pub struct TypeSet {
     font: Font,
-    point_size: f32,
     font_units_to_pixels_scale: f32,
     faces: HashMap<u32, TypeFace>,
 }
@@ -33,7 +29,6 @@ impl TypeSet {
 
         TypeSet {
             font,
-            point_size,
             font_units_to_pixels_scale,
             faces,
         }
@@ -118,7 +113,7 @@ impl TypeFace {
             &Point2D::new(reverse_offset.x as f32, reverse_offset.y as f32),
             HintingOptions::None,
             RasterizationOptions::GrayscaleAa,
-        );
+        ).expect("rasterize_glyph failed");
 
         let raster_advance = font
             .advance(glyph_id)

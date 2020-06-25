@@ -2,7 +2,7 @@ use crate::backend::pipelines::glyph_pipeline::GlyphPipeline;
 use crate::backend::pipelines::mask_pipeline::MaskPipeline;
 use crate::backend::pipelines::shape_pipeline::ShapePipeline;
 use crate::backend::{GpuFrame, MaskDrawData, ShapeDrawData, SurfaceDrawData};
-use crate::{DrawList, MaskId, ResourceTable, SurfaceId};
+use crate::{MaskId, ResourceTable, SurfaceId};
 use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder};
