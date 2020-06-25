@@ -192,17 +192,6 @@ impl LayoutLeaf for ShapeLeaf {
     }
 }
 
-impl LayoutLeaf for TextLeaf {
-    fn layout(&self, space: &LayoutSpace) -> LayoutOutcome {
-        let mut draw_list = DrawList::empty();
-        draw_list.push_text(
-            self.text.as_str(),
-            self.brush,
-            Extent::new(space.offset.x, space.offset.y),
-        )
-    }
-}
-
 impl LayoutItem {
     pub fn container<C: LayoutContainer + 'static>(container: C) -> LayoutItem {
         LayoutItem::Container {

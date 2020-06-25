@@ -1,5 +1,5 @@
-use crate::backend::GpuFrame;
-use crate::{Color, DrawList, DrawingResult, Extent, ShapeDrawData, ShapeKind};
+use crate::backend::{GpuFrame, ShapeDrawData};
+use crate::{Color, DrawCommandKind, DrawList, DrawingResult, Extent, ShapeKind};
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::AutoCommandBufferBuilder;
@@ -56,17 +56,14 @@ impl ShapePipeline {
     pub fn write_commands(
         &self,
         frame: &GpuFrame,
-        draw_list: &DrawList,
+        draw_data: &Vec<ShapeDrawData>,
         builder: AutoCommandBufferBuilder,
     ) -> DrawingResult<AutoCommandBufferBuilder> {
         let mut shape_vertices: Vec<ShapeVertex> = Vec::new();
-
-        for shape in draw_list.shapes.iter() {
-            let ShapeDrawData {
-                brush,
-                extent,
-                kind,
-            } = shape;
+        for data in draw_data {
+            let kind = data.kind;
+            let brush = data.brush;
+            let extent = data.extent;
 
             let kind_input = match kind {
                 ShapeKind::Rectangle => 1,

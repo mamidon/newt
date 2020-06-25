@@ -1,5 +1,6 @@
-use crate::backend::GpuFrame;
-use crate::{DrawCommandKind, DrawList, DrawingResult, Extent, GlyphDrawData, ResourceTable};
+use crate::backend::{GpuFrame, SurfaceDrawData};
+use crate::{DrawCommandKind, DrawList, DrawingResult, Extent, ResourceTable, SurfaceId};
+use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::AutoCommandBufferBuilder;
@@ -54,16 +55,16 @@ impl GlyphPipeline {
     pub fn write_commands(
         &self,
         frame: &GpuFrame,
-        draw_list: &DrawList,
+        data: &HashMap<SurfaceId, Vec<SurfaceDrawData>>,
         mut builder: AutoCommandBufferBuilder,
     ) -> DrawingResult<AutoCommandBufferBuilder> {
-        for (kind, glyph_instances) in draw_list.glyphs.iter() {
+        for (surface_id, data) in data.iter() {
             let mut glyph_vertices: Vec<GlyphVertex> = Vec::new();
 
-            let binding = self.bind(kind);
+            let binding = self.bind(*surface_id);
 
-            for glyph_instance in glyph_instances.iter() {
-                let GlyphDrawData { extent } = glyph_instance;
+            for datum in data.iter() {
+                let SurfaceDrawData { extent } = datum;
 
                 extent
                     .corners()
@@ -106,7 +107,7 @@ impl GlyphPipeline {
         Ok(builder)
     }
 
-    fn bind(&self, kind: &DrawCommandKind) -> Arc<dyn DescriptorSet + Send + Sync> {
+    fn bind(&self, surface_id: SurfaceId) -> Arc<dyn DescriptorSet + Send + Sync> {
         let sampler = Sampler::new(
             self.inner.device().clone(),
             Filter::Linear,
@@ -121,11 +122,6 @@ impl GlyphPipeline {
             0.0,
         )
         .expect("Sampler::new failed");
-
-        let surface_id = match kind {
-            DrawCommandKind::Glyph(surface_id) => *surface_id,
-            _ => panic!("Unexpected kind"),
-        };
 
         let surface = self.resource_table.get_surface(surface_id);
 

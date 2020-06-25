@@ -1,5 +1,6 @@
-use crate::backend::GpuFrame;
-use crate::{DrawCommandKind, DrawList, DrawingResult, Extent, MaskDrawData, ResourceTable};
+use crate::backend::{GpuFrame, MaskDrawData};
+use crate::{DrawCommandKind, DrawList, DrawingResult, Extent, MaskId, ResourceTable};
+use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::AutoCommandBufferBuilder;
@@ -62,16 +63,16 @@ impl MaskPipeline {
     pub fn write_commands(
         &self,
         frame: &GpuFrame,
-        draw_list: &DrawList,
+        masks: &HashMap<MaskId, Vec<MaskDrawData>>,
         mut builder: AutoCommandBufferBuilder,
     ) -> DrawingResult<AutoCommandBufferBuilder> {
-        for (kind, mask_instances) in draw_list.masks.iter() {
+        for (mask_id, data) in masks.iter() {
             let mut mask_vertices: Vec<MaskVertex> = Vec::new();
 
-            let binding = self.bind(kind);
+            let binding = self.bind(*mask_id);
 
-            for mask_instance in mask_instances.iter() {
-                let MaskDrawData { brush, extent } = mask_instance;
+            for datum in data.iter() {
+                let MaskDrawData { brush, extent } = datum;
 
                 extent
                     .corners()
@@ -116,7 +117,7 @@ impl MaskPipeline {
         Ok(builder)
     }
 
-    fn bind(&self, kind: &DrawCommandKind) -> Arc<dyn DescriptorSet + Send + Sync> {
+    fn bind(&self, mask_id: MaskId) -> Arc<dyn DescriptorSet + Send + Sync> {
         let sampler = Sampler::new(
             self.inner.device().clone(),
             Filter::Linear,
@@ -131,11 +132,6 @@ impl MaskPipeline {
             0.0,
         )
         .expect("Sampler::new failed");
-
-        let mask_id = match kind {
-            DrawCommandKind::Mask(mask_id) => *mask_id,
-            _ => panic!("Unexpected kind"),
-        };
 
         let surface = self.resource_table.get_mask(mask_id);
 

@@ -1,8 +1,9 @@
 use crate::backend::pipelines::glyph_pipeline::GlyphPipeline;
 use crate::backend::pipelines::mask_pipeline::MaskPipeline;
 use crate::backend::pipelines::shape_pipeline::ShapePipeline;
-use crate::backend::GpuFrame;
-use crate::{DrawList, ResourceTable};
+use crate::backend::{GpuFrame, MaskDrawData, ShapeDrawData, SurfaceDrawData};
+use crate::{DrawList, MaskId, ResourceTable, SurfaceId};
+use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder};
 use vulkano::device::Device;
@@ -45,7 +46,9 @@ impl GpuPipelines {
     pub(crate) fn write_commands(
         &self,
         frame: &GpuFrame,
-        draw_list: &DrawList,
+        shapes: &Vec<ShapeDrawData>,
+        masks: &HashMap<MaskId, Vec<MaskDrawData>>,
+        glyphs: &HashMap<SurfaceId, Vec<SurfaceDrawData>>,
     ) -> AutoCommandBuffer {
         let mut command_buffer_builder = AutoCommandBufferBuilder::primary_one_time_submit(
             frame.device.clone(),
@@ -61,17 +64,17 @@ impl GpuPipelines {
 
         command_buffer_builder = self
             .shapes
-            .write_commands(frame, draw_list, command_buffer_builder)
+            .write_commands(frame, shapes, command_buffer_builder)
             .expect("Failed to write to command buffer");
 
         command_buffer_builder = self
             .glyphs
-            .write_commands(frame, draw_list, command_buffer_builder)
+            .write_commands(frame, glyphs, command_buffer_builder)
             .expect("");
 
         command_buffer_builder = self
             .masks
-            .write_commands(frame, draw_list, command_buffer_builder)
+            .write_commands(frame, masks, command_buffer_builder)
             .expect("");
 
         command_buffer_builder

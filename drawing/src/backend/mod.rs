@@ -1,5 +1,9 @@
 use crate::backend::pipelines::GpuPipelines;
-use crate::{DrawList, DrawingOptions, DrawingResult, ResourceTable};
+use crate::{
+    Brush, DrawCommand, DrawCommandCommonData, DrawCommandKind, DrawList, DrawingOptions,
+    DrawingResult, Extent, MaskId, ResourceTable, ShapeKind, SurfaceId,
+};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use vulkano::command_buffer::{AutoCommandBuffer, DynamicState};
@@ -50,6 +54,21 @@ pub(crate) struct SealedGpuFrame {
 #[derive(Clone)]
 pub(crate) struct GpuSurface {
     gpu_surface: Arc<ImmutableImage<Format>>,
+}
+
+pub(crate) struct ShapeDrawData {
+    kind: ShapeKind,
+    brush: Brush,
+    extent: Extent,
+}
+
+pub(crate) struct SurfaceDrawData {
+    extent: Extent,
+}
+
+pub(crate) struct MaskDrawData {
+    brush: Brush,
+    extent: Extent,
 }
 
 impl Gpu {
@@ -342,7 +361,36 @@ impl GpuFrame {
     }
 
     pub fn build_command_buffer(self, draw_list: &DrawList) -> DrawingResult<SealedGpuFrame> {
-        let command_buffer = self.pipelines.write_commands(&self, &draw_list);
+        let mut shapes: Vec<ShapeDrawData> = Vec::new();
+        let mut masks: HashMap<MaskId, Vec<MaskDrawData>> = HashMap::new();
+        let mut glyphs: HashMap<SurfaceId, Vec<SurfaceDrawData>> = HashMap::new();
+
+        for command in draw_list.commands.iter() {
+            match command {
+                DrawCommand {
+                    kind: DrawCommandKind::Shape(kind),
+                    common_data,
+                } => shapes.push(ShapeDrawData::new(*kind, *common_data)),
+                DrawCommand {
+                    kind: DrawCommandKind::Mask(mask_id),
+                    common_data,
+                } => masks
+                    .entry(*mask_id)
+                    .or_default()
+                    .push(MaskDrawData::new(*common_data)),
+                DrawCommand {
+                    kind: DrawCommandKind::Surface(surface_id),
+                    common_data,
+                } => glyphs
+                    .entry(*surface_id)
+                    .or_default()
+                    .push(SurfaceDrawData::new(*common_data)),
+            }
+        }
+
+        let command_buffer = self
+            .pipelines
+            .write_commands(&self, &shapes, &masks, &glyphs);
 
         Ok(SealedGpuFrame::new(
             command_buffer,
@@ -362,6 +410,33 @@ impl SealedGpuFrame {
             commands,
             swapchain_acquisition,
             target_index,
+        }
+    }
+}
+
+impl ShapeDrawData {
+    fn new(kind: ShapeKind, common_data: DrawCommandCommonData) -> ShapeDrawData {
+        ShapeDrawData {
+            kind,
+            brush: common_data.brush,
+            extent: common_data.extent,
+        }
+    }
+}
+
+impl SurfaceDrawData {
+    fn new(common_data: DrawCommandCommonData) -> SurfaceDrawData {
+        SurfaceDrawData {
+            extent: common_data.extent,
+        }
+    }
+}
+
+impl MaskDrawData {
+    fn new(common_data: DrawCommandCommonData) -> MaskDrawData {
+        MaskDrawData {
+            brush: common_data.brush,
+            extent: common_data.extent,
         }
     }
 }

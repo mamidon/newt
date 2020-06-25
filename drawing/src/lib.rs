@@ -161,7 +161,7 @@ impl From<(u32, u32)> for Extent {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ShapeKind {
     Rectangle,
     Ellipse,
@@ -170,31 +170,26 @@ pub enum ShapeKind {
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash)]
 enum DrawCommandKind {
-    Shape,
-    Glyph(SurfaceId),
+    Shape(ShapeKind),
+    Surface(SurfaceId),
     Mask(MaskId),
+}
+
+#[derive(Copy, Clone)]
+struct DrawCommandCommonData {
+    brush: Brush,
+    extent: Extent,
+}
+
+enum DrawCommandSpecificData {
+    None,
     Text(String),
 }
 
-struct ShapeDrawData {
-    kind: ShapeKind,
-    brush: Brush,
-    extent: Extent,
-}
-
-struct GlyphDrawData {
-    extent: Extent,
-}
-
-struct MaskDrawData {
-    brush: Brush,
-    extent: Extent,
-}
-
-struct TextDrawData {
-    text: String,
-    brush: Brush,
-    extent: Extent,
+#[derive(Clone)]
+struct DrawCommand {
+    kind: DrawCommandKind,
+    common_data: DrawCommandCommonData,
 }
 
 pub struct Drawing {
@@ -217,10 +212,7 @@ pub struct DrawList {
             ...the latter can supply a tree of LayoutItems (which in turn can supply Drawables)
             ...Layout items push transformations onto a transforms stack inside of the draw list..
     */
-    shapes: Vec<ShapeDrawData>,
-    glyphs: HashMap<DrawCommandKind, Vec<GlyphDrawData>>,
-    masks: HashMap<DrawCommandKind, Vec<MaskDrawData>>,
-    texts: Vec<TextDrawData>,
+    commands: Vec<DrawCommand>,
 }
 
 impl Drawing {
@@ -324,45 +316,32 @@ impl Default for DrawingOptions {
 impl DrawList {
     pub fn empty() -> DrawList {
         DrawList {
-            shapes: Vec::new(),
-            glyphs: HashMap::new(),
-            masks: HashMap::new(),
-            texts: Vec::new(),
+            commands: Vec::new(),
         }
     }
 
-    pub fn push_shape(&mut self, kind: ShapeKind, brush: Brush, extent: Extent) {
-        self.shapes.push(ShapeDrawData {
-            kind,
-            brush,
-            extent,
+    pub fn push_shape(&mut self, shape_kind: ShapeKind, brush: Brush, extent: Extent) {
+        self.commands.push(DrawCommand {
+            kind: DrawCommandKind::Shape(shape_kind),
+            common_data: DrawCommandCommonData::new(brush, extent),
         });
     }
 
-    pub fn push_glyph(&mut self, surface: SurfaceId, extent: Extent) {
-        let key = DrawCommandKind::Glyph(surface);
-        let data = GlyphDrawData { extent };
-        self.glyphs.entry(key).or_insert(Vec::new()).push(data);
-    }
-
-    pub fn push_mask(&mut self, mask: MaskId, brush: Brush, extent: Extent) {
-        let key = DrawCommandKind::Mask(mask);
-        let data = MaskDrawData { brush, extent };
-        self.masks.entry(key).or_insert(Vec::new()).push(data);
-    }
-
-    pub fn push_text(&mut self, text: &str, brush: Brush, extent: Extent) {
-        self.texts.push(TextDrawData {
-            text: text.to_string(),
-            brush,
-            extent,
-        })
+    pub fn push_mask(&mut self, mask_id: MaskId, brush: Brush, extent: Extent) {
+        self.commands.push(DrawCommand {
+            kind: DrawCommandKind::Mask(mask_id),
+            common_data: DrawCommandCommonData::new(brush, extent),
+        });
     }
 
     pub fn push_list(&mut self, other: DrawList) {
-        self.shapes.extend(other.shapes);
-        self.glyphs.extend(other.glyphs);
-        self.masks.extend(other.masks);
+        self.commands.extend(other.commands);
+    }
+}
+
+impl DrawCommandCommonData {
+    fn new(brush: Brush, extent: Extent) -> DrawCommandCommonData {
+        DrawCommandCommonData { brush, extent }
     }
 }
 
