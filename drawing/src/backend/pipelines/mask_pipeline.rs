@@ -1,5 +1,6 @@
+use crate::backend::gpu_resource_table::GpuResourceTable;
 use crate::backend::{GpuFrame, MaskDrawData};
-use crate::{DrawingResult, Extent, MaskId, ResourceTable};
+use crate::{DrawingResult, Extent, MaskId};
 use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
@@ -29,14 +30,14 @@ vulkano::impl_vertex!(
 #[derive(Clone)]
 pub(crate) struct MaskPipeline {
     inner: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
-    resource_table: Arc<ResourceTable>,
+    resource_table: Arc<GpuResourceTable>,
 }
 
 impl MaskPipeline {
     pub fn create_pipeline(
         device: Arc<Device>,
         render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
-        resource_table: Arc<ResourceTable>,
+        resource_table: Arc<GpuResourceTable>,
     ) -> MaskPipeline {
         let vs = vertex_shader::Shader::load(device.clone()).unwrap();
         let fs = fragment_shader::Shader::load(device.clone()).unwrap();

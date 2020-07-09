@@ -1,5 +1,6 @@
+use crate::backend::gpu_resource_table::GpuResourceTable;
 use crate::backend::{GpuFrame, SurfaceDrawData};
-use crate::{DrawingResult, Extent, ResourceTable, SurfaceId};
+use crate::{DrawingResult, Extent, SurfaceId};
 use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::buffer::{BufferAccess, BufferUsage, CpuAccessibleBuffer};
@@ -21,14 +22,14 @@ vulkano::impl_vertex!(GlyphVertex, position, uv_input);
 #[derive(Clone)]
 pub(crate) struct GlyphPipeline {
     inner: Arc<dyn GraphicsPipelineAbstract + Send + Sync>,
-    resource_table: Arc<ResourceTable>,
+    resource_table: Arc<GpuResourceTable>,
 }
 
 impl GlyphPipeline {
     pub fn create_pipeline(
         device: Arc<Device>,
         render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
-        resource_table: Arc<ResourceTable>,
+        resource_table: Arc<GpuResourceTable>,
     ) -> GlyphPipeline {
         let vs = vertex_shader::Shader::load(device.clone()).unwrap();
         let fs = fragment_shader::Shader::load(device.clone()).unwrap();

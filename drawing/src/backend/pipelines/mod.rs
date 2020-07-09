@@ -1,8 +1,9 @@
+use crate::backend::gpu_resource_table::GpuResourceTable;
 use crate::backend::pipelines::glyph_pipeline::GlyphPipeline;
 use crate::backend::pipelines::mask_pipeline::MaskPipeline;
 use crate::backend::pipelines::shape_pipeline::ShapePipeline;
 use crate::backend::{GpuFrame, MaskDrawData, ShapeDrawData, SurfaceDrawData};
-use crate::{MaskId, ResourceTable, SurfaceId};
+use crate::{MaskId, SurfaceId};
 use std::collections::HashMap;
 use std::sync::Arc;
 use vulkano::command_buffer::{AutoCommandBuffer, AutoCommandBufferBuilder};
@@ -26,7 +27,7 @@ impl GpuPipelines {
     pub fn new(
         device: Arc<Device>,
         render_pass: OwnedRenderPass,
-        resource_table: Arc<ResourceTable>,
+        resource_table: Arc<GpuResourceTable>,
     ) -> GpuPipelines {
         GpuPipelines {
             shapes: ShapePipeline::create_pipeline(device.clone(), render_pass.clone()),

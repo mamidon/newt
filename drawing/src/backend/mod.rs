@@ -1,7 +1,8 @@
+use crate::backend::gpu_resource_table::GpuResourceTable;
 use crate::backend::pipelines::GpuPipelines;
 use crate::{
     Brush, DrawCommand, DrawCommandCommonData, DrawCommandKind, DrawList, DrawingOptions,
-    DrawingResult, Extent, MaskId, ResourceTable, ShapeKind, SurfaceId,
+    DrawingResult, Extent, MaskId, ShapeKind, SurfaceId,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -21,6 +22,7 @@ use vulkano::sync::{now, FlushError, GpuFuture};
 use vulkano_win::VkSurfaceBuild;
 use winit::{EventsLoop, Window, WindowBuilder};
 
+pub mod gpu_resource_table;
 mod pipelines;
 
 pub(crate) struct Gpu {
@@ -32,6 +34,7 @@ pub(crate) struct Gpu {
     render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
     frame_buffers: Vec<Arc<dyn FramebufferAbstract + Send + Sync>>,
     pipelines: GpuPipelines,
+    pub(crate) resource_table: Arc<GpuResourceTable>,
 }
 
 pub(crate) struct GpuFrame {
@@ -72,11 +75,7 @@ pub(crate) struct MaskDrawData {
 }
 
 impl Gpu {
-    pub fn initialize(
-        event_loop: &EventsLoop,
-        resource_table: Arc<ResourceTable>,
-        options: DrawingOptions,
-    ) -> DrawingResult<Gpu> {
+    pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Gpu> {
         let instance = Instance::new(None, &vulkano_win::required_extensions(), None)
             .map_err(|_| "Failed to create Vulkan instance")?;
         let physical_device = PhysicalDevice::enumerate(&instance)
@@ -176,7 +175,9 @@ impl Gpu {
             })
             .collect();
 
-        let pipelines = GpuPipelines::new(device.clone(), render_pass.clone(), resource_table);
+        let resource_table = Arc::new(GpuResourceTable::new());
+        let pipelines =
+            GpuPipelines::new(device.clone(), render_pass.clone(), resource_table.clone());
 
         Ok(Gpu {
             options,
@@ -187,6 +188,7 @@ impl Gpu {
             render_pass,
             frame_buffers,
             pipelines,
+            resource_table,
         })
     }
 

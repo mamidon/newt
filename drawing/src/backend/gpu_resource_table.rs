@@ -4,15 +4,15 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-struct InnerResourceTable {
+struct GpuInnerResourceTable {
     key_source: Handle,
     surfaces: HashMap<SurfaceId, GpuSurface>,
     glyph_map: HashMap<u32, MaskId>,
 }
 
-impl InnerResourceTable {
-    fn new() -> InnerResourceTable {
-        InnerResourceTable {
+impl GpuInnerResourceTable {
+    fn new() -> GpuInnerResourceTable {
+        GpuInnerResourceTable {
             key_source: Handle::new(0),
             surfaces: HashMap::new(),
             glyph_map: HashMap::new(),
@@ -56,14 +56,14 @@ impl InnerResourceTable {
 }
 
 #[derive(Clone)]
-pub(crate) struct ResourceTable {
-    inner: Rc<RefCell<InnerResourceTable>>,
+pub(crate) struct GpuResourceTable {
+    inner: Rc<RefCell<GpuInnerResourceTable>>,
 }
 
-impl ResourceTable {
-    pub fn new() -> ResourceTable {
-        ResourceTable {
-            inner: Rc::new(RefCell::new(InnerResourceTable::new())),
+impl GpuResourceTable {
+    pub fn new() -> GpuResourceTable {
+        GpuResourceTable {
+            inner: Rc::new(RefCell::new(GpuInnerResourceTable::new())),
         }
     }
 

@@ -1,5 +1,4 @@
-use crate::backend::{Gpu};
-use crate::resource_table::ResourceTable;
+use crate::backend::Gpu;
 use crate::typesetting::TypeSet;
 use euclid::Vector2D;
 use std::hash::Hash;
@@ -7,7 +6,6 @@ use std::sync::Arc;
 use winit::EventsLoop;
 
 mod backend;
-mod resource_table;
 pub mod typesetting;
 
 pub type DrawingError = &'static str;
@@ -187,7 +185,6 @@ struct DrawCommand {
 
 pub struct Drawing {
     backend_gpu: Gpu,
-    resource_table: Arc<ResourceTable>,
     type_set: TypeSet,
 }
 
@@ -211,8 +208,7 @@ pub struct DrawList {
 impl Drawing {
     pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Self> {
         let type_set = TypeSet::new(12.0);
-        let resource_table = Arc::new(ResourceTable::new());
-        let mut backend_gpu = Gpu::initialize(event_loop, resource_table.clone(), options)?;
+        let mut backend_gpu = Gpu::initialize(event_loop, options)?;
 
         for type_face in type_set.faces() {
             let width = type_face.size().width;
@@ -220,12 +216,13 @@ impl Drawing {
 
             let gpu_mask =
                 backend_gpu.load_mask(width, height, type_face.to_mask_bytes().as_slice())?;
-            resource_table.register_glyph(type_face.glyph_id(), gpu_mask);
+            backend_gpu
+                .resource_table
+                .register_glyph(type_face.glyph_id(), gpu_mask);
         }
 
         Ok(Drawing {
             backend_gpu,
-            resource_table,
             type_set,
         })
     }
@@ -243,6 +240,7 @@ impl Drawing {
             .with_offset(Vector2D::new(extent.x as i32, extent.y as i32));
         for glyph in glyph_run.glyphs() {
             let mask_id = self
+                .backend_gpu
                 .resource_table
                 .get_mask_id_for_glyph(glyph.id())
                 .expect("Did not load a glyph?");
@@ -279,7 +277,10 @@ impl Drawing {
         bytes: &[u8],
     ) -> DrawingResult<SurfaceId> {
         let gpu_surface = self.backend_gpu.load_surface(width, height, bytes)?;
-        let handle = self.resource_table.register_surface(gpu_surface.clone());
+        let handle = self
+            .backend_gpu
+            .resource_table
+            .register_surface(gpu_surface.clone());
 
         Ok(handle)
     }
@@ -291,7 +292,10 @@ impl Drawing {
         bytes: &[u8],
     ) -> DrawingResult<MaskId> {
         let gpu_mask = self.backend_gpu.load_mask(width, height, bytes)?;
-        let handle = self.resource_table.register_mask(gpu_mask.clone());
+        let handle = self
+            .backend_gpu
+            .resource_table
+            .register_mask(gpu_mask.clone());
 
         Ok(handle)
     }
@@ -323,7 +327,7 @@ impl DrawList {
     pub fn push_surface(&mut self, surface_id: SurfaceId, brush: Brush, extent: Extent) {
         self.commands.push(DrawCommand {
             kind: DrawCommandKind::Surface(surface_id),
-            common_data: DrawCommandCommonData::new(brush, extent)
+            common_data: DrawCommandCommonData::new(brush, extent),
         });
     }
 
