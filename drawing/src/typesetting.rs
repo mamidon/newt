@@ -4,7 +4,7 @@ use euclid::{Point2D, Size2D, Vector2D};
 use font_kit::canvas::{Canvas, Format, RasterizationOptions};
 use font_kit::family_name::FamilyName;
 use font_kit::hinting::HintingOptions;
-use font_kit::loader::{FontTransform};
+use font_kit::loader::FontTransform;
 use font_kit::loaders::directwrite::Font;
 use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
@@ -38,10 +38,6 @@ impl TypeSet {
         self.faces
             .values()
             .filter(|face| face.raster_size.area() > 0)
-    }
-
-    pub fn glyph_run(&self, text: &str) -> GlyphRun {
-        GlyphRun::build(self, text)
     }
 
     fn load_font() -> Font {
@@ -113,7 +109,8 @@ impl TypeFace {
             &Point2D::new(reverse_offset.x as f32, reverse_offset.y as f32),
             HintingOptions::None,
             RasterizationOptions::GrayscaleAa,
-        ).expect("rasterize_glyph failed");
+        )
+        .expect("rasterize_glyph failed");
 
         let raster_advance = font
             .advance(glyph_id)
@@ -166,13 +163,35 @@ impl TypeFace {
     }
 }
 
-#[derive(Debug)]
-pub struct GlyphRun {
-    glyphs: Vec<Glyph>,
+#[derive(Copy, Clone)]
+pub struct GlyphRunBuilder {
+    offset: Vector2D<i32, Pixels>,
+    dimensions: Option<Size2D<u32, Pixels>>,
 }
 
-impl GlyphRun {
-    fn build(type_set: &TypeSet, text: &str) -> GlyphRun {
+impl GlyphRunBuilder {
+    pub fn new() -> GlyphRunBuilder {
+        GlyphRunBuilder {
+            offset: Vector2D::zero(),
+            dimensions: None,
+        }
+    }
+
+    pub fn with_offset(&self, offset: Vector2D<i32, Pixels>) -> GlyphRunBuilder {
+        GlyphRunBuilder {
+            offset,
+            dimensions: self.dimensions,
+        }
+    }
+
+    pub fn with_dimensions(&self, dimensions: Size2D<u32, Pixels>) -> GlyphRunBuilder {
+        GlyphRunBuilder {
+            offset: self.offset,
+            dimensions: Some(dimensions),
+        }
+    }
+
+    pub fn build(&self, type_set: &TypeSet, text: &str) -> GlyphRun {
         let metrics = type_set.font.metrics();
         let raster_ascent = (metrics.ascent * type_set.font_units_to_pixels_scale) as i32;
 
@@ -183,7 +202,7 @@ impl GlyphRun {
             raster_ascent - raster_descent + raster_linegap
         };
 
-        let mut origin = Vector2D::new(0, raster_ascent);
+        let mut origin = self.offset + Vector2D::new(0, raster_ascent);
         let mut glyphs: Vec<Glyph> = Vec::new();
 
         for c in text.chars() {
@@ -208,7 +227,7 @@ impl GlyphRun {
             });
 
             origin = if c == '\n' {
-                Vector2D::new(0, origin.y + pixels_per_line)
+                Vector2D::new(self.offset.x, origin.y + pixels_per_line)
             } else {
                 origin + advance
             };
@@ -216,20 +235,16 @@ impl GlyphRun {
 
         GlyphRun { glyphs }
     }
+}
 
+#[derive(Debug)]
+pub struct GlyphRun {
+    glyphs: Vec<Glyph>,
+}
+
+impl GlyphRun {
     pub fn glyphs(&self) -> impl Iterator<Item = &Glyph> {
         self.glyphs.iter().filter(|g| !g.is_whitespace)
-    }
-
-    pub fn with_offset(&self, delta: Vector2D<i32, Pixels>) -> GlyphRun {
-        let glyphs = self
-            .glyphs
-            .iter()
-            .filter(|g| !g.is_whitespace)
-            .map(|g| g.with_offset(delta))
-            .collect();
-
-        GlyphRun { glyphs }
     }
 }
 

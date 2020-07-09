@@ -1,5 +1,5 @@
 use crate::backend::Gpu;
-use crate::typesetting::TypeSet;
+use crate::typesetting::{GlyphRunBuilder, TypeSet};
 use euclid::Vector2D;
 use std::hash::Hash;
 use std::sync::Arc;
@@ -234,10 +234,10 @@ impl Drawing {
     pub fn create_draw_list_for_text(&self, text: &str, brush: Brush, extent: Extent) -> DrawList {
         let mut draw_list = DrawList::empty();
 
-        let glyph_run = self
-            .type_set
-            .glyph_run(text)
-            .with_offset(Vector2D::new(extent.x as i32, extent.y as i32));
+        let glyph_run = GlyphRunBuilder::new()
+            .with_offset(Vector2D::new(extent.x as i32, extent.y as i32))
+            .build(&self.type_set, text);
+
         for glyph in glyph_run.glyphs() {
             let mask_id = self
                 .backend_gpu

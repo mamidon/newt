@@ -9,7 +9,7 @@ use std::io::{BufRead, BufReader, Cursor};
 use crate::layout::{
     Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, VerticalStackContainer, WindowContainer,
 };
-use drawing::typesetting::{GlyphRun, Pixels, TypeFace, TypeSet};
+use drawing::typesetting::{GlyphRun, GlyphRunBuilder, Pixels, TypeFace, TypeSet};
 use euclid::{Point2D, Size2D, Vector2D};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -33,11 +33,11 @@ fn main() {
     let file = File::open(file_path).expect("File not found");
     let file_lines: Vec<String> = BufReader::new(file).lines().map(|l| l.unwrap()).collect();
     let file_content = file_lines.join("\n");
-    
+
     let type_set = TypeSet::new(12.0);
     let mut type_face_textures: HashMap<u32, MaskId> = HashMap::new();
 
-    let mut glyph_run: GlyphRun = type_set.glyph_run(&file_content);
+    let mut glyph_run: GlyphRun = GlyphRunBuilder::new().build(&type_set, &file_content);
     let used_glyph_ids: HashSet<u32> = glyph_run.glyphs().map(|glyph| glyph.id()).collect();
 
     for type_face in type_set.faces() {
