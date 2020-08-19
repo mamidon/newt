@@ -6,7 +6,7 @@ use std::sync::Arc;
 use winit::EventsLoop;
 
 mod backend;
-pub mod typesetting;
+mod typesetting;
 
 pub type DrawingError = &'static str;
 pub type DrawingResult<T> = Result<T, DrawingError>;

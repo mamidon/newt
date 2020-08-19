@@ -7,10 +7,9 @@ use png;
 use std::io::{BufRead, BufReader, Cursor};
 
 use crate::layout::{
-    Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, TextLeaf, VerticalStackContainer,
-    WindowContainer,
+    Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, VerticalStackContainer, WindowContainer,
 };
-use drawing::typesetting::{GlyphRun, GlyphRunBuilder, Pixels, TypeFace, TypeSet};
+
 use euclid::{Point2D, Size2D, Vector2D};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -29,34 +28,7 @@ fn main() {
         },
     )
     .expect("Failed to initialize Drawing");
-    let arguments: Vec<String> = std::env::args().collect();
-    let file_path = arguments.get(1).expect("File path not provided");
-    let file = File::open(file_path).expect("File not found");
-    let file_lines: Vec<String> = BufReader::new(file).lines().map(|l| l.unwrap()).collect();
-    let file_content = file_lines.join("\n");
 
-    let type_set = TypeSet::new(12.0);
-    let mut type_face_textures: HashMap<u32, MaskId> = HashMap::new();
-
-    let mut glyph_run: GlyphRun = GlyphRunBuilder::new().build(&type_set, &file_content);
-    let used_glyph_ids: HashSet<u32> = glyph_run.glyphs().map(|glyph| glyph.id()).collect();
-
-    for type_face in type_set.faces() {
-        if !used_glyph_ids.contains(&type_face.glyph_id()) {
-            continue;
-        }
-
-        let texture_id = drawing
-            .load_mask_texture(
-                type_face.size().width,
-                type_face.size().height,
-                type_face.to_mask_bytes().as_slice(),
-            )
-            .expect("load_rgba_texture failed");
-        type_face_textures.insert(type_face.glyph_id(), texture_id);
-    }
-
-    let mut offset: Vector2D<i32, Pixels> = Vector2D::zero();
     let mut force_recreate = false;
     loop {
         let mut root = LayoutItem::container(WindowContainer::new(1024, 1024));
@@ -94,8 +66,6 @@ fn main() {
                     ..
                 } => match virtual_keycode {
                     VirtualKeyCode::Escape => done = true,
-                    VirtualKeyCode::Up => offset += Vector2D::new(0, -10),
-                    VirtualKeyCode::Down => offset += Vector2D::new(0, 10),
                     _ => (),
                 },
                 WindowEvent::CloseRequested => {

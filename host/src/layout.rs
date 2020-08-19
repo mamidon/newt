@@ -1,4 +1,3 @@
-use drawing::typesetting::{GlyphRunBuilder, TypeSet};
 use drawing::{Brush, DrawList, Extent, ShapeKind};
 use euclid::default::Vector2D;
 use euclid::Point2D;
@@ -97,16 +96,6 @@ pub struct ShapeLeaf {
     brush: Brush,
     dimensions: Dimensions,
 }
-pub struct TextLeaf {
-    font: TypeSet,
-    text: String,
-}
-
-impl TextLeaf {
-    pub fn new(text: &str, font: &TypeSet) -> TextLeaf {
-        unimplemented!()
-    }
-}
 
 impl WindowContainer {
     pub fn new(width: u32, height: u32) -> WindowContainer {
@@ -196,54 +185,6 @@ impl LayoutLeaf for ShapeLeaf {
 
         LayoutOutcome {
             consumed_space: self.dimensions,
-            remaining_space: *space,
-            draw_list,
-        }
-    }
-}
-
-impl LayoutLeaf for TextLeaf {
-    fn layout(&self, space: &LayoutSpace) -> LayoutOutcome {
-        let offset = space.offset.to_tuple();
-
-        let glyph_run = GlyphRunBuilder::new()
-            .with_offset(Vector2D::new(offset.0 as i32, offset.1 as i32).cast_unit())
-            .build(&self.font, &self.text);
-
-        let mut draw_list = DrawList::empty();
-
-        let mut min_x = offset.0;
-        let mut min_y = offset.1;
-        let mut max_x = min_x;
-        let mut max_y = min_y;
-
-        for glyph in glyph_run.glyphs() {
-            //if let Some(mask_id) = type_face_textures.get(&glyph.id()) {
-            draw_list.push_shape(
-                ShapeKind::Rectangle,
-                Brush {
-                    foreground: 0x000000FF,
-                    background: 0x00000000,
-                },
-                Extent::new(
-                    glyph.offset().x as i64,
-                    glyph.offset().y as i64,
-                    glyph.size().width,
-                    glyph.size().height,
-                ),
-            );
-
-            max_x = max(glyph.offset().x as i64 + glyph.size().width as i64, max_x);
-            min_x = min(glyph.offset().x as i64, min_x);
-            max_y = max(glyph.offset().y as i64 + glyph.size().height as i64, max_y);
-            min_y = min(glyph.offset().y as i64, min_y);
-            //} else {
-            //    println!("failed to render glyph_id: {:?}", glyph);
-            //}
-        }
-
-        LayoutOutcome {
-            consumed_space: Dimensions::new(max_x - min_x, max_y - min_y),
             remaining_space: *space,
             draw_list,
         }
