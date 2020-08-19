@@ -207,48 +207,20 @@ impl GlyphRunBuilder {
 
         let mut glyphs: Vec<Glyph> = Vec::new();
         let mut origin = self.offset + Vector2D::new(0, raster_ascent);
-        let mut characters = text.chars();
+        let items = GlyphRunBuilder::inclusive_split_by_whitespace(text);
 
-        loop {
-            let next_character = if let Some(w) = characters.next() {
-                w
-            } else {
-                break;
-            };
-
-            match next_character {
-                w if w.is_whitespace() => {
-                    let glyph_id = type_set
-                        .font
-                        .glyph_for_char(w)
-                        .expect("glyph_for_char failed on whitespace char");
-                    let type_face = type_set
-                        .faces
-                        .get(&glyph_id)
-                        .expect("all glyphs in font are in the hashmap");
-
-                    glyphs.push(Glyph {
-                        glyph_id,
-                        offset: type_face.raster_offset + origin,
-                        size: type_face.raster_size,
-                        is_whitespace: true,
-                    });
-
-                    origin = match w {
-                        '\n' => Vector2D::new(self.offset.x, origin.y + pixels_per_line),
-                        '\t' => origin + type_face.raster_advance.mul(4),
-                        ' ' => origin + type_face.raster_advance,
-                        _ => panic!("Some other whitespace character encountered: {:#x?}", w),
-                    };
-                }
-                c => {
-                    let mut word = c.to_string();
-                    word.extend(characters.take_while(|i| !i.is_whitespace()));
-                    let glyph_run = GlyphRunBuilder::new().unbroken_typesetting(type_set, &word);
-                }
-                _ => {}
-            }
+        for item in items {
+            let glyph_run = GlyphRunBuilder::new()
+                .with_offset(origin)
+                .unbroken_typesetting(type_set, &item);
+            glyphs.extend(glyph_run.glyphs);
         }
+        /* origin = match w {
+            '\n' => Vector2D::new(self.offset.x, origin.y + pixels_per_line),
+            '\t' => origin + type_face.raster_advance.mul(4),
+            ' ' => origin + type_face.raster_advance,
+            _ => panic!("Some other whitespace character encountered: {:#x?}", w),
+        };*/
 
         return GlyphRun { glyphs };
     }
@@ -296,6 +268,30 @@ impl GlyphRunBuilder {
         }
 
         GlyphRun { glyphs }
+    }
+
+    fn inclusive_split_by_whitespace(mut text: &str) -> Vec<&str> {
+        let mut results: Vec<&str> = Vec::new();
+
+        loop {
+            if text.len() == 0 {
+                return results;
+            }
+
+            let is_next_char_whitespace = text
+                .chars()
+                .nth(0)
+                .expect("We ensured text isn't 0 length")
+                .is_whitespace();
+
+            let length_of_next_slice = text
+                .chars()
+                .take_while(|c| c.is_whitespace() == is_next_char_whitespace)
+                .count();
+
+            results.push(&text[..length_of_next_slice]);
+            text = &text[length_of_next_slice..];
+        }
     }
 }
 

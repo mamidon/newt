@@ -7,7 +7,8 @@ use png;
 use std::io::{BufRead, BufReader, Cursor};
 
 use crate::layout::{
-    Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, VerticalStackContainer, WindowContainer,
+    Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, TextLeaf, VerticalStackContainer,
+    WindowContainer,
 };
 use drawing::typesetting::{GlyphRun, GlyphRunBuilder, Pixels, TypeFace, TypeSet};
 use euclid::{Point2D, Size2D, Vector2D};
@@ -58,32 +59,6 @@ fn main() {
     let mut offset: Vector2D<i32, Pixels> = Vector2D::zero();
     let mut force_recreate = false;
     loop {
-        /* glyph_run = glyph_run.with_offset(offset);
-        offset = Vector2D::zero();
-
-        let mut draw_list = drawing
-            .create_draw_list()
-            .expect("Failed to create_draw_list");
-
-        for glyph in glyph_run.glyphs() {
-            if let Some(mask_id) = type_face_textures.get(&glyph.id()) {
-                draw_list.push_mask(
-                    *mask_id,
-                    Brush {
-                        foreground: 0x000000FF,
-                        background: 0x00000000,
-                    },
-                    Extent::new(
-                        glyph.offset().x as i64,
-                        glyph.offset().y as i64,
-                        glyph.size().width,
-                        glyph.size().height,
-                    ),
-                );
-            } else {
-                println!("failed to render glyph_id: {:?}", glyph);
-            }
-        } */
         let mut root = LayoutItem::container(WindowContainer::new(1024, 1024));
         let mut stack = LayoutItem::container(VerticalStackContainer::new());
         let brush = Brush {
@@ -93,7 +68,6 @@ fn main() {
         let dimensions = Dimensions::new(150, 150);
         let shape1 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Rectangle, brush, dimensions));
         let shape2 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Ellipse, brush, dimensions));
-
         stack.attach(shape1);
         stack.attach(shape2);
         root.attach(stack);
