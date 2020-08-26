@@ -9,12 +9,15 @@ use font_kit::loaders::directwrite::Font;
 use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
 
+use font_kit::metrics::Metrics;
 use std::ops::Mul;
 
 pub struct Pixels;
 
+#[derive(Clone)]
 pub struct TypeSet {
     font: Font,
+    font_metrics: Metrics,
     font_units_to_pixels_scale: f32,
     faces: HashMap<u32, TypeFace>,
 }
@@ -22,16 +25,52 @@ pub struct TypeSet {
 impl TypeSet {
     pub fn new(point_size: f32) -> TypeSet {
         let font = TypeSet::load_font();
+        let font_metrics = font.metrics();
         let font_units_to_pixels_scale =
-            (point_size * 96.0 / 72.0) / (font.metrics().units_per_em as f32);
+            (point_size * 96.0 / 72.0) / (font_metrics.units_per_em as f32);
 
         let faces = TypeSet::build_faces(&font, point_size, font_units_to_pixels_scale);
 
         TypeSet {
             font,
+            font_metrics,
             font_units_to_pixels_scale,
             faces,
         }
+    }
+
+    pub fn as_glyphs(&self, text: &str) -> Glyphs {
+        let glyphs: Vec<Glyph> = text
+            .chars()
+            .map(|c| self.font.glyph_for_char(c))
+            .map(|o| o.expect("A character code didn't map to a glyph id"))
+            .map(|id| Glyph::new(id))
+            .collect();
+
+        Glyphs::new(glyphs)
+    }
+
+    pub fn build_glyph_run(&self, text: &str) -> GlyphRun {
+        let glyphs: Vec<TypeSetGlyph> = self
+            .as_glyphs(text)
+            .glyphs()
+            .map(|g| TypeSetGlyph::new(self, *g))
+            .collect();
+
+        let raster_ascent = (self.font_metrics.ascent * self.font_units_to_pixels_scale) as i32;
+        let pixels_per_line = {
+            let raster_descent =
+                (self.font_metrics.descent * self.font_units_to_pixels_scale) as i32;
+            let raster_linegap =
+                (self.font_metrics.line_gap * self.font_units_to_pixels_scale) as i32;
+
+            raster_ascent - raster_descent + raster_linegap
+        };
+
+        let mut run = GlyphRun::new(pixels_per_line);
+        run.append(glyphs.as_slice());
+
+        run
     }
 
     pub fn faces(&self) -> impl Iterator<Item = &TypeFace> {
@@ -163,174 +202,91 @@ impl TypeFace {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct GlyphRunBuilder {
-    offset: Vector2D<i32, Pixels>,
-    dimensions: Option<Size2D<u32, Pixels>>,
-}
-
-impl GlyphRunBuilder {
-    pub fn new() -> GlyphRunBuilder {
-        GlyphRunBuilder {
-            offset: Vector2D::zero(),
-            dimensions: None,
-        }
-    }
-
-    pub fn with_offset(&self, offset: Vector2D<i32, Pixels>) -> GlyphRunBuilder {
-        GlyphRunBuilder {
-            offset,
-            dimensions: self.dimensions,
-        }
-    }
-
-    pub fn with_dimensions(&self, dimensions: Size2D<u32, Pixels>) -> GlyphRunBuilder {
-        GlyphRunBuilder {
-            offset: self.offset,
-            dimensions: Some(dimensions),
-        }
-    }
-
-    pub fn build(&self, type_set: &TypeSet, text: &str) -> GlyphRun {
-        if text.len() == 0 {
-            return GlyphRun { glyphs: Vec::new() };
-        }
-
-        let metrics = type_set.font.metrics();
-        let raster_ascent = (metrics.ascent * type_set.font_units_to_pixels_scale) as i32;
-        let pixels_per_line = {
-            let raster_descent = (metrics.descent * type_set.font_units_to_pixels_scale) as i32;
-            let raster_linegap = (metrics.line_gap * type_set.font_units_to_pixels_scale) as i32;
-
-            raster_ascent - raster_descent + raster_linegap
-        };
-
-        let mut glyphs: Vec<Glyph> = Vec::new();
-        let mut origin = self.offset + Vector2D::new(0, raster_ascent);
-        let items = GlyphRunBuilder::inclusive_split_by_whitespace(text);
-
-        for item in items {
-            let glyph_run = GlyphRunBuilder::new()
-                .with_offset(origin)
-                .unbroken_typesetting(type_set, &item);
-            glyphs.extend(glyph_run.glyphs);
-        }
-        /* origin = match w {
-            '\n' => Vector2D::new(self.offset.x, origin.y + pixels_per_line),
-            '\t' => origin + type_face.raster_advance.mul(4),
-            ' ' => origin + type_face.raster_advance,
-            _ => panic!("Some other whitespace character encountered: {:#x?}", w),
-        };*/
-
-        return GlyphRun { glyphs };
-    }
-
-    fn unbroken_typesetting(&self, type_set: &TypeSet, text: &str) -> GlyphRun {
-        let metrics = type_set.font.metrics();
-        let raster_ascent = (metrics.ascent * type_set.font_units_to_pixels_scale) as i32;
-
-        let pixels_per_line = {
-            let raster_descent = (metrics.descent * type_set.font_units_to_pixels_scale) as i32;
-            let raster_linegap = (metrics.line_gap * type_set.font_units_to_pixels_scale) as i32;
-
-            raster_ascent - raster_descent + raster_linegap
-        };
-
-        let mut origin = self.offset + Vector2D::new(0, raster_ascent);
-        let mut glyphs: Vec<Glyph> = Vec::new();
-
-        for c in text.chars() {
-            let glyph_id = match type_set.font.glyph_for_char(c) {
-                Some(glyph_id) => glyph_id,
-                None => continue,
-            };
-
-            let type_face = type_set
-                .faces
-                .get(&glyph_id)
-                .expect("all glyphs in font are in the hashmap");
-
-            let advance_scale = if c == '\t' { 4 } else { 1 };
-            let advance = type_face.raster_advance.mul(advance_scale);
-
-            glyphs.push(Glyph {
-                glyph_id,
-                offset: type_face.raster_offset + origin,
-                size: type_face.raster_size,
-                is_whitespace: c.is_whitespace(),
-            });
-
-            origin = if c == '\n' {
-                Vector2D::new(self.offset.x, origin.y + pixels_per_line)
-            } else {
-                origin + advance
-            };
-        }
-
-        GlyphRun { glyphs }
-    }
-
-    fn inclusive_split_by_whitespace(mut text: &str) -> Vec<&str> {
-        let mut results: Vec<&str> = Vec::new();
-
-        loop {
-            if text.len() == 0 {
-                return results;
-            }
-
-            let is_next_char_whitespace = text
-                .chars()
-                .nth(0)
-                .expect("We ensured text isn't 0 length")
-                .is_whitespace();
-
-            let length_of_next_slice = text
-                .chars()
-                .take_while(|c| c.is_whitespace() == is_next_char_whitespace)
-                .count();
-
-            results.push(&text[..length_of_next_slice]);
-            text = &text[length_of_next_slice..];
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct GlyphRun {
-    glyphs: Vec<Glyph>,
-}
-
-impl GlyphRun {
-    pub fn glyphs(&self) -> impl Iterator<Item = &Glyph> {
-        self.glyphs.iter().filter(|g| !g.is_whitespace)
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
 pub struct Glyph {
     glyph_id: u32,
-    offset: Point2D<i32, Pixels>,
-    size: Size2D<u32, Pixels>,
-    is_whitespace: bool,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct TypeSetGlyph {
+    glyph_id: u32,
+    bounds: Size2D<u32, Pixels>,
+    baseline_offset: Point2D<i32, Pixels>,
+    advance: Vector2D<i32, Pixels>,
+}
+
+#[derive(Debug)]
+pub struct Glyphs {
+    glyphs: Vec<Glyph>,
+}
+
+pub struct GlyphRun {
+    line_height: u32,
+    line_width: u32,
+    glyphs: Vec<TypeSetGlyph>,
 }
 
 impl Glyph {
+    pub fn new(glyph_id: u32) -> Glyph {
+        Glyph { glyph_id }
+    }
+
     pub fn id(&self) -> u32 {
         self.glyph_id
     }
+}
 
-    pub fn offset(&self) -> Point2D<i32, Pixels> {
-        self.offset
-    }
+impl TypeSetGlyph {
+    pub fn new(type_set: &TypeSet, glyph: Glyph) -> TypeSetGlyph {
+        let glyph_id = glyph.glyph_id;
+        let face = type_set
+            .faces
+            .get(&glyph_id)
+            .expect("All glyphs in font are in the faces hashmap");
 
-    pub fn size(&self) -> Size2D<u32, Pixels> {
-        self.size
-    }
-
-    pub fn with_offset(&self, delta: Vector2D<i32, Pixels>) -> Glyph {
-        Glyph {
-            offset: self.offset + delta,
-            ..*self
+        TypeSetGlyph {
+            glyph_id,
+            bounds: face.raster_size,
+            baseline_offset: face.raster_offset,
+            advance: face.raster_advance,
         }
+    }
+}
+
+impl Glyphs {
+    pub fn empty() -> Glyphs {
+        Glyphs { glyphs: Vec::new() }
+    }
+    pub fn new(glyphs: Vec<Glyph>) -> Glyphs {
+        Glyphs { glyphs }
+    }
+
+    pub fn glyphs(&self) -> impl Iterator<Item = &Glyph> {
+        self.glyphs.iter()
+    }
+}
+
+impl GlyphRun {
+    pub fn new(line_height: u32) -> GlyphRun {
+        GlyphRun {
+            line_height,
+            line_width: 0,
+            glyphs: Vec::new(),
+        }
+    }
+
+    pub fn append(&mut self, new_glyphs: &[TypeSetGlyph]) {
+        for glyph in new_glyphs {
+            self.line_width += glyph.bounds.width + glyph.advance.x as u32;
+            self.glyphs.push(*glyph);
+        }
+    }
+
+    pub fn line_width(&self) -> u32 {
+        self.line_width
+    }
+
+    pub fn line_height(&self) -> u32 {
+        self.line_height
     }
 }
