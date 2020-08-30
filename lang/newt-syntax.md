@@ -172,33 +172,57 @@ module My.First.Module
 }
 ```
 
-## JSX
+## Environments
 
-At first we won't directly support <..> syntax -- you'll have to build up your component hierarchies manually.
-Special properties are:
+I want a system which makes it easy for me to develop code locally, then publish it to intermediate (QA, Staging, etc) and final (Prod, end-user box) environments.
+I also want to easily understand what's going on in these other environments.
 
-* tag
-* props
-* props.children
-* props.value ? -- possibly for elements which host as their only child some primitive type e.g. text boxes
-
+Suppose we have the following module defined..
 ```
-fn MyComponent() {
-	 
-	 let props = {
-		  children: [
-				{ tag: MyOtherComponent, props: { count: 1 }},
-				{ tag: MyOtherComponent, props: { count: 2 }},
-		  ]
-	  };
+module EchoServer
+{
+	import IConfiguration as Configs;
 
-	 return { tag: label, props: props };
-}
-
-fn MyOtherComponent(props) {
-	 return { tag: label, props: { text: props.count }};
+	export Echo(message) 
+	{
+		return "Hello from " + Configs.SomeValue() + " your message is: " + message;
+	}
 }
 ```
+
+In this case, IConfiguration is an interface -- there is no implementation available yet.
+In order to actually create target environments (e.g. 'local', 'dev', 'prod'), we need syntax to represent & initialize a module like `EchoServer` 
+as well as the ability to move such a module between physical processes.
+
+We might define the 'local' & 'dev' environments like so...
+```
+module LocalConfiguration
+{
+	export SomeValue()
+	{
+		return "Local!";
+	}
+}
+
+module LocalEnvironment
+{
+	// happens to conform to IConfiguration
+	import LocalConfiguration as Configs;
+
+	// weird syntax, which supplies LocalConfiguration as an implementation for IConfiguration
+	// but otherwise works as the usual import
+	import EchoServer { Configs: Configs } as LocalEchoServer;
+}
+```
+
+But this doesn't really answer the question of how we map the lexical state of the `EchoServer` implementation to the runtime state of
+these environments.  There's also questions of trust relationships & storing runtime state such as secret configuration values.
+
+Perhaps we shouldn't try to have the lexical representation of an environment look so much like a module?
+An environment is really:
+1. A set of module (or interface) implementations which fill in unspecified dependencies of the `EchoServer`
+2. An identity (public, private key?)
+3. Trust relationships (a set of public keys for other environments or individuals)
 
 ## Grammar
 ```

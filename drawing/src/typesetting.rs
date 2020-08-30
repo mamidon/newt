@@ -50,13 +50,14 @@ impl TypeSet {
         Glyphs::new(glyphs)
     }
 
-    pub fn build_glyph_run(&self, text: &str) -> GlyphRun {
-        let glyphs: Vec<TypeSetGlyph> = self
-            .as_glyphs(text)
+    pub fn as_typeset_glyphs(&self, text: &str) -> Vec<TypeSetGlyph> {
+        self.as_glyphs(text)
             .glyphs()
             .map(|g| TypeSetGlyph::new(self, *g))
-            .collect();
+            .collect()
+    }
 
+    pub fn build_glyph_run(&self) -> GlyphRun {
         let raster_ascent = (self.font_metrics.ascent * self.font_units_to_pixels_scale) as i32;
         let pixels_per_line = {
             let raster_descent =
@@ -67,9 +68,7 @@ impl TypeSet {
             raster_ascent - raster_descent + raster_linegap
         };
 
-        let mut run = GlyphRun::new(pixels_per_line);
-        run.append(glyphs.as_slice());
-
+        let mut run = GlyphRun::new(pixels_per_line as u32);
         run
     }
 
@@ -209,10 +208,10 @@ pub struct Glyph {
 
 #[derive(Copy, Clone, Debug)]
 pub struct TypeSetGlyph {
-    glyph_id: u32,
-    bounds: Size2D<u32, Pixels>,
-    baseline_offset: Point2D<i32, Pixels>,
-    advance: Vector2D<i32, Pixels>,
+    pub glyph_id: u32,
+    pub bounds: Size2D<u32, Pixels>,
+    pub baseline_offset: Point2D<i32, Pixels>,
+    pub advance: Vector2D<i32, Pixels>,
 }
 
 #[derive(Debug)]
@@ -288,5 +287,9 @@ impl GlyphRun {
 
     pub fn line_height(&self) -> u32 {
         self.line_height
+    }
+
+    pub fn glyphs(&self) -> impl Iterator<Item = &TypeSetGlyph> {
+        self.glyphs.iter()
     }
 }

@@ -1,9 +1,11 @@
+use drawing::typesetting::{GlyphRun, TypeSet};
 use drawing::{Brush, DrawList, Extent, ShapeKind};
 use euclid::default::Vector2D;
 use euclid::Point2D;
 use euclid::Rect;
 use euclid::Size2D;
 use std::cmp::{max, min};
+use std::ops::Add;
 
 pub struct Pixels;
 pub type Position = Point2D<i64, Pixels>;
@@ -96,6 +98,10 @@ pub struct ShapeLeaf {
     brush: Brush,
     dimensions: Dimensions,
 }
+pub struct TextLeaf {
+    dimensions: Dimensions,
+    lines: Vec<GlyphRun>,
+}
 
 impl WindowContainer {
     pub fn new(width: u32, height: u32) -> WindowContainer {
@@ -187,6 +193,79 @@ impl LayoutLeaf for ShapeLeaf {
             consumed_space: self.dimensions,
             remaining_space: *space,
             draw_list,
+        }
+    }
+}
+
+impl TextLeaf {
+    pub fn new(text: &str, type_set: &TypeSet) -> TextLeaf {
+        let mut lines: Vec<GlyphRun> = Vec::new();
+        let mut width = 0;
+        let mut height = 0;
+
+        for line in text.split('\n') {
+            let mut glyph_run = type_set.build_glyph_run();
+            let glyphs = type_set.as_typeset_glyphs(line);
+
+            glyph_run.append(glyphs.as_slice());
+
+            height = height + glyph_run.line_height();
+            width = max(width, glyph_run.line_width());
+
+            lines.push(glyph_run);
+        }
+
+        TextLeaf {
+            lines,
+            dimensions: Dimensions::new(width as i64, height as i64),
+        }
+    }
+}
+
+impl LayoutLeaf for TextLeaf {
+    fn layout(&self, space: &LayoutSpace) -> LayoutOutcome {
+        let mut draw_list = DrawList::empty();
+        let mut origin = dbg!(space.offset);
+
+        let mut width = 0;
+        let mut height = 0;
+
+        for line in &self.lines {
+            origin.y += line.line_height() as i64;
+
+            for glyph in line.glyphs() {
+                draw_list.push_shape(
+                    ShapeKind::Rectangle,
+                    Brush {
+                        foreground: 0xFF0000FF,
+                        background: 0x00FF00FF,
+                    },
+                    dbg!(Extent::new(
+                        origin.x + glyph.baseline_offset.x as i64,
+                        origin.y + glyph.baseline_offset.y as i64,
+                        glyph.bounds.width,
+                        glyph.bounds.height,
+                    )),
+                );
+
+                origin = Position::new(
+                    origin.x + glyph.advance.x as i64,
+                    origin.y + glyph.advance.y as i64,
+                );
+                origin.x += glyph.bounds.width as i64;
+            }
+
+            width = max(width, origin.x - space.offset.x);
+
+            origin.x = space.offset.x;
+
+            height = origin.y - space.offset.y;
+        }
+
+        LayoutOutcome {
+            draw_list,
+            consumed_space: dbg!(Dimensions::new(width, height)),
+            remaining_space: LayoutSpace::vertical_subsect(space, height as u32),
         }
     }
 }

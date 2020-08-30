@@ -6,7 +6,7 @@ use std::sync::Arc;
 use winit::EventsLoop;
 
 mod backend;
-mod typesetting;
+pub mod typesetting;
 
 pub type DrawingError = &'static str;
 pub type DrawingResult<T> = Result<T, DrawingError>;
@@ -185,7 +185,7 @@ struct DrawCommand {
 
 pub struct Drawing {
     backend_gpu: Gpu,
-    type_set: TypeSet,
+    pub type_set: TypeSet,
 }
 
 #[derive(Copy, Clone)]

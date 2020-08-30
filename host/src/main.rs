@@ -7,7 +7,8 @@ use png;
 use std::io::{BufRead, BufReader, Cursor};
 
 use crate::layout::{
-    Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, VerticalStackContainer, WindowContainer,
+    Dimensions, LayoutItem, LayoutSpace, ShapeLeaf, TextLeaf, VerticalStackContainer,
+    WindowContainer,
 };
 
 use euclid::{Point2D, Size2D, Vector2D};
@@ -30,21 +31,24 @@ fn main() {
     .expect("Failed to initialize Drawing");
 
     let mut force_recreate = false;
-    loop {
-        let mut root = LayoutItem::container(WindowContainer::new(1024, 1024));
-        let mut stack = LayoutItem::container(VerticalStackContainer::new());
-        let brush = Brush {
-            foreground: 0xFF0000FF,
-            background: 0x00FF00FF,
-        };
-        let dimensions = Dimensions::new(150, 150);
-        let shape1 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Rectangle, brush, dimensions));
-        let shape2 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Ellipse, brush, dimensions));
-        stack.attach(shape1);
-        stack.attach(shape2);
-        root.attach(stack);
+    let mut root = LayoutItem::container(WindowContainer::new(1024, 1024));
+    let mut stack = LayoutItem::container(VerticalStackContainer::new());
+    let brush = Brush {
+        foreground: 0xFF0000FF,
+        background: 0x00FF00FF,
+    };
+    let dimensions = Dimensions::new(150, 150);
+    let shape1 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Rectangle, brush, dimensions));
+    let shape2 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Ellipse, brush, dimensions));
+    let text1 = LayoutItem::leaf(TextLeaf::new("Hello", &drawing.type_set));
 
-        let outcome = root.layout(&LayoutSpace::new(Some(100), Some(100)));
+    //stack.attach(shape1);
+    //stack.attach(shape2);
+    stack.attach(text1);
+    root.attach(stack);
+    let outcome = root.layout(&LayoutSpace::new(Some(100), Some(100)));
+
+    loop {
         drawing.submit_draw_list(&outcome.draw_list, force_recreate);
         force_recreate = false;
 
