@@ -40,11 +40,11 @@ fn main() {
     let dimensions = Dimensions::new(150, 150);
     let shape1 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Rectangle, brush, dimensions));
     let shape2 = LayoutItem::leaf(ShapeLeaf::new(ShapeKind::Ellipse, brush, dimensions));
-    let text1 = LayoutItem::leaf(TextLeaf::new("Hello", &drawing.type_set));
+    let text1 = LayoutItem::leaf(TextLeaf::new("Help\nHelp\nHello", &drawing.type_set));
 
-    //stack.attach(shape1);
-    //stack.attach(shape2);
+    stack.attach(shape1);
     stack.attach(text1);
+    stack.attach(shape2);
     root.attach(stack);
     let outcome = root.layout(&LayoutSpace::new(Some(100), Some(100)));
 

@@ -59,16 +59,10 @@ impl TypeSet {
 
     pub fn build_glyph_run(&self) -> GlyphRun {
         let raster_ascent = (self.font_metrics.ascent * self.font_units_to_pixels_scale) as i32;
-        let pixels_per_line = {
-            let raster_descent =
-                (self.font_metrics.descent * self.font_units_to_pixels_scale) as i32;
-            let raster_linegap =
-                (self.font_metrics.line_gap * self.font_units_to_pixels_scale) as i32;
+        let raster_descent = (self.font_metrics.descent * self.font_units_to_pixels_scale) as i32;
+        let raster_linegap = (self.font_metrics.line_gap * self.font_units_to_pixels_scale) as i32;
 
-            raster_ascent - raster_descent + raster_linegap
-        };
-
-        let mut run = GlyphRun::new(pixels_per_line as u32);
+        let mut run = GlyphRun::new(raster_ascent, raster_descent, raster_linegap);
         run
     }
 
@@ -220,7 +214,9 @@ pub struct Glyphs {
 }
 
 pub struct GlyphRun {
-    line_height: u32,
+    ascent: i32,
+    descent: i32,
+    gap: i32,
     line_width: u32,
     glyphs: Vec<TypeSetGlyph>,
 }
@@ -266,9 +262,11 @@ impl Glyphs {
 }
 
 impl GlyphRun {
-    pub fn new(line_height: u32) -> GlyphRun {
+    pub fn new(ascent: i32, descent: i32, gap: i32) -> GlyphRun {
         GlyphRun {
-            line_height,
+            ascent,
+            descent,
+            gap,
             line_width: 0,
             glyphs: Vec::new(),
         }
@@ -285,8 +283,12 @@ impl GlyphRun {
         self.line_width
     }
 
+    pub fn ascent(&self) -> i32 {
+        self.ascent
+    }
+
     pub fn line_height(&self) -> u32 {
-        self.line_height
+        (self.ascent - self.descent + self.gap) as u32
     }
 
     pub fn glyphs(&self) -> impl Iterator<Item = &TypeSetGlyph> {

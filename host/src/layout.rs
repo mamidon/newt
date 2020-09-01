@@ -225,14 +225,14 @@ impl TextLeaf {
 impl LayoutLeaf for TextLeaf {
     fn layout(&self, space: &LayoutSpace) -> LayoutOutcome {
         let mut draw_list = DrawList::empty();
-        let mut origin = dbg!(space.offset);
+        let mut origin = space.offset;
 
         let mut width = 0;
         let mut height = 0;
 
-        for line in &self.lines {
-            origin.y += line.line_height() as i64;
+        origin.y += self.lines.iter().nth(0).map(|l| l.ascent()).unwrap_or(0) as i64;
 
+        for line in &self.lines {
             for glyph in line.glyphs() {
                 draw_list.push_shape(
                     ShapeKind::Rectangle,
@@ -240,20 +240,21 @@ impl LayoutLeaf for TextLeaf {
                         foreground: 0xFF0000FF,
                         background: 0x00FF00FF,
                     },
-                    dbg!(Extent::new(
+                    Extent::new(
                         origin.x + glyph.baseline_offset.x as i64,
                         origin.y + glyph.baseline_offset.y as i64,
                         glyph.bounds.width,
                         glyph.bounds.height,
-                    )),
+                    ),
                 );
 
                 origin = Position::new(
                     origin.x + glyph.advance.x as i64,
                     origin.y + glyph.advance.y as i64,
                 );
-                origin.x += glyph.bounds.width as i64;
             }
+
+            origin.y += line.line_height() as i64;
 
             width = max(width, origin.x - space.offset.x);
 
@@ -262,9 +263,11 @@ impl LayoutLeaf for TextLeaf {
             height = origin.y - space.offset.y;
         }
 
+        // maybe don't include line gap for the final line?
+
         LayoutOutcome {
             draw_list,
-            consumed_space: dbg!(Dimensions::new(width, height)),
+            consumed_space: Dimensions::new(width, height),
             remaining_space: LayoutSpace::vertical_subsect(space, height as u32),
         }
     }
