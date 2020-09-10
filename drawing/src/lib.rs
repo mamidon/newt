@@ -185,7 +185,6 @@ struct DrawCommand {
 
 pub struct Drawing {
     backend_gpu: Gpu,
-    pub type_set: TypeSet,
 }
 
 #[derive(Copy, Clone)]
@@ -210,21 +209,7 @@ impl Drawing {
         let type_set = TypeSet::new(12.0);
         let mut backend_gpu = Gpu::initialize(event_loop, options)?;
 
-        for type_face in type_set.faces() {
-            let width = type_face.size().width;
-            let height = type_face.size().height;
-
-            let gpu_mask =
-                backend_gpu.load_mask(width, height, type_face.to_mask_bytes().as_slice())?;
-            backend_gpu
-                .resource_table
-                .register_glyph(type_face.glyph_id(), gpu_mask);
-        }
-
-        Ok(Drawing {
-            backend_gpu,
-            type_set,
-        })
+        Ok(Drawing { backend_gpu })
     }
 
     pub fn create_draw_list(&self) -> DrawingResult<DrawList> {
