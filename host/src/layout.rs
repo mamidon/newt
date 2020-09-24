@@ -14,32 +14,10 @@ pub type Position = Point2D<i64, Pixels>;
 pub type Dimensions = Size2D<i64, Pixels>;
 pub type Rectangle = Rect<i64, Pixels>;
 
-#[derive(Copy, Clone)]
-pub struct LayoutSpace {
-    width: Option<u32>,
-    height: Option<u32>,
-}
-
-impl LayoutSpace {
-    pub fn window(width: u32, height: u32) -> LayoutSpace {
-        LayoutSpace {
-            width: Some(width),
-            height: Some(height),
-        }
-    }
-
-    pub fn with_height(&self, height: Option<u32>) -> LayoutSpace {
-        LayoutSpace {
-            width: self.width,
-            height,
-        }
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
 pub struct RenderSpace {
-    pub position: Position,
-    pub dimensions: Dimensions,
+    position: Position,
+    dimensions: Dimensions,
 }
 
 impl RenderSpace {
@@ -50,47 +28,45 @@ impl RenderSpace {
         }
     }
 
-    fn center_horizontally(&self, inner: &RenderSpace) -> RenderSpace {
-        let outer_width = self.dimensions.width;
-        let inner_width = inner.dimensions.width;
-
-        let position = if outer_width >= inner_width {
-            Position::new((outer_width - inner_width) / 2, self.position.y)
-        } else {
-            panic!("Cannot horizontally center a larger RenderSpace inside a smaller RenderSpace")
-        };
-
-        RenderSpace {
-            position,
-            dimensions: inner.dimensions,
-        }
-    }
-
-    fn subsect_vertically(&self, inner: &RenderSpace) -> RenderSpace {
-        let outer_height = self.dimensions.height;
-        let inner_height = inner.dimensions.height;
-
-        if outer_height < inner_height {
-            panic!("Cannot vertically subset a smaller RenderSpace by a larger RenderSpace");
-        }
-
-        let position = Position::new(self.position.x, self.position.y + inner_height);
-        let dimensions = Dimensions::new(self.dimensions.width, outer_height - inner_height);
-
-        RenderSpace {
-            position,
-            dimensions,
-        }
-    }
-
     fn from_dimensions(dimensions: Dimensions) -> RenderSpace {
         RenderSpace::new(Position::default(), dimensions)
     }
 
-    fn as_layout_space(&self) -> LayoutSpace {
-        LayoutSpace {
-            width: Some(self.dimensions.width as u32),
-            height: Some(self.dimensions.height as u32),
+    pub fn subsect_vertically(&self, height: i64) -> (RenderSpace, RenderSpace) {
+        let inner_height = min(self.dimensions.height, height);
+
+        let head_position = self.position;
+        let tail_position = Position::new(self.position.x, self.position.y + inner_height);
+
+        let head = RenderSpace {
+            position: head_position,
+            dimensions: Dimensions::new(self.dimensions.width, inner_height),
+        };
+
+        let tail = RenderSpace {
+            position: tail_position,
+            dimensions: Dimensions::new(
+                self.dimensions.width,
+                self.dimensions.height - inner_height,
+            ),
+        };
+
+        (head, tail)
+    }
+
+    pub fn center_horizontally(&self, width: i64) -> RenderSpace {
+        let offset = if self.dimensions.width >= width {
+            Position::new(
+                (self.dimensions.width - width) / 2 + self.position.x,
+                self.position.y,
+            )
+        } else {
+            self.position
+        };
+
+        RenderSpace {
+            dimensions: self.dimensions,
+            position: offset,
         }
     }
 }
@@ -101,19 +77,25 @@ pub struct LayoutNode {
 }
 
 pub struct RenderNode {
-    pub item: Rc<LayoutItem>,
-    pub children: Vec<RenderNode>,
-    pub render_space: RenderSpace,
+    item: Rc<LayoutItem>,
+    children: Vec<RenderNode>,
+    render_space: RenderSpace,
 }
 
-pub struct RenderNodeIterator<'a> {
-    frontier: Vec<&'a RenderNode>,
+pub struct RenderItem<'a> {
+    item: &'a LayoutItem,
+    position: Position,
+    dimensions: Dimensions,
+}
+
+pub struct RenderItemIterator<'a> {
+    frontier: Vec<(&'a RenderNode, Position)>,
 }
 
 pub enum LayoutItem {
     Box {
-        width: u32,
-        height: u32,
+        width: i64,
+        height: i64,
     },
     Stack,
     Shape {
@@ -128,7 +110,7 @@ pub enum LayoutItem {
 }
 
 impl LayoutNode {
-    pub fn new_box(width: u32, height: u32, children: Vec<LayoutNode>) -> LayoutNode {
+    pub fn new_box(width: i64, height: i64, children: Vec<LayoutNode>) -> LayoutNode {
         LayoutNode {
             item: Rc::new(LayoutItem::Box { width, height }),
             children,
@@ -171,7 +153,7 @@ impl LayoutNode {
         }
     }
 
-    pub fn layout(&self, mut layout_space: LayoutSpace) -> RenderNode {
+    pub fn layout(&self, width: Option<i64>, height: Option<i64>) -> RenderNode {
         match self.item.borrow() {
             LayoutItem::Box { width, height } => {
                 LayoutNode::layout_box(*width, *height, &self.children)
@@ -180,13 +162,13 @@ impl LayoutNode {
                 LayoutNode::layout_shape(self.item.clone(), *dimensions)
             }
             LayoutItem::Stack {} => {
-                LayoutNode::layout_stack(self.item.clone(), &layout_space, &self.children)
+                LayoutNode::layout_stack(self.item.clone(), width, height, &self.children)
             }
             LayoutItem::Text { lines, type_set } => LayoutNode::layout_text(lines, type_set),
         }
     }
 
-    fn layout_box(width: u32, height: u32, children: &Vec<LayoutNode>) -> RenderNode {
+    fn layout_box(width: i64, height: i64, children: &Vec<LayoutNode>) -> RenderNode {
         unimplemented!()
     }
 
@@ -196,46 +178,42 @@ impl LayoutNode {
 
     fn layout_stack(
         layout_item: Rc<LayoutItem>,
-        layout_space: &LayoutSpace,
+        width: Option<i64>,
+        height: Option<i64>,
         children: &Vec<LayoutNode>,
     ) -> RenderNode {
-        let unspecified_height = layout_space.with_height(None);
+        let mut dimensions = Dimensions::zero();
 
         let mut render_children: Vec<RenderNode> = children
             .iter()
-            .map(|c| c.layout(unspecified_height))
+            .scan(dimensions, |required_dimensions, child| {
+                let mut render_child = child.layout(width, height);
+
+                dimensions.width =
+                    max(render_child.render_space.dimensions.width, dimensions.width);
+                dimensions.height += render_child.render_space.dimensions.height;
+
+                Some(render_child)
+            })
             .collect();
 
-        let dimensions = {
-            let render_children_width = render_children
-                .iter()
-                .map(|c| c.render_space.dimensions.width)
-                .max()
-                .unwrap_or(0);
-
-            let render_children_height: i64 = render_children
-                .iter()
-                .map(|c| c.render_space.dimensions.height)
-                .sum();
-
-            let required_width: i64 =
-                layout_space.width.unwrap_or(render_children_width as u32) as i64;
-            let required_height: i64 =
-                layout_space.height.unwrap_or(render_children_height as u32) as i64;
-
-            Dimensions::new(required_width, required_height)
+        let mut remaining_space = RenderSpace {
+            position: Position::zero(),
+            dimensions,
         };
+        let container_space = remaining_space;
 
-        let container_render_space = RenderSpace::from_dimensions(dimensions);
+        for child in render_children.iter_mut() {
+            let child_width = child.render_space.dimensions.width;
+            let child_height = child.render_space.dimensions.height;
 
-        let mut remaining_render_space = container_render_space;
+            let (head, tail) = remaining_space.subsect_vertically(child_height);
 
-        for child in &mut render_children {
-            child.render_space = remaining_render_space.center_horizontally(&child.render_space);
-            remaining_render_space = remaining_render_space.subsect_vertically(&child.render_space);
+            child.render_space = head;
+            remaining_space = tail;
         }
 
-        RenderNode::container(layout_item, container_render_space, render_children)
+        RenderNode::container(layout_item, container_space, render_children)
     }
 
     fn layout_text(lines: &Vec<GlyphRun>, type_set: &TypeSet) -> RenderNode {
@@ -264,80 +242,58 @@ impl RenderNode {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &RenderNode> {
-        RenderNodeIterator {
-            frontier: vec![self],
-        }
+    pub fn iter(&self) -> impl Iterator<Item = RenderItem> {
+        RenderItemIterator::new(self)
     }
 }
 
-impl<'a> Iterator for RenderNodeIterator<'a> {
-    type Item = &'a RenderNode;
+impl<'a> RenderItem<'a> {
+    pub fn position(&self) -> Position {
+        self.position
+    }
+
+    pub fn dimensions(&self) -> Dimensions {
+        self.dimensions
+    }
+
+    pub fn item(&self) -> &'a LayoutItem {
+        self.item
+    }
+}
+
+impl<'a> Iterator for RenderItemIterator<'a> {
+    type Item = RenderItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = self.frontier.pop();
+        let (next_node, offset) = match self.frontier.pop() {
+            Some((next_node, offset)) => (next_node, offset),
+            _ => return None,
+        };
 
-        if let Some(node) = next {
-            for child in node.children.iter().rev() {
-                self.frontier.push(child);
-            }
+        let next_absolute_position = next_node.render_space.position + offset.to_vector();
+        for child in next_node.children.iter().rev() {
+            self.frontier.push((child, next_absolute_position));
         }
 
-        next
+        Some(RenderItem {
+            item: &next_node.item,
+            dimensions: next_node.render_space.dimensions,
+            position: next_absolute_position,
+        })
+    }
+}
+
+impl<'a> RenderItemIterator<'a> {
+    fn new(node: &'a RenderNode) -> RenderItemIterator {
+        RenderItemIterator {
+            frontier: vec![(node, Position::zero())],
+        }
     }
 }
 
 mod tests {
-    use crate::layout::{Dimensions, LayoutNode, LayoutSpace, Position, RenderNode, RenderSpace};
+    use crate::layout::{Dimensions, LayoutNode, Position, RenderItem, RenderNode, RenderSpace};
     use drawing::{Brush, ShapeKind};
-
-    #[test]
-    fn stacks_playground() {
-        let layout_space = LayoutSpace {
-            width: Some(100),
-            height: None,
-        };
-
-        let mut child_render_spaces = vec![
-            RenderSpace::from_dimensions(Dimensions::new(25, 5)),
-            RenderSpace::from_dimensions(Dimensions::new(25, 5)),
-            RenderSpace::from_dimensions(Dimensions::new(25, 5)),
-            RenderSpace::from_dimensions(Dimensions::new(25, 5)),
-            RenderSpace::from_dimensions(Dimensions::new(25, 5)),
-        ];
-
-        let height_of_children: i64 = child_render_spaces
-            .iter()
-            .map(|c| c.dimensions.height)
-            .sum();
-        let container_render_space = RenderSpace::from_dimensions(Dimensions::new(
-            layout_space.width.unwrap_or(
-                (child_render_spaces
-                    .iter()
-                    .map(|c| c.dimensions.width)
-                    .max()
-                    .unwrap()
-                    * 3) as u32,
-            ) as i64,
-            layout_space.height.unwrap_or(height_of_children as u32) as i64,
-        ));
-
-        let mut remaining_render_space = container_render_space;
-        for child_render_space in &mut child_render_spaces {
-            *child_render_space = remaining_render_space.center_horizontally(child_render_space);
-            remaining_render_space = remaining_render_space.subsect_vertically(&child_render_space);
-        }
-
-        println!("Container RenderSpace: {:?}", container_render_space);
-        for (index, child_render_space) in child_render_spaces.iter().enumerate() {
-            println!(
-                "\tChild {}/{} RenderSpace: {:?}",
-                index,
-                child_render_spaces.len(),
-                child_render_space
-            );
-        }
-    }
 
     #[test]
     fn layoutnode_can_traverse_children_after_layout() {
@@ -352,29 +308,78 @@ mod tests {
             LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
             LayoutNode::new_shape(ShapeKind::Ellipse, brush, dimensions),
         ]);
-        let render_root = layout_root.layout(LayoutSpace::window(1024, 1024));
-        let render_nodes: Vec<&RenderNode> = render_root.iter().collect();
-        let positions: Vec<Position> = render_nodes
-            .iter()
-            .map(|n| n.render_space.position)
-            .collect();
-        let dimensions: Vec<Dimensions> = render_nodes
-            .iter()
-            .map(|n| n.render_space.dimensions)
-            .collect();
+        let render_root = layout_root.layout(Some(1024), Some(1024));
+        let render_items: Vec<RenderItem> = render_root.iter().collect();
+        let positions: Vec<Position> = render_items.iter().map(|n| n.position).collect();
+        let dimensions: Vec<Dimensions> = render_items.iter().map(|n| n.dimensions).collect();
 
-        assert_eq!(4, render_nodes.len());
+        assert_eq!(4, render_items.len());
 
         assert_eq!(Some(&Position::new(0, 0)), positions.get(0));
-        assert_eq!(Some(&Dimensions::new(1024, 1024)), dimensions.get(0));
+        assert_eq!(Some(&(150, 450).into()), dimensions.get(0));
 
-        assert_eq!(Some(&Position::new(437, 0)), positions.get(1));
+        assert_eq!(Some(&Position::new(0, 0)), positions.get(1));
         assert_eq!(Some(&Dimensions::new(150, 150)), dimensions.get(1));
 
-        assert_eq!(Some(&Position::new(437, 150)), positions.get(2));
+        assert_eq!(Some(&Position::new(0, 150)), positions.get(2));
         assert_eq!(Some(&Dimensions::new(150, 150)), dimensions.get(2));
 
-        assert_eq!(Some(&Position::new(437, 300)), positions.get(3));
+        assert_eq!(Some(&Position::new(0, 300)), positions.get(3));
         assert_eq!(Some(&Dimensions::new(150, 150)), dimensions.get(3));
+    }
+
+    #[test]
+    fn layoutnode_can_position_one_layer_of_children() {
+        let brush = Brush {
+            foreground: 0xFF0000FF,
+            background: 0x00FF00FF,
+        };
+        let dimensions = Dimensions::new(150, 150);
+
+        let layout_root = LayoutNode::new_stack(vec![
+            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
+            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
+            LayoutNode::new_shape(ShapeKind::Ellipse, brush, dimensions),
+        ]);
+        let render_root = layout_root.layout(Some(1024), Some(1024));
+        let render_items: Vec<RenderItem> = render_root.iter().collect();
+        let positions: Vec<Position> = render_items.iter().map(|n| n.position).collect();
+        let dimensions: Vec<Dimensions> = render_items.iter().map(|n| n.dimensions).collect();
+
+        assert_eq!(4, render_items.len());
+        assert_eq!(Some(&Position::new(0, 0)), positions.get(0));
+        assert_eq!(Some(&Position::new(0, 0)), positions.get(1));
+        assert_eq!(Some(&Position::new(0, 150)), positions.get(2));
+        assert_eq!(Some(&Position::new(0, 300)), positions.get(3));
+    }
+
+    #[test]
+    fn layoutnode_can_position_nested_children() {
+        let brush = Brush {
+            foreground: 0xFF0000FF,
+            background: 0x00FF00FF,
+        };
+        let dimensions = Dimensions::new(150, 150);
+
+        let layout_root = LayoutNode::new_stack(vec![
+            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
+            LayoutNode::new_stack(vec![LayoutNode::new_shape(
+                ShapeKind::Ellipse,
+                brush,
+                dimensions,
+            )]),
+            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
+        ]);
+        let render_root = layout_root.layout(Some(1024), Some(1024));
+        let render_items: Vec<RenderItem> = render_root.iter().collect();
+        let positions: Vec<Position> = render_items.iter().map(|n| n.position).collect();
+        let dimensions: Vec<Dimensions> = render_items.iter().map(|n| n.dimensions).collect();
+
+        assert_eq!(5, render_items.len());
+        assert_eq!(Some(&Position::new(0, 0)), positions.get(0));
+        assert_eq!(Some(&Position::new(0, 0)), positions.get(1));
+        assert_eq!(Some(&Position::new(0, 150)), positions.get(2));
+        assert_eq!(Some(&Position::new(0, 150)), positions.get(3));
+        assert_eq!(Some(&Position::new(0, 300)), positions.get(4));
     }
 }

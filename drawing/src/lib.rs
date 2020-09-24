@@ -1,8 +1,5 @@
 use crate::backend::Gpu;
-use crate::typesetting::TypeSet;
-use euclid::Vector2D;
 use std::hash::Hash;
-use std::sync::Arc;
 use winit::EventsLoop;
 
 mod backend;
@@ -206,8 +203,7 @@ pub struct DrawList {
 
 impl Drawing {
     pub fn initialize(event_loop: &EventsLoop, options: DrawingOptions) -> DrawingResult<Self> {
-        let type_set = TypeSet::new(12.0);
-        let mut backend_gpu = Gpu::initialize(event_loop, options)?;
+        let backend_gpu = Gpu::initialize(event_loop, options)?;
 
         Ok(Drawing { backend_gpu })
     }
@@ -317,7 +313,7 @@ impl TextureRGBA {
             .map(|byte| *byte as u32)
             .collect();
 
-        (pixel_bytes[0] << 24 | pixel_bytes[1] << 16 | pixel_bytes[2] << 8 | pixel_bytes[3])
+        pixel_bytes[0] << 24 | pixel_bytes[1] << 16 | pixel_bytes[2] << 8 | pixel_bytes[3]
     }
 
     fn get_index(&self, x: usize, y: usize) -> usize {

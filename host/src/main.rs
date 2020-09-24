@@ -8,7 +8,7 @@ use drawing::{
 use png;
 use std::io::{BufRead, BufReader, Cursor};
 
-use crate::layout::{Dimensions, LayoutItem, LayoutNode, LayoutSpace, RenderNode, RenderSpace};
+use crate::layout::{Dimensions, LayoutItem, LayoutNode, RenderNode, RenderSpace};
 
 mod layout;
 
@@ -48,30 +48,46 @@ fn main() {
 
     let mut force_recreate = false;
 
-    let brush = Brush {
+    let brush_a = Brush {
         foreground: 0xFF0000FF,
+        background: 0x00FF00FF,
+    };
+    let brush_b = Brush {
+        foreground: 0x00FF00FF,
+        background: 0x00FF00FF,
+    };
+    let brush_c = Brush {
+        foreground: 0x0000FFFF,
+        background: 0x00FF00FF,
+    };
+    let brush_d = Brush {
+        foreground: 0x00FFFFFF,
         background: 0x00FF00FF,
     };
     let dimensions = Dimensions::new(150, 150);
     let layout_root = LayoutNode::new_stack(vec![
-        LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
-        LayoutNode::new_shape(ShapeKind::Ellipse, brush, dimensions),
-        LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
+        LayoutNode::new_shape(ShapeKind::Rectangle, brush_a, dimensions),
+        LayoutNode::new_shape(ShapeKind::Rectangle, brush_b, dimensions),
+        LayoutNode::new_stack(vec![
+            LayoutNode::new_shape(ShapeKind::Ellipse, brush_d, dimensions),
+            LayoutNode::new_shape(ShapeKind::Ellipse, brush_d, dimensions),
+        ]),
+        LayoutNode::new_shape(ShapeKind::Rectangle, brush_c, dimensions),
     ]);
-    let render_root = layout_root.layout(LayoutSpace::window(1024, 1024));
+    let render_root = layout_root.layout(Some(1024), Some(1024));
     loop {
         force_recreate = false;
 
         let mut draw_list = drawing.create_draw_list().unwrap();
         for node in render_root.iter() {
             let extent = Extent::new(
-                node.render_space.position.x,
-                node.render_space.position.y,
-                node.render_space.dimensions.width as u32,
-                node.render_space.dimensions.height as u32,
+                node.position().x,
+                node.position().y,
+                node.dimensions().width as u32,
+                node.dimensions().height as u32,
             );
 
-            match &node.item.borrow() {
+            match &node.item().borrow() {
                 LayoutItem::Shape {
                     kind,
                     dimensions,
@@ -80,7 +96,6 @@ fn main() {
                 LayoutItem::Stack { .. } => {}
                 LayoutItem::Box { .. } => {}
                 LayoutItem::Text { lines, .. } => {
-                    dbg!("hello?");
                     for line in lines.iter() {
                         for glyph in line.glyphs() {
                             draw_list.push_shape(

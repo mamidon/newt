@@ -62,7 +62,7 @@ impl TypeSet {
         let raster_descent = (self.font_metrics.descent * self.font_units_to_pixels_scale) as i32;
         let raster_linegap = (self.font_metrics.line_gap * self.font_units_to_pixels_scale) as i32;
 
-        let mut run = GlyphRun::new(raster_ascent, raster_descent, raster_linegap);
+        let run = GlyphRun::new(raster_ascent, raster_descent, raster_linegap);
         run
     }
 
