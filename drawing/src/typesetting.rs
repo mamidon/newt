@@ -10,6 +10,7 @@ use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
 
 use font_kit::metrics::Metrics;
+use std::cmp::max;
 use std::ops::Mul;
 
 pub struct Pixels;
@@ -43,33 +44,44 @@ impl TypeSet {
         let glyphs: Vec<Glyph> = text
             .chars()
             .map(|c| self.font.glyph_for_char(c))
-            .map(|o| o.expect("A character code didn't map to a glyph id"))
-            .map(|id| Glyph::new(id))
+            .map(|id| id.expect("A character code didn't map to a glyph id"))
+            .map(|id| Glyph { id })
             .collect();
 
-        Glyphs::new(glyphs)
+        Glyphs { glyphs }
     }
 
-    pub fn as_typeset_glyphs(&self, text: &str) -> Vec<TypeSetGlyph> {
-        self.as_glyphs(text)
+    pub fn analyze_glyphs(&self, glyphs: &Glyphs) -> Vec<GlyphAnalysis> {
+        glyphs
             .glyphs()
-            .map(|g| TypeSetGlyph::new(self, *g))
+            .map(|g| GlyphAnalysis::new(self, *g))
             .collect()
     }
 
     pub fn build_glyph_run(&self) -> GlyphRun {
-        let raster_ascent = (self.font_metrics.ascent * self.font_units_to_pixels_scale) as i32;
-        let raster_descent = (self.font_metrics.descent * self.font_units_to_pixels_scale) as i32;
-        let raster_linegap = (self.font_metrics.line_gap * self.font_units_to_pixels_scale) as i32;
-
-        let run = GlyphRun::new(raster_ascent, raster_descent, raster_linegap);
-        run
+        GlyphRun::new(self.clone())
     }
 
     pub fn faces(&self) -> impl Iterator<Item = &TypeFace> {
         self.faces
             .values()
             .filter(|face| face.raster_size.area() > 0)
+    }
+
+    pub fn ascent(&self) -> i32 {
+        (self.font_metrics.ascent * self.font_units_to_pixels_scale) as i32
+    }
+
+    pub fn descent(&self) -> i32 {
+        (self.font_metrics.descent * self.font_units_to_pixels_scale) as i32
+    }
+
+    pub fn line_gap(&self) -> i32 {
+        (self.font_metrics.line_gap * self.font_units_to_pixels_scale) as i32
+    }
+
+    pub fn line_height(&self) -> i32 {
+        self.ascent() - self.descent() + self.line_gap()
     }
 
     fn load_font() -> Font {
@@ -197,12 +209,17 @@ impl TypeFace {
 
 #[derive(Copy, Clone, Debug)]
 pub struct Glyph {
-    glyph_id: u32,
+    id: u32,
+}
+
+impl Glyph {
+    pub fn id(&self) -> u32 {
+        self.id
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct TypeSetGlyph {
-    pub glyph_id: u32,
+pub struct GlyphAnalysis {
     pub bounds: Size2D<u32, Pixels>,
     pub baseline_offset: Point2D<i32, Pixels>,
     pub advance: Vector2D<i32, Pixels>,
@@ -213,85 +230,177 @@ pub struct Glyphs {
     glyphs: Vec<Glyph>,
 }
 
+#[derive(Clone)]
 pub struct GlyphRun {
-    ascent: i32,
-    descent: i32,
-    gap: i32,
+    type_set: TypeSet,
     line_width: u32,
-    glyphs: Vec<TypeSetGlyph>,
+    height: i32,
+    offset: Vector2D<i32, Pixels>,
+    glyphs: Vec<(Glyph, GlyphAnalysis)>,
 }
 
-impl Glyph {
-    pub fn new(glyph_id: u32) -> Glyph {
-        Glyph { glyph_id }
-    }
-
-    pub fn id(&self) -> u32 {
-        self.glyph_id
-    }
-}
-
-impl TypeSetGlyph {
-    pub fn new(type_set: &TypeSet, glyph: Glyph) -> TypeSetGlyph {
-        let glyph_id = glyph.glyph_id;
+impl GlyphAnalysis {
+    pub fn new(type_set: &TypeSet, glyph: Glyph) -> GlyphAnalysis {
         let face = type_set
             .faces
-            .get(&glyph_id)
+            .get(&glyph.id)
             .expect("All glyphs in font are in the faces hashmap");
 
-        TypeSetGlyph {
-            glyph_id,
+        GlyphAnalysis {
             bounds: face.raster_size,
             baseline_offset: face.raster_offset,
             advance: face.raster_advance,
         }
     }
+
+    pub fn with_offset(&self, x: i32, y: i32) -> GlyphAnalysis {
+        GlyphAnalysis {
+            baseline_offset: self.baseline_offset + Vector2D::new(x, y),
+            ..*self
+        }
+    }
 }
 
 impl Glyphs {
-    pub fn empty() -> Glyphs {
-        Glyphs { glyphs: Vec::new() }
-    }
-    pub fn new(glyphs: Vec<Glyph>) -> Glyphs {
-        Glyphs { glyphs }
-    }
-
     pub fn glyphs(&self) -> impl Iterator<Item = &Glyph> {
         self.glyphs.iter()
     }
 }
 
 impl GlyphRun {
-    pub fn new(ascent: i32, descent: i32, gap: i32) -> GlyphRun {
+    pub fn new(type_set: TypeSet) -> GlyphRun {
+        let ascent = type_set.ascent();
+
         GlyphRun {
-            ascent,
-            descent,
-            gap,
+            type_set,
             line_width: 0,
+            height: 0,
+            offset: Vector2D::new(0, -ascent),
             glyphs: Vec::new(),
         }
     }
 
-    pub fn append(&mut self, new_glyphs: &[TypeSetGlyph]) {
-        for glyph in new_glyphs {
-            self.line_width += glyph.bounds.width + glyph.advance.x as u32;
-            self.glyphs.push(*glyph);
+    pub fn append_text(&mut self, text: &str) {
+        let glyphs = self.type_set.as_glyphs(text);
+        let analyses = self.type_set.analyze_glyphs(&glyphs);
+
+        if self.height == 0 {
+            self.height = self.type_set.line_height();
+        }
+
+        for (glyph, analysis) in glyphs.glyphs().zip(analyses) {
+            self.glyphs.push((
+                *glyph,
+                analysis.with_offset(self.line_width as i32, analysis.baseline_offset.y),
+            ));
+            self.line_width += analysis.advance.x as u32;
         }
     }
 
-    pub fn line_width(&self) -> u32 {
+    pub fn set_line_offset(&mut self, line: i32) {
+        self.offset = Vector2D::new(
+            0,
+            -self.type_set.ascent() - line * self.type_set.line_height(),
+        )
+    }
+
+    pub fn width(&self) -> u32 {
         self.line_width
     }
 
-    pub fn ascent(&self) -> i32 {
-        self.ascent
+    pub fn height(&self) -> i32 {
+        self.height
     }
 
-    pub fn line_height(&self) -> u32 {
-        (self.ascent - self.descent + self.gap) as u32
+    pub fn glyphs(&self) -> Vec<(Glyph, GlyphAnalysis)> {
+        self.glyphs
+            .iter()
+            .map(|tuple| (tuple.0, tuple.1.with_offset(self.offset.x, self.offset.y)))
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::typesetting::{GlyphRun, TypeSet};
+
+    #[test]
+    fn can_load_singular_font() {
+        // TODO support selecting a font.. so ghetto!
+        let type_set = TypeSet::new(12.0);
+
+        assert_ne!(0, type_set.ascent());
+        assert_ne!(0, type_set.descent());
+        assert_ne!(0, type_set.line_height());
     }
 
-    pub fn glyphs(&self) -> impl Iterator<Item = &TypeSetGlyph> {
-        self.glyphs.iter()
+    #[test]
+    fn can_construct_glyphs_from_strings() {
+        let type_set = TypeSet::new(12.0);
+
+        let first = type_set.as_glyphs("hello");
+        let second = type_set.as_glyphs(", world");
+
+        assert_eq!(5, first.glyphs.len());
+        assert_eq!(7, second.glyphs.len());
+    }
+
+    #[test]
+    fn glyphrun_starts_out_empty() {
+        let type_set = TypeSet::new(12.0);
+
+        let glyph_run = GlyphRun::new(type_set.clone());
+
+        assert_eq!(0, glyph_run.width());
+        assert_eq!(0, glyph_run.height());
+    }
+
+    #[test]
+    fn glyphrun_append_text_concatenates_basic_strings() {
+        let type_set = TypeSet::new(12.0);
+
+        let mut glyph_run = GlyphRun::new(type_set.clone());
+
+        let first_glyphs = type_set.as_glyphs("hello");
+        let first_analysis = type_set.analyze_glyphs(&first_glyphs);
+
+        let second_glyphs = type_set.as_glyphs("world");
+        let second_analysis = type_set.analyze_glyphs(&second_glyphs);
+
+        let expected_width: u32 = first_analysis
+            .iter()
+            .chain(&second_analysis)
+            .map(|a| dbg!(a.advance.x) as u32)
+            .sum();
+
+        glyph_run.append_text("hello");
+        glyph_run.append_text("world");
+
+        assert_eq!(expected_width, glyph_run.width());
+    }
+
+    #[test]
+    fn glyphrun_append_text_ignores_newlines_concatenates_basic_strings() {
+        let type_set = TypeSet::new(12.0);
+
+        let first_glyphs = type_set.as_glyphs("hello\n");
+        let first_analysis = type_set.analyze_glyphs(&first_glyphs);
+
+        let second_glyphs = type_set.as_glyphs("\nworld");
+        let second_analysis = type_set.analyze_glyphs(&second_glyphs);
+
+        let expected_width: u32 = first_analysis
+            .iter()
+            .chain(&second_analysis)
+            .map(|a| dbg!(a.advance.x) as u32)
+            .sum();
+
+        let mut glyph_run = GlyphRun::new(type_set.clone());
+
+        glyph_run.append_text("hello\n");
+        glyph_run.append_text("\nworld");
+
+        assert_eq!(expected_width, glyph_run.width());
+        assert_eq!(type_set.line_height(), glyph_run.height());
     }
 }

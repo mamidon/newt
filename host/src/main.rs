@@ -8,7 +8,9 @@ use drawing::{
 use png;
 use std::io::{BufRead, BufReader, Cursor};
 
-use crate::layout::{Dimensions, LayoutItem, LayoutNode, RenderNode, RenderSpace};
+use crate::layout::{
+    Dimensions, LayoutItem, LayoutNode, Pixels, RenderItemKind, RenderNode, RenderSpace,
+};
 
 mod layout;
 
@@ -71,6 +73,7 @@ fn main() {
         LayoutNode::new_stack(vec![
             LayoutNode::new_shape(ShapeKind::Ellipse, brush_d, dimensions),
             LayoutNode::new_shape(ShapeKind::Ellipse, brush_d, dimensions),
+            LayoutNode::new_text("hello", type_set.clone()),
         ]),
         LayoutNode::new_shape(ShapeKind::Rectangle, brush_c, dimensions),
     ]);
@@ -87,17 +90,20 @@ fn main() {
                 node.dimensions().height as u32,
             );
 
-            match &node.item().borrow() {
-                LayoutItem::Shape {
+            match &node.kind().borrow() {
+                RenderItemKind::Shape {
                     kind,
                     dimensions,
                     brush,
                 } => draw_list.push_shape(*kind, *brush, extent),
-                LayoutItem::Stack { .. } => {}
-                LayoutItem::Box { .. } => {}
-                LayoutItem::Text { lines, .. } => {
+                RenderItemKind::Stack { .. } => {}
+                RenderItemKind::Box { .. } => {}
+                RenderItemKind::Text { lines, .. } => {
                     for line in lines.iter() {
                         for glyph in line.glyphs() {
+                            let offset = node.position();
+                            let analysis = glyph.1.with_offset(offset.x as i32, offset.y as i32);
+
                             draw_list.push_shape(
                                 ShapeKind::Rectangle,
                                 Brush {
@@ -105,10 +111,10 @@ fn main() {
                                     background: 0x00FF00FF,
                                 },
                                 Extent::new(
-                                    glyph.baseline_offset.x as i64,
-                                    glyph.baseline_offset.y as i64,
-                                    glyph.bounds.width,
-                                    glyph.bounds.height,
+                                    dbg!(analysis.baseline_offset.x as i64),
+                                    dbg!(analysis.baseline_offset.y as i64 + 24),
+                                    glyph.1.bounds.width,
+                                    glyph.1.bounds.height,
                                 ),
                             );
                         }

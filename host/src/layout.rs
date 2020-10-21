@@ -77,13 +77,31 @@ pub struct LayoutNode {
 }
 
 pub struct RenderNode {
-    item: Rc<LayoutItem>,
+    item: RenderItem,
     children: Vec<RenderNode>,
     render_space: RenderSpace,
 }
 
-pub struct RenderItem<'a> {
-    item: &'a LayoutItem,
+#[derive(Clone)]
+pub enum RenderItemKind {
+    Box {
+        width: i64,
+        height: i64,
+    },
+    Stack,
+    Shape {
+        kind: ShapeKind,
+        brush: Brush,
+        dimensions: Dimensions,
+    },
+    Text {
+        lines: Vec<GlyphRun>,
+        type_set: TypeSet,
+    },
+}
+
+pub struct RenderItem {
+    kind: RenderItemKind,
     position: Position,
     dimensions: Dimensions,
 }
@@ -104,7 +122,7 @@ pub enum LayoutItem {
         dimensions: Dimensions,
     },
     Text {
-        lines: Vec<GlyphRun>,
+        text: String,
         type_set: TypeSet,
     },
 }
@@ -136,19 +154,11 @@ impl LayoutNode {
     }
 
     pub fn new_text(text: &str, type_set: TypeSet) -> LayoutNode {
-        let mut lines: Vec<GlyphRun> = Vec::new();
-
-        for line in text.split('\n') {
-            let mut glyph_run = type_set.build_glyph_run();
-            let glyphs = type_set.as_typeset_glyphs(line);
-
-            glyph_run.append(glyphs.as_slice());
-
-            lines.push(glyph_run);
-        }
-
         LayoutNode {
-            item: Rc::new(LayoutItem::Text { lines, type_set }),
+            item: Rc::new(LayoutItem::Text {
+                text: text.to_string(),
+                type_set,
+            }),
             children: Vec::new(),
         }
     }
@@ -158,13 +168,15 @@ impl LayoutNode {
             LayoutItem::Box { width, height } => {
                 LayoutNode::layout_box(*width, *height, &self.children)
             }
-            LayoutItem::Shape { dimensions, .. } => {
-                LayoutNode::layout_shape(self.item.clone(), *dimensions)
+            LayoutItem::Shape {
+                kind,
+                brush,
+                dimensions,
+            } => LayoutNode::layout_shape(*kind, *brush, *dimensions),
+            LayoutItem::Stack {} => LayoutNode::layout_stack(width, height, &self.children),
+            LayoutItem::Text { text, type_set } => {
+                LayoutNode::layout_text(text, type_set, width, height)
             }
-            LayoutItem::Stack {} => {
-                LayoutNode::layout_stack(self.item.clone(), width, height, &self.children)
-            }
-            LayoutItem::Text { lines, type_set } => LayoutNode::layout_text(lines, type_set),
         }
     }
 
@@ -172,12 +184,21 @@ impl LayoutNode {
         unimplemented!()
     }
 
-    fn layout_shape(layout_item: Rc<LayoutItem>, dimensions: Dimensions) -> RenderNode {
-        RenderNode::leaf(layout_item, RenderSpace::from_dimensions(dimensions))
+    fn layout_shape(kind: ShapeKind, brush: Brush, dimensions: Dimensions) -> RenderNode {
+        let render_item = RenderItem {
+            kind: RenderItemKind::Shape {
+                kind,
+                brush,
+                dimensions,
+            },
+            position: Position::zero(),
+            dimensions,
+        };
+
+        RenderNode::leaf(render_item, RenderSpace::from_dimensions(dimensions))
     }
 
     fn layout_stack(
-        layout_item: Rc<LayoutItem>,
         width: Option<i64>,
         height: Option<i64>,
         children: &Vec<LayoutNode>,
@@ -213,16 +234,55 @@ impl LayoutNode {
             remaining_space = tail;
         }
 
-        RenderNode::container(layout_item, container_space, render_children)
+        let render_item = RenderItem {
+            kind: RenderItemKind::Stack,
+            position: Position::zero(),
+            dimensions,
+        };
+
+        RenderNode::container(render_item, container_space, render_children)
     }
 
-    fn layout_text(lines: &Vec<GlyphRun>, type_set: &TypeSet) -> RenderNode {
-        unimplemented!()
+    fn layout_text(
+        text: &str,
+        type_set: &TypeSet,
+        width: Option<i64>,
+        height: Option<i64>,
+    ) -> RenderNode {
+        let mut lines: Vec<GlyphRun> = Vec::new();
+        let mut used_width: i64 = 0;
+        let mut used_height: i64 = 0;
+
+        for (index, line) in text.lines().enumerate() {
+            let mut glyph_run = GlyphRun::new(type_set.clone());
+            glyph_run.append_text(line);
+            glyph_run.set_line_offset(index as i32);
+
+            used_width = max(glyph_run.width() as i64, used_width);
+            used_height = used_height + glyph_run.height() as i64;
+
+            lines.push(glyph_run);
+        }
+
+        let dimensions = Dimensions::new(used_width, used_height);
+        let render_item = RenderItem {
+            kind: RenderItemKind::Text {
+                lines,
+                type_set: type_set.clone(),
+            },
+            position: Position::zero(),
+            dimensions,
+        };
+
+        RenderNode::leaf(
+            render_item,
+            RenderSpace::new(Position::origin(), dimensions),
+        )
     }
 }
 
 impl RenderNode {
-    pub fn leaf(item: Rc<LayoutItem>, render_space: RenderSpace) -> RenderNode {
+    pub fn leaf(item: RenderItem, render_space: RenderSpace) -> RenderNode {
         RenderNode {
             item,
             render_space,
@@ -231,7 +291,7 @@ impl RenderNode {
     }
 
     pub fn container(
-        item: Rc<LayoutItem>,
+        item: RenderItem,
         render_space: RenderSpace,
         children: Vec<RenderNode>,
     ) -> RenderNode {
@@ -242,12 +302,12 @@ impl RenderNode {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = RenderItem> {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = RenderItem> + 'a {
         RenderItemIterator::new(self)
     }
 }
 
-impl<'a> RenderItem<'a> {
+impl RenderItem {
     pub fn position(&self) -> Position {
         self.position
     }
@@ -256,13 +316,13 @@ impl<'a> RenderItem<'a> {
         self.dimensions
     }
 
-    pub fn item(&self) -> &'a LayoutItem {
-        self.item
+    pub fn kind(&self) -> &RenderItemKind {
+        &self.kind
     }
 }
 
 impl<'a> Iterator for RenderItemIterator<'a> {
-    type Item = RenderItem<'a>;
+    type Item = RenderItem;
 
     fn next(&mut self) -> Option<Self::Item> {
         let (next_node, offset) = match self.frontier.pop() {
@@ -276,9 +336,9 @@ impl<'a> Iterator for RenderItemIterator<'a> {
         }
 
         Some(RenderItem {
-            item: &next_node.item,
-            dimensions: next_node.render_space.dimensions,
-            position: next_absolute_position,
+            kind: next_node.item.kind.clone(),
+            dimensions: dbg!(next_node.render_space.dimensions),
+            position: dbg!(next_absolute_position),
         })
     }
 }
