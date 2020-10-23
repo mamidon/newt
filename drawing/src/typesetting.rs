@@ -235,7 +235,7 @@ pub struct GlyphRun {
     type_set: TypeSet,
     line_width: u32,
     height: i32,
-    offset: Vector2D<i32, Pixels>,
+    base_line: Point2D<i32, Pixels>,
     glyphs: Vec<(Glyph, GlyphAnalysis)>,
 }
 
@@ -269,13 +269,11 @@ impl Glyphs {
 
 impl GlyphRun {
     pub fn new(type_set: TypeSet) -> GlyphRun {
-        let ascent = type_set.ascent();
-
         GlyphRun {
             type_set,
             line_width: 0,
             height: 0,
-            offset: Vector2D::new(0, -ascent),
+            base_line: Point2D::new(0, 0),
             glyphs: Vec::new(),
         }
     }
@@ -289,16 +287,14 @@ impl GlyphRun {
         }
 
         for (glyph, analysis) in glyphs.glyphs().zip(analyses) {
-            self.glyphs.push((
-                *glyph,
-                analysis.with_offset(self.line_width as i32, analysis.baseline_offset.y),
-            ));
+            self.glyphs
+                .push((*glyph, analysis.with_offset(self.line_width as i32, 0)));
             self.line_width += analysis.advance.x as u32;
         }
     }
 
     pub fn set_line_offset(&mut self, line: i32) {
-        self.offset = Vector2D::new(
+        self.base_line = Point2D::new(
             0,
             -self.type_set.ascent() - line * self.type_set.line_height(),
         )
@@ -312,17 +308,19 @@ impl GlyphRun {
         self.height
     }
 
+    pub fn base_line(&self) -> Point2D<i32, Pixels> {
+        self.base_line
+    }
+
     pub fn glyphs(&self) -> Vec<(Glyph, GlyphAnalysis)> {
-        self.glyphs
-            .iter()
-            .map(|tuple| (tuple.0, tuple.1.with_offset(self.offset.x, self.offset.y)))
-            .collect()
+        self.glyphs.iter().map(|tuple| (tuple.0, tuple.1)).collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::typesetting::{GlyphRun, TypeSet};
+    use euclid::{Point2D, Size2D};
 
     #[test]
     fn can_load_singular_font() {
@@ -370,7 +368,7 @@ mod tests {
         let expected_width: u32 = first_analysis
             .iter()
             .chain(&second_analysis)
-            .map(|a| dbg!(a.advance.x) as u32)
+            .map(|a| a.advance.x as u32)
             .sum();
 
         glyph_run.append_text("hello");
@@ -392,7 +390,7 @@ mod tests {
         let expected_width: u32 = first_analysis
             .iter()
             .chain(&second_analysis)
-            .map(|a| dbg!(a.advance.x) as u32)
+            .map(|a| a.advance.x as u32)
             .sum();
 
         let mut glyph_run = GlyphRun::new(type_set.clone());
@@ -402,5 +400,33 @@ mod tests {
 
         assert_eq!(expected_width, glyph_run.width());
         assert_eq!(type_set.line_height(), glyph_run.height());
+    }
+
+    #[test]
+    fn glyphrun_append_text_computes_accurate_height() {
+        let type_set = TypeSet::new(12.0);
+
+        let mut glyph_run = GlyphRun::new(type_set.clone());
+
+        glyph_run.append_text("hello");
+        glyph_run.append_text("world");
+
+        assert_eq!(type_set.line_height(), glyph_run.height());
+    }
+
+    #[test]
+    fn glyphrun_glyph_coordinates_make_sense() {
+        let type_set = TypeSet::new(12.0);
+
+        let o_glyph = type_set.as_glyphs("O");
+        let o_analysis = type_set.analyze_glyphs(&o_glyph).get(0).unwrap();
+
+        let mut glyph_run = GlyphRun::new(type_set.clone());
+        glyph_run.append_text("O");
+
+        let (actual_glyph, actual_analysis) = glyph_run.glyphs().iter().nth(0).unwrap().clone();
+
+        assert_eq!(Point2D::origin(), actual_analysis.baseline_offset);
+        assert_eq!(Size2D::zero(), actual_analysis.bounds);
     }
 }

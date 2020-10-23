@@ -337,8 +337,8 @@ impl<'a> Iterator for RenderItemIterator<'a> {
 
         Some(RenderItem {
             kind: next_node.item.kind.clone(),
-            dimensions: dbg!(next_node.render_space.dimensions),
-            position: dbg!(next_absolute_position),
+            dimensions: next_node.render_space.dimensions,
+            position: next_absolute_position,
         })
     }
 }

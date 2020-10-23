@@ -20,6 +20,7 @@ use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::ops::Add;
+use std::path::Path;
 use winit::{Event, EventsLoop, KeyboardInput, VirtualKeyCode, Window, WindowBuilder, WindowEvent};
 
 fn main() {
@@ -32,10 +33,16 @@ fn main() {
         },
     )
     .expect("Failed to initialize Drawing");
+
     let type_set = TypeSet::new(12.0);
 
-    let text = "Help\nHelp\nHello";
-    let glyph_ids: Vec<u32> = type_set.as_glyphs(text).glyphs().map(|g| g.id()).collect();
+    let text = std::env::args()
+        .nth(1)
+        .map_or("Hello, world!".to_string(), |path| {
+            std::fs::read_to_string(Path::new(&path)).expect("Failed to open file")
+        });
+
+    let glyph_ids: Vec<u32> = type_set.as_glyphs(&text).glyphs().map(|g| g.id()).collect();
     let mut glyph_to_masks: HashMap<u32, Handle> = HashMap::new();
 
     for face in type_set
@@ -45,6 +52,7 @@ fn main() {
         let mask_id = drawing
             .load_mask_texture(face.size().width, face.size().height, face.as_a8_bytes())
             .unwrap();
+
         glyph_to_masks.insert(face.glyph_id(), mask_id);
     }
 
@@ -68,12 +76,12 @@ fn main() {
     };
     let dimensions = Dimensions::new(150, 150);
     let layout_root = LayoutNode::new_stack(vec![
+        LayoutNode::new_text(&text, type_set.clone()),
         LayoutNode::new_shape(ShapeKind::Rectangle, brush_a, dimensions),
         LayoutNode::new_shape(ShapeKind::Rectangle, brush_b, dimensions),
         LayoutNode::new_stack(vec![
             LayoutNode::new_shape(ShapeKind::Ellipse, brush_d, dimensions),
             LayoutNode::new_shape(ShapeKind::Ellipse, brush_d, dimensions),
-            LayoutNode::new_text("hello", type_set.clone()),
         ]),
         LayoutNode::new_shape(ShapeKind::Rectangle, brush_c, dimensions),
     ]);
@@ -98,25 +106,29 @@ fn main() {
                 } => draw_list.push_shape(*kind, *brush, extent),
                 RenderItemKind::Stack { .. } => {}
                 RenderItemKind::Box { .. } => {}
-                RenderItemKind::Text { lines, .. } => {
-                    for line in lines.iter() {
-                        for glyph in line.glyphs() {
-                            let offset = node.position();
-                            let analysis = glyph.1.with_offset(offset.x as i32, offset.y as i32);
+                RenderItemKind::Text { lines, type_set } => {
+                    let layout_offset = node.position();
+                    for (index, line) in lines.iter().enumerate() {
+                        let base_line = line.base_line();
 
-                            draw_list.push_shape(
-                                ShapeKind::Rectangle,
-                                Brush {
-                                    foreground: 0xFF0000FF,
-                                    background: 0x00FF00FF,
-                                },
-                                Extent::new(
-                                    dbg!(analysis.baseline_offset.x as i64),
-                                    dbg!(analysis.baseline_offset.y as i64 + 24),
-                                    glyph.1.bounds.width,
-                                    glyph.1.bounds.height,
-                                ),
-                            );
+                        for glyph in line.glyphs() {
+                            let x = layout_offset.x
+                                + base_line.x as i64
+                                + glyph.1.baseline_offset.x as i64;
+                            let y = layout_offset.y
+                                + (-base_line.y as i64)
+                                + glyph.1.baseline_offset.y as i64;
+
+                            if glyph_to_masks.contains_key(&glyph.0.id()) {
+                                draw_list.push_mask(
+                                    *glyph_to_masks.get(&glyph.0.id()).unwrap(),
+                                    Brush {
+                                        foreground: 0x000000FF,
+                                        background: 0x00000000,
+                                    },
+                                    Extent::new(x, y, glyph.1.bounds.width, glyph.1.bounds.height),
+                                );
+                            }
                         }
                     }
                 }
