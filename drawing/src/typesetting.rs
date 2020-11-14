@@ -10,7 +10,6 @@ use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
 
 use font_kit::metrics::Metrics;
-use std::cmp::max;
 use std::ops::Mul;
 
 pub struct Pixels;
@@ -320,7 +319,6 @@ impl GlyphRun {
 #[cfg(test)]
 mod tests {
     use crate::typesetting::{GlyphRun, TypeSet};
-    use euclid::{Point2D, Size2D};
 
     #[test]
     fn can_load_singular_font() {
@@ -419,14 +417,13 @@ mod tests {
         let type_set = TypeSet::new(12.0);
 
         let o_glyph = type_set.as_glyphs("O");
-        let o_analysis = type_set.analyze_glyphs(&o_glyph).get(0).unwrap();
+        let o_analysis = type_set.analyze_glyphs(&o_glyph).get(0).unwrap().clone();
 
         let mut glyph_run = GlyphRun::new(type_set.clone());
         glyph_run.append_text("O");
+        let (_, actual_analysis) = glyph_run.glyphs().iter().nth(0).unwrap().clone();
 
-        let (actual_glyph, actual_analysis) = glyph_run.glyphs().iter().nth(0).unwrap().clone();
-
-        assert_eq!(Point2D::origin(), actual_analysis.baseline_offset);
-        assert_eq!(Size2D::zero(), actual_analysis.bounds);
+        assert_eq!(o_analysis.baseline_offset, actual_analysis.baseline_offset);
+        assert_eq!(o_analysis.bounds, actual_analysis.bounds);
     }
 }

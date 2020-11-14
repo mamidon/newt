@@ -40,7 +40,8 @@ fn main() {
         .nth(1)
         .map_or("Hello, world!".to_string(), |path| {
             std::fs::read_to_string(Path::new(&path)).expect("Failed to open file")
-        });
+        })
+        .replace("\t", "  ");
 
     let glyph_ids: Vec<u32> = type_set.as_glyphs(&text).glyphs().map(|g| g.id()).collect();
     let mut glyph_to_masks: HashMap<u32, Handle> = HashMap::new();
