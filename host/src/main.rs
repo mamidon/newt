@@ -9,7 +9,8 @@ use png;
 use std::io::{BufRead, BufReader, Cursor};
 
 use crate::layout::{
-    Dimensions, LayoutItem, LayoutNode, Pixels, RenderItemKind, RenderNode, RenderSpace,
+    Dimensions, LayoutContext, LayoutItem, LayoutNode, Pixels, RenderItemKind, RenderNode,
+    RenderSpace, Shape, Stack, Text,
 };
 
 mod layout;
@@ -76,17 +77,32 @@ fn main() {
         background: 0x00FF00FF,
     };
     let dimensions = Dimensions::new(150, 150);
-    let layout_root = LayoutNode::new_stack(vec![
-        LayoutNode::new_text(&text, type_set.clone()),
-        LayoutNode::new_shape(ShapeKind::Rectangle, brush_a, dimensions),
-        LayoutNode::new_shape(ShapeKind::Rectangle, brush_b, dimensions),
-        LayoutNode::new_stack(vec![
-            LayoutNode::new_shape(ShapeKind::Ellipse, brush_d, dimensions),
-            LayoutNode::new_shape(ShapeKind::Ellipse, brush_d, dimensions),
-        ]),
-        LayoutNode::new_shape(ShapeKind::Rectangle, brush_c, dimensions),
-    ]);
-    let render_root = layout_root.layout(Some(1024), Some(1024));
+    let layout_root = LayoutNode::new(
+        Stack::new(),
+        vec![
+            LayoutNode::new(Text::new(text, type_set.clone()), vec![]),
+            LayoutNode::new(
+                Shape::new(ShapeKind::Rectangle, brush_a, dimensions),
+                vec![],
+            ),
+            LayoutNode::new(
+                Shape::new(ShapeKind::Rectangle, brush_b, dimensions),
+                vec![],
+            ),
+            LayoutNode::new(
+                Stack::new(),
+                vec![
+                    LayoutNode::new(Shape::new(ShapeKind::Ellipse, brush_d, dimensions), vec![]),
+                    LayoutNode::new(Shape::new(ShapeKind::Ellipse, brush_d, dimensions), vec![]),
+                ],
+            ),
+            LayoutNode::new(
+                Shape::new(ShapeKind::Rectangle, brush_c, dimensions),
+                vec![],
+            ),
+        ],
+    );
+    let render_root = layout_root.layout(&LayoutContext::new(Some(1025), Some(1024)));
     loop {
         force_recreate = false;
 

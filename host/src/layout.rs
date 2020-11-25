@@ -71,8 +71,19 @@ impl RenderSpace {
     }
 }
 
+pub struct LayoutContext {
+    width: Option<i64>,
+    height: Option<i64>,
+}
+
+impl LayoutContext {
+    pub fn new(width: Option<i64>, height: Option<i64>) -> LayoutContext {
+        LayoutContext { width, height }
+    }
+}
+
 pub struct LayoutNode {
-    pub item: Rc<LayoutItem>,
+    pub item: Rc<dyn LayoutItem>,
     pub children: Vec<LayoutNode>,
 }
 
@@ -110,105 +121,43 @@ pub struct RenderItemIterator<'a> {
     frontier: Vec<(&'a RenderNode, Position)>,
 }
 
-pub enum LayoutItem {
-    Box {
-        width: i64,
-        height: i64,
-    },
-    Stack,
-    Shape {
-        kind: ShapeKind,
-        brush: Brush,
-        dimensions: Dimensions,
-    },
-    Text {
-        text: String,
-        type_set: TypeSet,
-    },
+pub trait LayoutItem {
+    fn layout(&self, context: &LayoutContext, children: &Vec<LayoutNode>) -> RenderNode;
 }
 
-impl LayoutNode {
-    pub fn new_box(width: i64, height: i64, children: Vec<LayoutNode>) -> LayoutNode {
-        LayoutNode {
-            item: Rc::new(LayoutItem::Box { width, height }),
-            children,
-        }
-    }
+pub struct Window {
+    width: i64,
+    height: i64,
+}
 
-    pub fn new_stack(children: Vec<LayoutNode>) -> LayoutNode {
-        LayoutNode {
-            item: Rc::new(LayoutItem::Stack),
-            children,
-        }
+impl Window {
+    pub fn new(width: i64, height: i64) -> Window {
+        Window { width, height }
     }
+}
 
-    pub fn new_shape(kind: ShapeKind, brush: Brush, dimensions: Dimensions) -> LayoutNode {
-        LayoutNode {
-            item: Rc::new(LayoutItem::Shape {
-                kind,
-                brush,
-                dimensions,
-            }),
-            children: Vec::new(),
-        }
-    }
-
-    pub fn new_text(text: &str, type_set: TypeSet) -> LayoutNode {
-        LayoutNode {
-            item: Rc::new(LayoutItem::Text {
-                text: text.to_string(),
-                type_set,
-            }),
-            children: Vec::new(),
-        }
-    }
-
-    pub fn layout(&self, width: Option<i64>, height: Option<i64>) -> RenderNode {
-        match self.item.borrow() {
-            LayoutItem::Box { width, height } => {
-                LayoutNode::layout_box(*width, *height, &self.children)
-            }
-            LayoutItem::Shape {
-                kind,
-                brush,
-                dimensions,
-            } => LayoutNode::layout_shape(*kind, *brush, *dimensions),
-            LayoutItem::Stack {} => LayoutNode::layout_stack(width, height, &self.children),
-            LayoutItem::Text { text, type_set } => {
-                LayoutNode::layout_text(text, type_set, width, height)
-            }
-        }
-    }
-
-    fn layout_box(width: i64, height: i64, children: &Vec<LayoutNode>) -> RenderNode {
+impl LayoutItem for Window {
+    fn layout(&self, context: &LayoutContext, children: &Vec<LayoutNode>) -> RenderNode {
         unimplemented!()
     }
+}
 
-    fn layout_shape(kind: ShapeKind, brush: Brush, dimensions: Dimensions) -> RenderNode {
-        let render_item = RenderItem {
-            kind: RenderItemKind::Shape {
-                kind,
-                brush,
-                dimensions,
-            },
-            position: Position::zero(),
-            dimensions,
-        };
+pub struct Stack;
 
-        RenderNode::leaf(render_item, RenderSpace::from_dimensions(dimensions))
+impl Stack {
+    pub fn new() -> Stack {
+        Stack {}
     }
+}
 
-    fn layout_stack(
-        width: Option<i64>,
-        height: Option<i64>,
-        children: &Vec<LayoutNode>,
-    ) -> RenderNode {
+impl LayoutItem for Stack {
+    fn layout(&self, context: &LayoutContext, children: &Vec<LayoutNode>) -> RenderNode {
         let mut dimensions = Dimensions::zero();
 
         let mut render_children: Vec<RenderNode> = children
             .iter()
             .scan(dimensions, |required_dimensions, child| {
-                let mut render_child = child.layout(width, height);
+                let mut render_child = child.layout(context);
 
                 dimensions.width =
                     max(render_child.render_space.dimensions.width, dimensions.width);
@@ -242,19 +191,59 @@ impl LayoutNode {
 
         RenderNode::container(render_item, container_space, render_children)
     }
+}
 
-    fn layout_text(
-        text: &str,
-        type_set: &TypeSet,
-        width: Option<i64>,
-        height: Option<i64>,
-    ) -> RenderNode {
+pub struct Shape {
+    kind: ShapeKind,
+    brush: Brush,
+    dimensions: Dimensions,
+}
+
+impl Shape {
+    pub fn new(kind: ShapeKind, brush: Brush, dimensions: Dimensions) -> Shape {
+        Shape {
+            kind,
+            brush,
+            dimensions,
+        }
+    }
+}
+
+impl LayoutItem for Shape {
+    fn layout(&self, context: &LayoutContext, children: &Vec<LayoutNode>) -> RenderNode {
+        let render_item = RenderItem {
+            kind: RenderItemKind::Shape {
+                kind: self.kind,
+                brush: self.brush,
+                dimensions: self.dimensions,
+            },
+            position: Position::zero(),
+            dimensions: self.dimensions,
+        };
+
+        RenderNode::leaf(render_item, RenderSpace::from_dimensions(self.dimensions))
+    }
+}
+
+pub struct Text {
+    text: String,
+    type_set: TypeSet,
+}
+
+impl Text {
+    pub fn new(text: String, type_set: TypeSet) -> Text {
+        Text { text, type_set }
+    }
+}
+
+impl LayoutItem for Text {
+    fn layout(&self, context: &LayoutContext, children: &Vec<LayoutNode>) -> RenderNode {
         let mut lines: Vec<GlyphRun> = Vec::new();
         let mut used_width: i64 = 0;
         let mut used_height: i64 = 0;
 
-        for (index, line) in text.lines().enumerate() {
-            let mut glyph_run = GlyphRun::new(type_set.clone());
+        for (index, line) in self.text.lines().enumerate() {
+            let mut glyph_run = GlyphRun::new(self.type_set.clone());
             glyph_run.append_text(line);
             glyph_run.set_line_offset(index as i32);
 
@@ -268,7 +257,7 @@ impl LayoutNode {
         let render_item = RenderItem {
             kind: RenderItemKind::Text {
                 lines,
-                type_set: type_set.clone(),
+                type_set: self.type_set.clone(),
             },
             position: Position::zero(),
             dimensions,
@@ -278,6 +267,19 @@ impl LayoutNode {
             render_item,
             RenderSpace::new(Position::origin(), dimensions),
         )
+    }
+}
+
+impl LayoutNode {
+    pub fn new<I: 'static + LayoutItem>(item: I, children: Vec<LayoutNode>) -> LayoutNode {
+        LayoutNode {
+            item: Rc::new(item),
+            children,
+        }
+    }
+
+    pub fn layout(&self, context: &LayoutContext) -> RenderNode {
+        self.item.layout(context, &self.children)
     }
 }
 
@@ -352,7 +354,10 @@ impl<'a> RenderItemIterator<'a> {
 }
 
 mod tests {
-    use crate::layout::{Dimensions, LayoutNode, Position, RenderItem, RenderNode, RenderSpace};
+    use crate::layout::{
+        Dimensions, LayoutContext, LayoutNode, Position, RenderItem, RenderNode, RenderSpace,
+        Shape, Stack,
+    };
     use drawing::{Brush, ShapeKind};
 
     #[test]
@@ -363,12 +368,15 @@ mod tests {
         };
         let dimensions = Dimensions::new(150, 150);
 
-        let layout_root = LayoutNode::new_stack(vec![
-            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
-            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
-            LayoutNode::new_shape(ShapeKind::Ellipse, brush, dimensions),
-        ]);
-        let render_root = layout_root.layout(Some(1024), Some(1024));
+        let layout_root = LayoutNode::new(
+            Stack::new(),
+            vec![
+                LayoutNode::new(Shape::new(ShapeKind::Rectangle, brush, dimensions), vec![]),
+                LayoutNode::new(Shape::new(ShapeKind::Rectangle, brush, dimensions), vec![]),
+                LayoutNode::new(Shape::new(ShapeKind::Ellipse, brush, dimensions), vec![]),
+            ],
+        );
+        let render_root = layout_root.layout(&LayoutContext::new(Some(1024), Some(1024)));
         let render_items: Vec<RenderItem> = render_root.iter().collect();
         let positions: Vec<Position> = render_items.iter().map(|n| n.position).collect();
         let dimensions: Vec<Dimensions> = render_items.iter().map(|n| n.dimensions).collect();
@@ -396,12 +404,15 @@ mod tests {
         };
         let dimensions = Dimensions::new(150, 150);
 
-        let layout_root = LayoutNode::new_stack(vec![
-            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
-            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
-            LayoutNode::new_shape(ShapeKind::Ellipse, brush, dimensions),
-        ]);
-        let render_root = layout_root.layout(Some(1024), Some(1024));
+        let layout_root = LayoutNode::new(
+            Stack::new(),
+            vec![
+                LayoutNode::new(Shape::new(ShapeKind::Rectangle, brush, dimensions), vec![]),
+                LayoutNode::new(Shape::new(ShapeKind::Rectangle, brush, dimensions), vec![]),
+                LayoutNode::new(Shape::new(ShapeKind::Ellipse, brush, dimensions), vec![]),
+            ],
+        );
+        let render_root = layout_root.layout(&LayoutContext::new(Some(1024), Some(1024)));
         let render_items: Vec<RenderItem> = render_root.iter().collect();
         let positions: Vec<Position> = render_items.iter().map(|n| n.position).collect();
         let dimensions: Vec<Dimensions> = render_items.iter().map(|n| n.dimensions).collect();
@@ -421,16 +432,21 @@ mod tests {
         };
         let dimensions = Dimensions::new(150, 150);
 
-        let layout_root = LayoutNode::new_stack(vec![
-            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
-            LayoutNode::new_stack(vec![LayoutNode::new_shape(
-                ShapeKind::Ellipse,
-                brush,
-                dimensions,
-            )]),
-            LayoutNode::new_shape(ShapeKind::Rectangle, brush, dimensions),
-        ]);
-        let render_root = layout_root.layout(Some(1024), Some(1024));
+        let layout_root = LayoutNode::new(
+            Stack::new(),
+            vec![
+                LayoutNode::new(Shape::new(ShapeKind::Rectangle, brush, dimensions), vec![]),
+                LayoutNode::new(
+                    Stack::new(),
+                    vec![LayoutNode::new(
+                        Shape::new(ShapeKind::Ellipse, brush, dimensions),
+                        vec![],
+                    )],
+                ),
+                LayoutNode::new(Shape::new(ShapeKind::Rectangle, brush, dimensions), vec![]),
+            ],
+        );
+        let render_root = layout_root.layout(&LayoutContext::new(Some(1024), Some(1024)));
         let render_items: Vec<RenderItem> = render_root.iter().collect();
         let positions: Vec<Position> = render_items.iter().map(|n| n.position).collect();
         let dimensions: Vec<Dimensions> = render_items.iter().map(|n| n.dimensions).collect();
