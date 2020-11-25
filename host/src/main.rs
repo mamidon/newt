@@ -9,8 +9,8 @@ use png;
 use std::io::{BufRead, BufReader, Cursor};
 
 use crate::layout::{
-    Dimensions, LayoutContext, LayoutItem, LayoutNode, Pixels, RenderItemKind, RenderNode,
-    RenderSpace, Shape, Stack, Text,
+    Dimensions, LayoutContext, Layoutable, Pixels, RenderItemKind, RenderNode, RenderSpace, Shape,
+    Stack, Text,
 };
 
 mod layout;
@@ -77,32 +77,21 @@ fn main() {
         background: 0x00FF00FF,
     };
     let dimensions = Dimensions::new(150, 150);
-    let layout_root = LayoutNode::new(
-        Stack::new(),
-        vec![
-            LayoutNode::new(Text::new(text, type_set.clone()), vec![]),
-            LayoutNode::new(
-                Shape::new(ShapeKind::Rectangle, brush_a, dimensions),
-                vec![],
-            ),
-            LayoutNode::new(
-                Shape::new(ShapeKind::Rectangle, brush_b, dimensions),
-                vec![],
-            ),
-            LayoutNode::new(
-                Stack::new(),
-                vec![
-                    LayoutNode::new(Shape::new(ShapeKind::Ellipse, brush_d, dimensions), vec![]),
-                    LayoutNode::new(Shape::new(ShapeKind::Ellipse, brush_d, dimensions), vec![]),
-                ],
-            ),
-            LayoutNode::new(
-                Shape::new(ShapeKind::Rectangle, brush_c, dimensions),
-                vec![],
-            ),
-        ],
-    );
-    let render_root = layout_root.layout(&LayoutContext::new(Some(1025), Some(1024)));
+    let root = Stack::builder()
+        .push(Text::new(text, type_set.clone()))
+        .push(Shape::new(ShapeKind::Rectangle, brush_a, dimensions))
+        .push(Shape::new(ShapeKind::Rectangle, brush_b, dimensions))
+        .push(
+            Stack::builder()
+                .push(Shape::new(ShapeKind::Ellipse, brush_d, dimensions))
+                .push(Shape::new(ShapeKind::Ellipse, brush_d, dimensions))
+                .build(),
+        )
+        .push(Shape::new(ShapeKind::Rectangle, brush_c, dimensions))
+        .build();
+
+    let render_root = root.layout(&LayoutContext::new(Some(1025), Some(1024)));
+
     loop {
         force_recreate = false;
 
