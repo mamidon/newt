@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Error, Formatter};
 
 #[derive(PartialOrd, PartialEq, Debug, Copy, Clone)]
 pub enum SyntaxKind {
@@ -28,7 +28,7 @@ impl Display for SyntaxKind {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match self {
             SyntaxKind::Error(_) => write!(f, "Error"),
-            syntax_kind => write!(f, "{:?}", syntax_kind)
+            syntax_kind => write!(f, "{:?}", syntax_kind),
         }
     }
 }

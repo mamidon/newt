@@ -47,7 +47,7 @@ impl<'a> Cursor<'a> {
     }
 }
 
-impl<'a> Iterator for Cursor<'a> where {
+impl<'a> Iterator for Cursor<'a> {
     type Item = char;
 
     fn next(&mut self) -> Option<char> {

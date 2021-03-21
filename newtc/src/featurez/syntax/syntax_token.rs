@@ -1,5 +1,5 @@
 use crate::featurez::tokens::TokenKind;
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Error, Formatter};
 
 #[derive(Debug, Clone)]
 pub struct SyntaxToken {
@@ -30,12 +30,15 @@ impl SyntaxToken {
     }
 
     fn escape_whitespace(text: &str) -> String {
-        let escaped_text: String = text.chars().map(|c| match c {
-            '\t' => "\\t".to_string(),
-            '\n' => "\\n".to_string(),
-            ' ' => "\\s".to_string(),
-            c => c.to_string()
-        }).collect();
+        let escaped_text: String = text
+            .chars()
+            .map(|c| match c {
+                '\t' => "\\t".to_string(),
+                '\n' => "\\n".to_string(),
+                ' ' => "\\s".to_string(),
+                c => c.to_string(),
+            })
+            .collect();
 
         escaped_text
     }
@@ -43,6 +46,11 @@ impl SyntaxToken {
 
 impl Display for SyntaxToken {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "({} '{}')", self.token_kind, SyntaxToken::escape_whitespace(&self.lexeme))
+        write!(
+            f,
+            "({} '{}')",
+            self.token_kind,
+            SyntaxToken::escape_whitespace(&self.lexeme)
+        )
     }
 }

@@ -1,28 +1,28 @@
+use crate::featurez::newtypes::TransparentNewType;
+use crate::featurez::runtime::callable::NewtCallable;
+use crate::featurez::runtime::scope::{Environment, ScopeNode};
+use crate::featurez::runtime::Callable;
 use crate::featurez::syntax::*;
 use crate::featurez::TokenKind;
-use crate::featurez::runtime::{Callable};
-use crate::featurez::newtypes::TransparentNewType;
-use crate::featurez::runtime::scope::{ScopeNode, Environment};
-use crate::featurez::runtime::callable::NewtCallable;
 use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct VirtualMachine {
-    scope: Environment
+    scope: Environment,
 }
 
 impl VirtualMachine {
     pub fn new() -> VirtualMachine {
         VirtualMachine {
-            scope: Environment::new()
+            scope: Environment::new(),
         }
     }
 
-	pub fn new_with_scope(scope: &Environment) -> VirtualMachine {
-		VirtualMachine {
-			scope: scope.clone()
-		}
-	}
+    pub fn new_with_scope(scope: &Environment) -> VirtualMachine {
+        VirtualMachine {
+            scope: scope.clone(),
+        }
+    }
 
     pub fn interpret<S: Into<SyntaxTree>>(&mut self, source: S) -> NewtResult {
         let tree: SyntaxTree = source.into();
@@ -31,15 +31,15 @@ impl VirtualMachine {
             return Err(NewtRuntimeError::InvalidSyntaxTree);
         }
 
-        let node = tree.root()
+        let node = tree
+            .root()
             .as_node()
             .ok_or(NewtRuntimeError::InvalidSyntaxTree)?;
 
         let result = if let Some(expr) = ExprNode::cast(node) {
             self.visit_expr(expr)
         } else if let Some(stmt) = StmtNode::cast(node) {
-            self.visit_stmt(stmt)
-                .map(|f| NewtValue::Null)
+            self.visit_stmt(stmt).map(|f| NewtValue::Null)
         } else {
             panic!("All nodes should be either an Expression or Statement!");
         };
@@ -47,7 +47,7 @@ impl VirtualMachine {
         match result {
             Ok(value) => Ok(value),
             Err(NewtRuntimeError::ReturnedValue(value)) => Ok(value),
-            Err(error) => Err(error)
+            Err(error) => Err(error),
         }
     }
 }
@@ -134,7 +134,10 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
         callable.call(self, &arguments)
     }
 
-    fn visit_object_literal_expr(&mut self, node: &ObjectLiteralExprNode) -> Result<NewtValue, NewtRuntimeError> {
+    fn visit_object_literal_expr(
+        &mut self,
+        node: &ObjectLiteralExprNode,
+    ) -> Result<NewtValue, NewtRuntimeError> {
         let mut object = NewtObject::new();
 
         for pair in node.fields().iter() {
@@ -144,12 +147,16 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
         Ok(object.into())
     }
 
-    fn visit_object_property_expr(&mut self, node: &ObjectPropertyExprNode) -> Result<NewtValue, NewtRuntimeError> {
+    fn visit_object_property_expr(
+        &mut self,
+        node: &ObjectPropertyExprNode,
+    ) -> Result<NewtValue, NewtRuntimeError> {
         match self.visit_expr(node.source_expr())? {
-            NewtValue::Object(object) => object.get(node.identifier().lexeme())
+            NewtValue::Object(object) => object
+                .get(node.identifier().lexeme())
                 .map(|reference| reference.clone())
                 .ok_or(NewtRuntimeError::UndefinedVariable),
-            _ => Err(NewtRuntimeError::TypeError)
+            _ => Err(NewtRuntimeError::TypeError),
         }
     }
 }
@@ -157,13 +164,17 @@ impl ExprVisitor<NewtResult> for VirtualMachine {
 impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
     fn visit_stmt(&mut self, node: &StmtNode) -> Result<(), NewtRuntimeError> {
         match node.kind() {
-            StmtKind::VariableDeclarationStmt(node) => self.visit_variable_declaration_stmt(node)?,
+            StmtKind::VariableDeclarationStmt(node) => {
+                self.visit_variable_declaration_stmt(node)?
+            }
             StmtKind::AssignmentStmt(node) => self.visit_assignment_stmt(node)?,
             StmtKind::StmtListStmt(node) => self.visit_stmt_list_stmt(node)?,
             StmtKind::ExprStmt(node) => self.visit_expr_stmt(node)?,
             StmtKind::IfStmt(node) => self.visit_if_stmt(node)?,
             StmtKind::WhileStmt(node) => self.visit_while_stmt(node)?,
-            StmtKind::FunctionDeclarationStmt(node) => self.visit_function_declaration_stmt(node)?,
+            StmtKind::FunctionDeclarationStmt(node) => {
+                self.visit_function_declaration_stmt(node)?
+            }
             StmtKind::ReturnStmt(node) => self.visit_return_stmt(node)?,
         };
 
@@ -183,10 +194,7 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
         Ok(())
     }
 
-    fn visit_assignment_stmt(
-        &mut self,
-        node: &AssignmentStmtNode,
-    ) -> Result<(), NewtRuntimeError> {
+    fn visit_assignment_stmt(&mut self, node: &AssignmentStmtNode) -> Result<(), NewtRuntimeError> {
         let value = self.visit_expr(node.expr())?;
 
         match node.rval().kind() {
@@ -200,23 +208,23 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
                         object.set(property.identifier().lexeme(), &value);
                         Ok(())
                     }
-                    _ => Err(NewtRuntimeError::TypeError)
+                    _ => Err(NewtRuntimeError::TypeError),
                 }
             }
         }
     }
 
     fn visit_stmt_list_stmt(&mut self, node: &StmtListStmtNode) -> Result<(), NewtRuntimeError> {
-	    if node.has_braces() {
-		    self.scope.push_scope();
-	    }
+        if node.has_braces() {
+            self.scope.push_scope();
+        }
 
         for stmt in node.stmts() {
             self.visit_stmt(stmt)?;
         }
 
         if node.has_braces() {
-	        self.scope.pop_scope();
+            self.scope.pop_scope();
         }
 
         Ok(())
@@ -267,7 +275,10 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
         node: &FunctionDeclarationStmtNode,
     ) -> Result<(), NewtRuntimeError> {
         let callable = NewtCallable::new(node, &self.scope);
-        self.scope.bind(node.identifier().lexeme(), NewtValue::Callable(Rc::new(callable)))?;
+        self.scope.bind(
+            node.identifier().lexeme(),
+            NewtValue::Callable(Rc::new(callable)),
+        )?;
 
         Ok(())
     }
@@ -277,8 +288,8 @@ impl StmtVisitor<Result<(), NewtRuntimeError>> for VirtualMachine {
             Some(expr) => {
                 let ok_is_err = self.visit_expr(expr)?;
                 Err(NewtRuntimeError::ReturnedValue(ok_is_err))
-            },
-            None => Err(NewtRuntimeError::NullValueEncountered)
+            }
+            None => Err(NewtRuntimeError::NullValueEncountered),
         }
     }
 }

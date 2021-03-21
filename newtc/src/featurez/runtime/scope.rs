@@ -1,13 +1,13 @@
-use crate::featurez::syntax::{NewtResult};
-use crate::featurez::syntax::{NewtRuntimeError, NewtValue};
-use crate::featurez::syntax::{SyntaxElement};
+use crate::featurez::syntax::NewtResult;
+use crate::featurez::syntax::SyntaxElement;
 use crate::featurez::syntax::*;
+use crate::featurez::syntax::{NewtRuntimeError, NewtValue};
 
+use crate::featurez::newtypes::TransparentNewType;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::hash::{Hash, Hasher};
-use crate::featurez::newtypes::TransparentNewType;
+use std::rc::Rc;
 
 type ScopeMap = HashMap<String, StoredValue>;
 
@@ -16,24 +16,24 @@ type ScopeMapLink = Rc<RefCell<ScopeMap>>;
 #[derive(Clone, Debug)]
 struct ScopeNodeLink {
     next: Rc<RefCell<ScopeNode>>,
-    sequence_number: usize
+    sequence_number: usize,
 }
 
 #[derive(Debug)]
 struct StoredValue {
     value: NewtValue,
-	sequence_number: usize
+    sequence_number: usize,
 }
 
 #[derive(Clone, Debug)]
 pub struct ScopeNode {
     link: Option<ScopeNodeLink>,
-    scope: ScopeMapLink
+    scope: ScopeMapLink,
 }
 
 #[derive(Clone, Debug)]
 pub struct Environment {
-    top: ScopeNodeLink
+    top: ScopeNodeLink,
 }
 
 impl Environment {
@@ -41,8 +41,8 @@ impl Environment {
         Environment {
             top: ScopeNodeLink {
                 next: Rc::new(RefCell::new(ScopeNode::new())),
-                sequence_number: 0
-            }
+                sequence_number: 0,
+            },
         }
     }
 
@@ -57,7 +57,7 @@ impl Environment {
     }
 
     pub fn assign(&mut self, identifier: &str, value: NewtValue) -> Result<(), NewtRuntimeError> {
-       self.top.next.borrow_mut().assign(identifier, value)
+        self.top.next.borrow_mut().assign(identifier, value)
     }
 
     pub fn resolve(&self, identifier: &str) -> Result<NewtValue, NewtRuntimeError> {
@@ -69,20 +69,24 @@ impl Environment {
         let sequence_number = next_node.scope.borrow().len();
         self.top = ScopeNodeLink {
             next: Rc::new(RefCell::new(next_node)),
-            sequence_number
+            sequence_number,
         }
     }
 
     pub fn pop_scope(&mut self) {
-        let next = self.top.next.borrow()
-            .link.clone()
+        let next = self
+            .top
+            .next
+            .borrow()
+            .link
+            .clone()
             .expect("No more scopes")
             .next;
         let sequence_number = next.borrow().scope.borrow().len();
 
         self.top = ScopeNodeLink {
             next,
-            sequence_number
+            sequence_number,
         }
     }
 }
@@ -91,7 +95,7 @@ impl ScopeNode {
     pub fn new() -> ScopeNode {
         ScopeNode {
             scope: Rc::new(RefCell::new(HashMap::new())),
-            link: None
+            link: None,
         }
     }
 
@@ -100,8 +104,8 @@ impl ScopeNode {
             scope: Rc::new(RefCell::new(HashMap::new())),
             link: Some(ScopeNodeLink {
                 next: Rc::new(RefCell::new(parent.clone())),
-                sequence_number: parent.scope.borrow().len()
-            })
+                sequence_number: parent.scope.borrow().len(),
+            }),
         }
     }
 }
@@ -128,10 +132,8 @@ impl ScopeNode {
         }
 
         match &self.link {
-            Some(link) => {
-                link.next.borrow_mut().assign(identifier, value)
-            },
-            None => Err(NewtRuntimeError::UndefinedVariable)
+            Some(link) => link.next.borrow_mut().assign(identifier, value),
+            None => Err(NewtRuntimeError::UndefinedVariable),
         }
     }
 
@@ -142,14 +144,19 @@ impl ScopeNode {
         }
 
         match &self.link {
-            Some(link) => {
-                link.next.borrow().filtered_resolve(identifier, link.sequence_number)
-            },
-            None => Err(NewtRuntimeError::UndefinedVariable)
+            Some(link) => link
+                .next
+                .borrow()
+                .filtered_resolve(identifier, link.sequence_number),
+            None => Err(NewtRuntimeError::UndefinedVariable),
         }
     }
 
-    fn filtered_resolve(&self, identifier: &str, sequence_number: usize) -> Result<NewtValue, NewtRuntimeError> {
+    fn filtered_resolve(
+        &self,
+        identifier: &str,
+        sequence_number: usize,
+    ) -> Result<NewtValue, NewtRuntimeError> {
         let scope = self.scope.borrow();
         if let Some(stored_value) = scope.get(identifier) {
             if stored_value.sequence_number < sequence_number {
@@ -158,10 +165,8 @@ impl ScopeNode {
         }
 
         match &self.link {
-            Some(link) => {
-                link.next.borrow().resolve(identifier)
-            },
-            None => Err(NewtRuntimeError::UndefinedVariable)
+            Some(link) => link.next.borrow().resolve(identifier),
+            None => Err(NewtRuntimeError::UndefinedVariable),
         }
     }
 }
@@ -170,14 +175,14 @@ impl StoredValue {
     fn new(value: NewtValue, sequence_number: usize) -> StoredValue {
         StoredValue {
             value,
-            sequence_number
+            sequence_number,
         }
     }
 }
 
 mod lexical_scope_analyzer_tests {
-    use crate::featurez::syntax::{NewtValue, NewtRuntimeError};
-    use crate::featurez::runtime::scope::{Environment};
+    use crate::featurez::runtime::scope::Environment;
+    use crate::featurez::syntax::{NewtRuntimeError, NewtValue};
 
     #[test]
     pub fn lexical_scope_can_resolve_immediately_after_binding() {
@@ -194,7 +199,10 @@ mod lexical_scope_analyzer_tests {
     pub fn lexical_scope_returns_undefined_variable_error_when_resolving_fails() {
         let mut scope = Environment::new();
 
-        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), scope.resolve("zoo"));
+        assert_eq!(
+            Err(NewtRuntimeError::UndefinedVariable),
+            scope.resolve("zoo")
+        );
     }
 
     #[test]
@@ -210,7 +218,10 @@ mod lexical_scope_analyzer_tests {
         environment.bind("zoo", NewtValue::Int(22)).unwrap();
 
         assert_eq!(Ok(NewtValue::Int(42)), environment.resolve("foo"));
-        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), environment.resolve("bar"));
+        assert_eq!(
+            Err(NewtRuntimeError::UndefinedVariable),
+            environment.resolve("bar")
+        );
         assert_eq!(Ok(NewtValue::Int(32)), closure.resolve("bar"));
         assert_eq!(Ok(NewtValue::Int(22)), environment.resolve("zoo"));
     }
@@ -228,7 +239,10 @@ mod lexical_scope_analyzer_tests {
         scope.pop_scope();
         scope.bind("zoo", NewtValue::Int(22)).unwrap();
 
-        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), closure.resolve("zoo"));
+        assert_eq!(
+            Err(NewtRuntimeError::UndefinedVariable),
+            closure.resolve("zoo")
+        );
     }
 
     #[test]
@@ -245,7 +259,10 @@ mod lexical_scope_analyzer_tests {
         scope.bind("zoo", NewtValue::Int(22)).unwrap();
 
         assert_eq!(Ok(NewtValue::Int(32)), closure.resolve("bar"));
-        assert_eq!(Err(NewtRuntimeError::UndefinedVariable), scope.resolve("bar"));
+        assert_eq!(
+            Err(NewtRuntimeError::UndefinedVariable),
+            scope.resolve("bar")
+        );
     }
 
     #[test]
@@ -256,7 +273,6 @@ mod lexical_scope_analyzer_tests {
         let mut callee = calling.clone();
         callee.push_scope();
         callee.bind("b", NewtValue::Int(2)).unwrap();
-
 
         assert_eq!(NewtValue::Int(1), calling.resolve("a").unwrap());
         assert_eq!(NewtValue::Int(1), callee.resolve("a").unwrap());

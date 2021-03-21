@@ -1,9 +1,9 @@
-use crate::featurez::parse::{CompletedMarker, Marker};
 use crate::featurez::parse::Parser;
+use crate::featurez::parse::{CompletedMarker, Marker};
 use crate::featurez::syntax::{SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken, SyntaxTree};
+use crate::featurez::tokens::TokenKind::TombStone;
 use crate::featurez::{Token, TokenKind};
 use std::collections::HashMap;
-use crate::featurez::tokens::TokenKind::TombStone;
 
 type RhsParseFunction = fn(&mut Parser, CompletedMarker) -> CompletedMarker;
 type LhsParseFunction = fn(&mut Parser) -> CompletedMarker;
@@ -14,44 +14,55 @@ struct PrecedenceRule {
     precedence: PrecedenceLevel,
     unary_prefix: Option<LhsParseFunction>,
     binary: Option<RhsParseFunction>,
-    unary_suffix: Option<RhsParseFunction>
+    unary_suffix: Option<RhsParseFunction>,
 }
 
 impl PrecedenceRule {
-    pub fn rule(precedence: PrecedenceLevel, token_kind:
-                TokenKind,
-                unary_prefix: Option<LhsParseFunction>,
-                binary: Option<RhsParseFunction>,
-                unary_suffix: Option<RhsParseFunction>) -> PrecedenceRule {
-
+    pub fn rule(
+        precedence: PrecedenceLevel,
+        token_kind: TokenKind,
+        unary_prefix: Option<LhsParseFunction>,
+        binary: Option<RhsParseFunction>,
+        unary_suffix: Option<RhsParseFunction>,
+    ) -> PrecedenceRule {
         PrecedenceRule {
             precedence,
             token_kind,
             unary_prefix,
             binary,
-            unary_suffix
+            unary_suffix,
         }
     }
 }
 
 lazy_static! {
-    static ref PRECEDENCE_RULES: HashMap<TokenKind, PrecedenceRule> = build_precedence_rules_table();
+    static ref PRECEDENCE_RULES: HashMap<TokenKind, PrecedenceRule> =
+        build_precedence_rules_table();
 }
 
 fn get_prefix(token_kind: TokenKind) -> Option<LhsParseFunction> {
-    PRECEDENCE_RULES.get(&token_kind).and_then(|rule| rule.unary_prefix)
+    PRECEDENCE_RULES
+        .get(&token_kind)
+        .and_then(|rule| rule.unary_prefix)
 }
 
 fn get_binary(token_kind: TokenKind) -> Option<RhsParseFunction> {
-    PRECEDENCE_RULES.get(&token_kind).and_then(|rule| rule.binary)
+    PRECEDENCE_RULES
+        .get(&token_kind)
+        .and_then(|rule| rule.binary)
 }
 
 fn get_suffix(token_kind: TokenKind) -> Option<RhsParseFunction> {
-    PRECEDENCE_RULES.get(&token_kind).and_then(|rule| rule.unary_suffix)
+    PRECEDENCE_RULES
+        .get(&token_kind)
+        .and_then(|rule| rule.unary_suffix)
 }
 
 fn get_precedence(token_kind: TokenKind) -> PrecedenceLevel {
-    PRECEDENCE_RULES.get(&token_kind).map(|rule| rule.precedence).unwrap_or(NO_PRECEDENCE)
+    PRECEDENCE_RULES
+        .get(&token_kind)
+        .map(|rule| rule.precedence)
+        .unwrap_or(NO_PRECEDENCE)
 }
 
 const PRIMARY_PRECEDENCE: PrecedenceLevel = 1;
@@ -66,108 +77,149 @@ fn build_precedence_rules_table() -> HashMap<TokenKind, PrecedenceRule> {
         PrecedenceRule::rule(
             MULTIPLICATION_PRECEDENCE,
             TokenKind::Star,
-            None, Some(binary_expr), None),
-
+            None,
+            Some(binary_expr),
+            None,
+        ),
         PrecedenceRule::rule(
             MULTIPLICATION_PRECEDENCE,
             TokenKind::Slash,
-            None, Some(binary_expr), None),
-
+            None,
+            Some(binary_expr),
+            None,
+        ),
         PrecedenceRule::rule(
             ADDITION_PRECEDENCE,
             TokenKind::Plus,
-            None, Some(binary_expr), None),
-
+            None,
+            Some(binary_expr),
+            None,
+        ),
         PrecedenceRule::rule(
             ADDITION_PRECEDENCE,
             TokenKind::Minus,
-            Some(unary_prefix), Some(binary_expr), None),
-
+            Some(unary_prefix),
+            Some(binary_expr),
+            None,
+        ),
         // logical operators
         PrecedenceRule::rule(
             LOGIC_PRECEDENCE,
             TokenKind::LessEquals,
-            None, Some(binary_expr), None),
-
+            None,
+            Some(binary_expr),
+            None,
+        ),
         PrecedenceRule::rule(
             LOGIC_PRECEDENCE,
             TokenKind::Less,
-            None, Some(binary_expr), None),
-
+            None,
+            Some(binary_expr),
+            None,
+        ),
         PrecedenceRule::rule(
             LOGIC_PRECEDENCE,
             TokenKind::GreaterEquals,
-            None, Some(binary_expr), None),
-
+            None,
+            Some(binary_expr),
+            None,
+        ),
         PrecedenceRule::rule(
             LOGIC_PRECEDENCE,
             TokenKind::Greater,
-            None, Some(binary_expr), None),
-
+            None,
+            Some(binary_expr),
+            None,
+        ),
         PrecedenceRule::rule(
             LOGIC_PRECEDENCE,
             TokenKind::EqualsEquals,
-            None, Some(binary_expr), None),
-
+            None,
+            Some(binary_expr),
+            None,
+        ),
         // primaries
         PrecedenceRule::rule(
             PRIMARY_PRECEDENCE,
             TokenKind::Bang,
-            Some(unary_prefix), None, None),
-
+            Some(unary_prefix),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             PRIMARY_PRECEDENCE,
             TokenKind::IntegerLiteral,
-            Some(primary_expr), None, None),
-
+            Some(primary_expr),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             PRIMARY_PRECEDENCE,
             TokenKind::FloatLiteral,
-            Some(primary_expr), None, None),
-
+            Some(primary_expr),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             PRIMARY_PRECEDENCE,
             TokenKind::GlyphLiteral,
-            Some(primary_expr), None, None),
-
+            Some(primary_expr),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             PRIMARY_PRECEDENCE,
             TokenKind::StringLiteral,
-            Some(primary_expr), None, None),
-
+            Some(primary_expr),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             PRIMARY_PRECEDENCE,
             TokenKind::Identifier,
-            Some(primary_expr), None, None),
-
+            Some(primary_expr),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             PRIMARY_PRECEDENCE,
             TokenKind::True,
-            Some(primary_expr), None, None),
-
+            Some(primary_expr),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             PRIMARY_PRECEDENCE,
             TokenKind::False,
-            Some(primary_expr), None, None),
-
+            Some(primary_expr),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             NO_PRECEDENCE,
             TokenKind::LeftParenthesis,
-            Some(primary_expr), None, Some(unary_suffix)),
-
+            Some(primary_expr),
+            None,
+            Some(unary_suffix),
+        ),
         PrecedenceRule::rule(
             NO_PRECEDENCE,
             TokenKind::LeftBrace,
-            Some(primary_expr), None, None),
-
+            Some(primary_expr),
+            None,
+            None,
+        ),
         PrecedenceRule::rule(
             NO_PRECEDENCE,
             TokenKind::Dot,
-            None, None, Some(unary_suffix))
-
-    ].into_iter()
-        .map(|rule| (rule.token_kind, rule))
-        .collect()
+            None,
+            None,
+            Some(unary_suffix),
+        ),
+    ]
+    .into_iter()
+    .map(|rule| (rule.token_kind, rule))
+    .collect()
 }
 
 pub fn expr(p: &mut Parser) -> CompletedMarker {
@@ -185,8 +237,13 @@ fn parse_expr(p: &mut Parser, precedence: PrecedenceLevel) -> CompletedMarker {
     let mut lhs = prefix_parser(p);
 
     while precedence >= get_precedence(p.current()) {
-        let binary_parser = get_binary(p.current())
-            .expect(format!("Precedence has no meaning without binary operators for {:?}", p.current()).as_str());
+        let binary_parser = get_binary(p.current()).expect(
+            format!(
+                "Precedence has no meaning without binary operators for {:?}",
+                p.current()
+            )
+            .as_str(),
+        );
 
         lhs = binary_parser(p, lhs);
     }
@@ -215,12 +272,15 @@ fn unary_prefix(p: &mut Parser) -> CompletedMarker {
 
 fn unary_suffix(p: &mut Parser, mut marker: CompletedMarker) -> CompletedMarker {
     match p.current() {
-	    TokenKind::Dot => object_property_expr(p, marker),
-	    TokenKind::LeftParenthesis => call_expr(p, marker),
-	    _ => {
-		    let error = p.begin_node();
-		    p.end_node(error, SyntaxKind::Error("Expected unary suffix expression, got {:?}"))
-	    }
+        TokenKind::Dot => object_property_expr(p, marker),
+        TokenKind::LeftParenthesis => call_expr(p, marker),
+        _ => {
+            let error = p.begin_node();
+            p.end_node(
+                error,
+                SyntaxKind::Error("Expected unary suffix expression, got {:?}"),
+            )
+        }
     }
 }
 
@@ -250,35 +310,17 @@ fn variable_expr(p: &mut Parser) -> CompletedMarker {
 
 fn primary_expr(p: &mut Parser) -> CompletedMarker {
     let mut completed = match p.current() {
-        TokenKind::IntegerLiteral => {
-            literal_expr(p)
-        }
-        TokenKind::FloatLiteral => {
-            literal_expr(p)
-        }
-        TokenKind::GlyphLiteral => {
-            literal_expr(p)
-        }
-        TokenKind::StringLiteral => {
-            literal_expr(p)
-        }
-        TokenKind::True => {
-	        literal_expr(p)
-        }
-        TokenKind::False => {
-	        literal_expr(p)
-        }
-        TokenKind::LeftParenthesis => {
-            grouping_expr(p)
-        }
-        TokenKind::Identifier => {
-            variable_expr(p)
-        }
-        TokenKind::LeftBrace => {
-            object_literal_expr(p)
-        }
+        TokenKind::IntegerLiteral => literal_expr(p),
+        TokenKind::FloatLiteral => literal_expr(p),
+        TokenKind::GlyphLiteral => literal_expr(p),
+        TokenKind::StringLiteral => literal_expr(p),
+        TokenKind::True => literal_expr(p),
+        TokenKind::False => literal_expr(p),
+        TokenKind::LeftParenthesis => grouping_expr(p),
+        TokenKind::Identifier => variable_expr(p),
+        TokenKind::LeftBrace => object_literal_expr(p),
         _ => {
-	        let mut error = p.begin_node();
+            let mut error = p.begin_node();
             p.end_node(error, SyntaxKind::Error("Expected primary expression"))
         }
     };
@@ -291,22 +333,22 @@ fn primary_expr(p: &mut Parser) -> CompletedMarker {
 }
 
 fn object_property_expr(p: &mut Parser, mut node: CompletedMarker) -> CompletedMarker {
-	let mut previous = node;
-	while p.current() == TokenKind::Dot {
-		let next = p.begin_node();
-		p.precede_node(&mut previous, &next);
+    let mut previous = node;
+    while p.current() == TokenKind::Dot {
+        let next = p.begin_node();
+        p.precede_node(&mut previous, &next);
 
-		p.token(TokenKind::Dot);
-		p.token(TokenKind::Identifier);
+        p.token(TokenKind::Dot);
+        p.token(TokenKind::Identifier);
 
-		previous = p.end_node(next, SyntaxKind::ObjectPropertyExpr);
-	}
+        previous = p.end_node(next, SyntaxKind::ObjectPropertyExpr);
+    }
 
-	previous
+    previous
 }
 
 fn object_literal_expr(p: &mut Parser) -> CompletedMarker {
-   let node = p.begin_node();
+    let node = p.begin_node();
     p.token(TokenKind::LeftBrace);
 
     if p.current() == TokenKind::Identifier {

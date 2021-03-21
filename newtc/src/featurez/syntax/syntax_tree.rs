@@ -1,23 +1,23 @@
-use crate::featurez::parse::{CompletedParsing, Parser};
 use crate::featurez::parse::ParseEvent;
+use crate::featurez::parse::{CompletedParsing, Parser};
 use crate::featurez::syntax::tree_sink::TreeSink;
-use crate::featurez::syntax::{AstNode, SyntaxElement, SyntaxNode, StmtNode, SyntaxKind};
 use crate::featurez::syntax::SyntaxToken;
 use crate::featurez::syntax::TextTreeSink;
+use crate::featurez::syntax::{AstNode, StmtNode, SyntaxElement, SyntaxKind, SyntaxNode};
 use crate::featurez::tokenize;
 
+use crate::featurez::driver::NewtError;
+use crate::featurez::grammar::{root_expr, root_stmt};
+use crate::featurez::{StrTokenSource, TokenKind};
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-use std::collections::{HashSet, HashMap};
-use crate::featurez::driver::NewtError;
-use crate::featurez::{TokenKind, StrTokenSource};
-use crate::featurez::grammar::{root_stmt, root_expr};
 
 pub struct SyntaxTree {
     root: SyntaxElement,
-    errors: Vec<ErrorReport>
+    errors: Vec<ErrorReport>,
 }
 
 pub struct ErrorReport {
@@ -26,26 +26,23 @@ pub struct ErrorReport {
 }
 
 impl Display for ErrorReport {
-	fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-		write!(f, "{}: {}", self.line, self.message)
-	}
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}: {}", self.line, self.message)
+    }
 }
 
 impl SyntaxTree {
     fn new(root: SyntaxElement, errors: Vec<ErrorReport>) -> SyntaxTree {
-        SyntaxTree {
-            root,
-            errors
-        }
+        SyntaxTree { root, errors }
     }
 
     pub fn root(&self) -> &SyntaxElement {
         &self.root
     }
 
-	pub fn errors(&self) -> impl Iterator<Item=&ErrorReport> {
-		self.errors.iter()
-	}
+    pub fn errors(&self) -> impl Iterator<Item = &ErrorReport> {
+        self.errors.iter()
+    }
 
     pub fn from_parser(parser: &CompletedParsing, text: &str) -> Self {
         let events = &parser.events;
@@ -63,12 +60,10 @@ impl SyntaxTree {
                     forward_parent_offset,
                 } => {
                     match k {
-                        SyntaxKind::Error(message) => {
-                            error_reports.push(ErrorReport {
-                                message: message.to_string(),
-                                line: lines + 1
-                            })
-                        },
+                        SyntaxKind::Error(message) => error_reports.push(ErrorReport {
+                            message: message.to_string(),
+                            line: lines + 1,
+                        }),
                         _ => {}
                     }
                     Self::begin_forward_parents(&mut sink, &events, index);
@@ -77,20 +72,16 @@ impl SyntaxTree {
                     kind,
                     is_forward_parent: true,
                     forward_parent_offset: _,
-                } => {
-                    match kind {
-                        SyntaxKind::Error(message) => {
-                            error_reports.push(ErrorReport {
-                                message: message.to_string(),
-                                line: lines + 1
-                            })
-                        },
-                        _ => {}
-                    }
-                }
+                } => match kind {
+                    SyntaxKind::Error(message) => error_reports.push(ErrorReport {
+                        message: message.to_string(),
+                        line: lines + 1,
+                    }),
+                    _ => {}
+                },
                 ParseEvent::EndNode => {
                     sink.end_node(0);
-                },
+                }
                 ParseEvent::Token { kind: k, length: l } => {
                     sink.attach_token(SyntaxToken::new(*k, *l, &text[offset..offset + l]));
                     offset += l;
@@ -120,12 +111,12 @@ impl SyntaxTree {
         f: &mut Formatter,
         element: &SyntaxElement,
         parents_child_count: Option<usize>,
-        prefix: &str
+        prefix: &str,
     ) -> Result<(), Error> {
         match parents_child_count {
-            None => {},
+            None => {}
             Some(1) => write!(f, " ")?,
-            Some(_) => write!(f, "{}", prefix)?
+            Some(_) => write!(f, "{}", prefix)?,
         }
 
         let mut next_prefix = prefix.to_string();
@@ -134,7 +125,7 @@ impl SyntaxTree {
         match element {
             SyntaxElement::Token(token) => {
                 write!(f, "{}", token)?;
-            },
+            }
             SyntaxElement::Node(node) => {
                 match node.children().len() {
                     0 => {
@@ -142,15 +133,30 @@ impl SyntaxTree {
                     }
                     1 => {
                         write!(f, "({}", node.kind())?;
-                        SyntaxTree::pretty_print_tree_elements(f, &node.children()[0], Some(1), &next_prefix)?;
+                        SyntaxTree::pretty_print_tree_elements(
+                            f,
+                            &node.children()[0],
+                            Some(1),
+                            &next_prefix,
+                        )?;
                         write!(f, ")")?;
                     }
                     child_count => {
                         writeln!(f, "({}", node.kind())?;
-                        SyntaxTree::pretty_print_tree_elements(f, &node.children()[0], Some(child_count), &next_prefix)?;
+                        SyntaxTree::pretty_print_tree_elements(
+                            f,
+                            &node.children()[0],
+                            Some(child_count),
+                            &next_prefix,
+                        )?;
                         for child in &node.children()[1..] {
                             writeln!(f)?;
-                            SyntaxTree::pretty_print_tree_elements(f, &child, Some(child_count), &next_prefix)?;
+                            SyntaxTree::pretty_print_tree_elements(
+                                f,
+                                &child,
+                                Some(child_count),
+                                &next_prefix,
+                            )?;
                         }
                         write!(f, ")")?;
                     }
@@ -168,13 +174,13 @@ impl SyntaxTree {
             ParseEvent::BeginNode {
                 kind,
                 forward_parent_offset: offset,
-                is_forward_parent: _
+                is_forward_parent: _,
             } => {
                 if let Some(next_offset) = offset {
                     Self::begin_forward_parents(sink, events, index + *next_offset);
                 }
                 sink.begin_node(*kind, 0);
-            },
+            }
             _ => {}
         }
     }
@@ -195,7 +201,7 @@ impl Debug for SyntaxTree {
 }
 
 pub struct SyntaxTreeIterator<'a> {
-    frontier: Vec<&'a SyntaxElement>
+    frontier: Vec<&'a SyntaxElement>,
 }
 
 impl<'a> Iterator for SyntaxTreeIterator<'a> {
@@ -212,8 +218,6 @@ impl<'a> Iterator for SyntaxTreeIterator<'a> {
     }
 }
 
-
-
 impl From<&str> for SyntaxTree {
     fn from(source: &str) -> Self {
         let statement_token_kinds = [
@@ -221,10 +225,12 @@ impl From<&str> for SyntaxTree {
             TokenKind::RightBrace,
             TokenKind::LeftBrace,
             TokenKind::RightBracket,
-            TokenKind::LeftBracket
+            TokenKind::LeftBracket,
         ];
         let tokens = tokenize(source);
-        let statement_tokens = tokens.iter().any(|t| statement_token_kinds.contains(&t.token_kind()));
+        let statement_tokens = tokens
+            .iter()
+            .any(|t| statement_token_kinds.contains(&t.token_kind()));
         let token_source = StrTokenSource::new(tokens);
         let mut p = Parser::new(token_source);
 
