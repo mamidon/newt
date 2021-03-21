@@ -2,6 +2,7 @@
 
 members = [
 	"newtc",
+	"runtime",
 	"gen-syntax",
 	"host",
 	"drawing"
